@@ -5,12 +5,15 @@ import magicbot
 import ntcore
 import wpilib
 from magicbot import feedback
+from wpimath.controller import PIDController
 from phoenix6.configs import (
     ClosedLoopGeneralConfigs,
     FeedbackConfigs,
     MotorOutputConfigs,
+    CANcoderConfiguration,
+    MagnetSensorConfigs,
 )
-from phoenix6.controls import PositionDutyCycle, VelocityVoltage, VoltageOut
+from phoenix6.controls import PositionDutyCycle, VelocityVoltage, VoltageOut, DutyCycleOut
 from phoenix6.hardware import CANcoder, TalonFX
 from phoenix6.signals import InvertedValue, NeutralModeValue
 from wpimath.controller import (
@@ -50,7 +53,9 @@ class SwerveModule:
         steer_id: int,
         encoder_id: int,
         *,
+        mag_offset: float = 0.0,
         drive_reversed: bool = False,
+        steer_reversed: bool = False
     ):
         """
         x, y: where the module is relative to the center of the robot
@@ -59,20 +64,16 @@ class SwerveModule:
         self.name = name
         self.translation = Translation2d(x, y)
         self.state = SwerveModuleState(0, Rotation2d(0))
-        self.do_smooth = True
 
         # Create Motor and encoder objects
         self.steer = TalonFX(steer_id, "canivore")
         self.drive = TalonFX(drive_id, "canivore")
         self.encoder = CANcoder(encoder_id, "canivore")
-
-        # Reduce CAN status frame rates before configuring
-        self.steer.get_fault_field().set_update_frequency(
-            frequency_hz=4, timeout_seconds=0.01
-        )
-        self.drive.get_fault_field().set_update_frequency(
-            frequency_hz=4, timeout_seconds=0.01
-        )
+        enc_config = CANcoderConfiguration()
+        mag_config = MagnetSensorConfigs()
+        mag_config.with_magnet_offset(mag_offset)
+        enc_config.with_magnet_sensor(mag_config)
+        self.encoder.configurator.apply(enc_config) # type: ignore
 
         # Configure steer motor
         steer_config = self.steer.configurator
@@ -81,6 +82,11 @@ class SwerveModule:
         steer_motor_config.neutral_mode = NeutralModeValue.BRAKE
         # The SDS Mk4i rotation has one pair of gears.
         steer_motor_config.inverted = InvertedValue.CLOCKWISE_POSITIVE
+        steer_motor_config.inverted = (
+            InvertedValue.COUNTER_CLOCKWISE_POSITIVE
+            if steer_reversed
+            else InvertedValue.CLOCKWISE_POSITIVE
+        )
 
         steer_gear_ratio_config = FeedbackConfigs().with_sensor_to_mechanism_ratio(
             TunerConstants._steer_gear_ratio
@@ -95,6 +101,7 @@ class SwerveModule:
         steer_config.apply(steer_pid, 0.01)
         steer_config.apply(steer_gear_ratio_config)
         steer_config.apply(steer_closed_loop_config)
+        
 
         # Configure drive motor
         drive_config = self.drive.configurator
@@ -123,6 +130,10 @@ class SwerveModule:
         self.module_locked = False
 
         self.sync_steer_encoder()
+        
+        self.steer_pid = PIDController(0, 0, 0)
+        self.steer_pid.enableContinuousInput(-math.pi, math.pi)
+        wpilib.SmartDashboard.putNumber('magicP', 0.3)
 
         self.drive_request = VelocityVoltage(0)
         self.stop_request = VoltageOut(0)
@@ -151,16 +162,34 @@ class SwerveModule:
         self.state.optimize(current_angle)
 
         if abs(self.state.speed) < 0.01 and not self.module_locked:
-            self.drive.set_control(
-                self.drive_request.with_velocity(0).with_feed_forward(0)
-            )
-            self.steer.set_control(self.stop_request)
-            return
+            self.drive.set_control(self.stop_request)
 
         target_displacement = self.state.angle - current_angle
         target_angle = self.state.angle.radians()
-        self.steer_request = PositionDutyCycle(target_angle / math.tau)
-        self.steer.set_control(self.steer_request)
+        
+        wpilib.SmartDashboard.putNumber(f"{self.name} ang-tau", target_angle / math.tau)
+        wpilib.SmartDashboard.putNumber(f"{self.name} target", target_angle)
+        wpilib.SmartDashboard.putNumber(f"{self.name} current", current_angle.radians())
+        wpilib.SmartDashboard.putNumber(f"{self.name} orig", current_angle.radians())
+
+        newP = wpilib.SmartDashboard.getNumber('magicP', 0.3)
+        self.steer_pid.setP(newP)
+        steer_output = self.steer_pid.calculate(current_angle.radians(), target_angle)
+        self.steer.set_control(DutyCycleOut(steer_output))
+
+        # Skip the closed loop controller for now
+        # self.steer_request = PositionDutyCycle(target_angle)
+        # self.steer.set_control(self.steer_request)
+        
+        # steer_output = self.steer_pid.calculate(current_angle.radians(),
+        #                                         target_angle.radians())
+
+        target_angle = self.state.angle
+        diff = target_angle - current_angle
+        if (abs(diff.degrees()) < 1):
+            self.steer.set_control(DutyCycleOut(0))
+        else:
+            self.steer.set_control(DutyCycleOut(steer_output))
 
         # rescale the speed target based on how close we are to being correctly
         # aligned
@@ -200,7 +229,7 @@ class DrivetrainComponent:
 
     # maxiumum speed for any wheel
     # TODO: Pull in from Tuner Contants
-    max_wheel_speed = 100 * 0.0503
+    max_wheel_speed = 14
 
     control_loop_wait_time: float
 
@@ -209,15 +238,13 @@ class DrivetrainComponent:
     logger: Logger
 
     send_modules = magicbot.tunable(True)
-    do_fudge = magicbot.tunable(True)
-    do_smooth = magicbot.tunable(True)
     swerve_lock = magicbot.tunable(False)
 
     # TODO: Read from positions.py once autonomous is finished
 
     def __init__(self) -> None:
         self.heading_controller = ProfiledPIDControllerRadians(
-            3, 0, 0, TrapezoidProfileRadians.Constraints(100, 100)
+            0.5, 0, 0, TrapezoidProfileRadians.Constraints(100, 100)
         )
         self.heading_controller.enableContinuousInput(-math.pi, math.pi)
         self.snapping_to_heading = False
@@ -234,6 +261,9 @@ class DrivetrainComponent:
                 TalonId.DRIVE_FL,
                 TalonId.TURN_FL,
                 CancoderId.SWERVE_FL,
+                mag_offset=TunerConstants._front_left_encoder_offset,
+                steer_reversed=True,
+                drive_reversed=True,
             ),
             # Front Right
             SwerveModule(
@@ -243,6 +273,8 @@ class DrivetrainComponent:
                 TalonId.DRIVE_FR,
                 TalonId.TURN_FR,
                 CancoderId.SWERVE_FR,
+                mag_offset=TunerConstants._front_right_encoder_offset,
+                steer_reversed=True,
             ),
             # Back Left
             SwerveModule(
@@ -252,6 +284,9 @@ class DrivetrainComponent:
                 TalonId.DRIVE_BL,
                 TalonId.TURN_BL,
                 CancoderId.SWERVE_BL,
+                mag_offset=TunerConstants._back_left_encoder_offset,
+                steer_reversed=True,
+                drive_reversed=True,
             ),
             # Back Right
             SwerveModule(
@@ -261,6 +296,8 @@ class DrivetrainComponent:
                 TalonId.DRIVE_BR,
                 TalonId.TURN_BR,
                 CancoderId.SWERVE_BR,
+                mag_offset=TunerConstants._back_right_encoder_offset,
+                steer_reversed=True,
             ),
         )
 
@@ -330,18 +367,48 @@ class DrivetrainComponent:
 
     def drive_local(self, vx: float, vy: float, omega: float) -> None:
         """Robot oriented drive commands"""
+        if abs(omega) < 0.01 and self.snap_heading is None:
+            self.snap_to_heading(self.get_heading().radians())
         self.chassis_speeds = ChassisSpeeds(vx, vy, omega)
 
     def snap_to_heading(self, heading: float) -> None:
         """set a heading target for the heading controller"""
         self.snapping_to_heading = True
-        self.heading_controller.setGoal(heading)
+        self.snap_heading = heading
+        self.heading_controller.setGoal(self.snap_heading)
 
     def stop_snapping(self) -> None:
         """stops the heading_controller"""
         self.snapping_to_heading = False
-
+        self.snap_heading = None
+    
     def execute(self) -> None:
+        for m in self.modules:
+            pn = wpilib.SmartDashboard.putNumber
+            pn(f"{m.name} heading", m.get_angle_absolute() * math.tau)
+        
+        if self.snapping_to_heading:
+            self.chassis_speeds.omega = self.heading_controller.calculate(
+                self.get_rotation().radians()
+            )
+        else:
+            self.heading_controller.reset(
+                self.get_rotation().radians(), self.get_rotational_velocity()
+            )
+
+        desired_speeds = self.chassis_speeds
+        desired_states = self.kinematics.toSwerveModuleStates(desired_speeds)
+        desired_states = self.kinematics.desaturateWheelSpeeds(
+            desired_states, attainableMaxSpeed=self.max_wheel_speed
+        )
+
+        for state, module in zip(desired_states, self.modules):
+            module.module_locked = self.swerve_lock
+            module.set(state)
+
+        self.update_odometry()
+
+    def execute_old(self) -> None:
         # rotate desired velocity to compensate for skew caused by
         # discretization
         # see https://www.chiefdelphi.com/t/field-relative-swervedrive-drift-even-with-simulated-perfect-modules/413892/
@@ -359,24 +426,7 @@ class DrivetrainComponent:
                 self.get_rotation().radians(), self.get_rotational_velocity()
             )
 
-        if self.do_fudge:
-            # in the sim i found using 5 instead of 0.5 did a lot better
-            desired_speed_translation = Translation2d(
-                self.chassis_speeds.vx, self.chassis_speeds.vy
-            ).rotateBy(
-                Rotation2d(-self.chassis_speeds.omega * 5 * self.control_loop_wait_time)
-            )
-            desired_speeds = ChassisSpeeds(
-                desired_speed_translation.x,
-                desired_speed_translation.y,
-                self.chassis_speeds.omega,
-            )
-        else:
-            desired_speeds = self.chassis_speeds
-
-        if self.swerve_lock:
-            self.do_smooth = False
-
+        desired_speeds = self.chassis_speeds
         desired_states = self.kinematics.toSwerveModuleStates(desired_speeds)
         desired_states = self.kinematics.desaturateWheelSpeeds(
             desired_states, attainableMaxSpeed=self.max_wheel_speed
@@ -384,7 +434,6 @@ class DrivetrainComponent:
 
         for state, module in zip(desired_states, self.modules):
             module.module_locked = self.swerve_lock
-            module.do_smooth = self.do_smooth
             module.set(state)
 
         self.update_odometry()

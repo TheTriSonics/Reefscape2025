@@ -20,10 +20,10 @@ class MyRobot(magicbot.MagicRobot):
     gyro: Gyro
     chassis: DrivetrainComponent
 
-    max_speed = magicbot.tunable(5)  # m/s
-    lower_max_speed = magicbot.tunable(2)  # m/s
-    max_spin_rate = magicbot.tunable(4)  # m/s
-    lower_max_spin_rate = magicbot.tunable(2)  # m/s
+    max_speed = magicbot.tunable(16)  # m/s
+    lower_max_speed = magicbot.tunable(6)  # m/s
+    max_spin_rate = magicbot.tunable(32)  # m/s
+    lower_max_spin_rate = magicbot.tunable(8)  # m/s
     inclination_angle = tunable(0.0)
 
     START_POS_TOLERANCE = 1
@@ -52,10 +52,13 @@ class MyRobot(magicbot.MagicRobot):
         if self.gamepad.getRightBumper():
             max_speed = self.lower_max_speed
             max_spin_rate = self.lower_max_spin_rate
-        drive_x = -rescale_js(self.gamepad.getLeftY(), 0.05, 2.5) * max_speed
-        drive_y = -rescale_js(self.gamepad.getLeftX(), 0.05, 2.5) * max_speed
+
+        if self.gamepad.getLeftBumper():
+            self.gyro.reset_heading()
+        drive_x = rescale_js(self.gamepad.getLeftY(), 0.05, 2.5) * max_speed
+        drive_y = rescale_js(self.gamepad.getLeftX(), 0.05, 2.5) * max_speed
         drive_z = (
-            -rescale_js(self.gamepad.getRightX(), 0.1, exponential=2) * max_spin_rate
+            rescale_js(self.gamepad.getRightX(), 0.1, exponential=2) * max_spin_rate
         )
         local_driving = self.gamepad.getXButton()
 
@@ -78,6 +81,7 @@ class MyRobot(magicbot.MagicRobot):
 
     def testPeriodic(self) -> None:
         dpad = self.gamepad.getPOV()
+        wpilib.SmartDashboard.putNumber('DPAD', dpad)
         if dpad != -1:
             if is_red():
                 self.chassis.snap_to_heading(-math.radians(dpad) + math.pi)
