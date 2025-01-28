@@ -5,15 +5,15 @@ import enum
 class TalonId(enum.IntEnum):
     """CAN ID for CTRE Talon motor controllers (e.g. Talon FX, Talon SRX)."""
 
-    DRIVE_FR = 11
-    DRIVE_FL = 12
-    DRIVE_BL = 13
-    DRIVE_BR = 14
+    DRIVE_FR = 12
+    DRIVE_FL = 11
+    DRIVE_BL = 14
+    DRIVE_BR = 13
 
-    TURN_FR = 21
-    TURN_FL = 22
-    TURN_BL = 23
-    TURN_BR = 24
+    TURN_FR = 22
+    TURN_FL = 21
+    TURN_BL = 24
+    TURN_BR = 23
 
     AMP_LIFT_MOTOR = 54
 
@@ -25,17 +25,17 @@ class TalonId(enum.IntEnum):
 class CancoderId(enum.IntEnum):
     """CAN ID for CTRE CANcoder."""
 
-    SWERVE_FR = 31
-    SWERVE_FL = 32
+    SWERVE_FR = 32
+    SWERVE_FL = 34
     SWERVE_BL = 33
-    SWERVE_BR = 34
+    SWERVE_BR = 31
 
 
 @enum.unique
 class CanId(enum.IntEnum):
     """CAN IDs for miscellaneous devices."""
 
-    PIGEON = 35
+    PIGEON = 41
 
 
 @enum.unique
