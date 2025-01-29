@@ -151,7 +151,7 @@ class SwerveModule:
         return self.drive.get_velocity().value
 
     def get_distance_traveled(self) -> float:
-        return self.drive.get_position().value
+        return self.drive.get_position().value * math.tau*TunerConstants._wheel_radius
 
     def set(self, desired_state: SwerveModuleState):
         if self.module_locked:
@@ -229,7 +229,7 @@ class DrivetrainComponent:
 
     # maxiumum speed for any wheel
     # TODO: Pull in from Tuner Contants
-    max_wheel_speed = 14
+    max_wheel_speed = 32
 
     control_loop_wait_time: float
 
@@ -249,7 +249,10 @@ class DrivetrainComponent:
         self.heading_controller.enableContinuousInput(-math.pi, math.pi)
         self.snapping_to_heading = False
         self.heading_controller.setTolerance(self.HEADING_TOLERANCE)
+        self.snap_heading = None
 
+        self.choreo_x_controller = PIDController(10, 0, 0)
+        self.choreo_y_controller = PIDController(10, 0, 0)
         self.on_red_alliance = False
 
         self.modules = (
@@ -263,7 +266,7 @@ class DrivetrainComponent:
                 CancoderId.SWERVE_FL,
                 mag_offset=TunerConstants._front_left_encoder_offset,
                 steer_reversed=True,
-                drive_reversed=True,
+                drive_reversed=False,
             ),
             # Front Right
             SwerveModule(
@@ -275,6 +278,7 @@ class DrivetrainComponent:
                 CancoderId.SWERVE_FR,
                 mag_offset=TunerConstants._front_right_encoder_offset,
                 steer_reversed=True,
+                drive_reversed=True,
             ),
             # Back Left
             SwerveModule(
@@ -286,7 +290,7 @@ class DrivetrainComponent:
                 CancoderId.SWERVE_BL,
                 mag_offset=TunerConstants._back_left_encoder_offset,
                 steer_reversed=True,
-                drive_reversed=True,
+                drive_reversed=False,
             ),
             # Back Right
             SwerveModule(
@@ -298,6 +302,7 @@ class DrivetrainComponent:
                 CancoderId.SWERVE_BR,
                 mag_offset=TunerConstants._back_right_encoder_offset,
                 steer_reversed=True,
+                drive_reversed=True,
             ),
         )
 
@@ -407,6 +412,17 @@ class DrivetrainComponent:
             module.set(state)
 
         self.update_odometry()
+
+    def follow_trajectory(self, sample):
+        # Get the current pose of the robot
+        pose = self.get_pose()
+
+        # Generate the next speeds for the robot
+        dx = sample.vx + self.choreo_x_controller.calculate(pose.X(), sample.x)
+        dy = sample.vy + self.choreo_y_controller.calculate(pose.Y(), sample.y)
+        do = sample.omega + self.heading_controller.calculate(pose.rotation().radians(), sample.heading)
+        # Apply the generated speeds
+        self.drive_field(dx, dy, do)
 
     def execute_old(self) -> None:
         # rotate desired velocity to compensate for skew caused by

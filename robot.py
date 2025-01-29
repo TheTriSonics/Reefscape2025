@@ -1,4 +1,5 @@
 import math
+import choreo
 
 import magicbot
 import wpilib
@@ -20,7 +21,7 @@ class MyRobot(magicbot.MagicRobot):
     gyro: Gyro
     chassis: DrivetrainComponent
 
-    max_speed = magicbot.tunable(16)  # m/s
+    max_speed = magicbot.tunable(32)  # m/s
     lower_max_speed = magicbot.tunable(6)  # m/s
     max_spin_rate = magicbot.tunable(32)  # m/s
     lower_max_spin_rate = magicbot.tunable(8)  # m/s
@@ -42,6 +43,19 @@ class MyRobot(magicbot.MagicRobot):
         self.vision_name = "ardu_cam"
         self.vision_pos = Translation3d(0.25, 0.0, 0.20)
         self.vision_rot = Rotation3d(0, -math.radians(20), 0)
+        self.trajectory = choreo.load_swerve_trajectory("New Path")
+        self.timer = wpilib.Timer()
+
+    def autonomousInit(self):
+        initial_pose = self.trajectory.get_initial_pose(is_red())
+        if initial_pose:
+            self.chassis.set_pose(initial_pose)
+        self.timer.restart()
+
+    def autonomousPeriodic(self):
+        sample = self.trajectory.sample_at(self.timer.get(), is_red())
+        if sample:
+            self.chassis.follow_trajectory(sample)
 
     def teleopInit(self) -> None:
         self.field.getObject("Intended start pos").setPoses([])
@@ -55,10 +69,10 @@ class MyRobot(magicbot.MagicRobot):
 
         if self.gamepad.getLeftBumper():
             self.gyro.reset_heading()
-        drive_x = rescale_js(self.gamepad.getLeftY(), 0.05, 2.5) * max_speed
-        drive_y = rescale_js(self.gamepad.getLeftX(), 0.05, 2.5) * max_speed
+        drive_x = -rescale_js(self.gamepad.getLeftY(), 0.05, 2.5) * max_speed
+        drive_y = -rescale_js(self.gamepad.getLeftX(), 0.05, 2.5) * max_speed
         drive_z = (
-            rescale_js(self.gamepad.getRightX(), 0.1, exponential=2) * max_spin_rate
+            -rescale_js(self.gamepad.getRightX(), 0.1, exponential=2) * max_spin_rate
         )
         local_driving = self.gamepad.getXButton()
 
