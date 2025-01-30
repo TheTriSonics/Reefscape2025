@@ -3,7 +3,9 @@ import choreo
 
 import magicbot
 import wpilib
+import ntcore
 import wpilib.event
+from wpimath.geometry import Pose2d
 from magicbot import tunable
 from wpimath.geometry import Rotation3d, Translation3d
 
@@ -12,6 +14,7 @@ from components.gyro import Gyro
 
 from utilities.scalers import rescale_js
 from utilities.game import is_red
+
 
 
 class MyRobot(magicbot.MagicRobot):
@@ -43,20 +46,13 @@ class MyRobot(magicbot.MagicRobot):
         self.vision_name = "ardu_cam"
         self.vision_pos = Translation3d(0.25, 0.0, 0.20)
         self.vision_rot = Rotation3d(0, -math.radians(20), 0)
-        self.trajectory = choreo.load_swerve_trajectory("New Path")
         self.timer = wpilib.Timer()
 
     def autonomousInit(self):
-        initial_pose = self.trajectory.get_initial_pose(is_red())
-        if initial_pose:
-            self.chassis.set_pose(initial_pose)
-        self.timer.restart()
+        return
 
     def autonomousPeriodic(self):
-        sample = self.trajectory.sample_at(self.timer.get(), is_red())
-        if sample:
-            self.chassis.follow_trajectory(sample)
-
+        pass
     def teleopInit(self) -> None:
         self.field.getObject("Intended start pos").setPoses([])
 
@@ -74,7 +70,7 @@ class MyRobot(magicbot.MagicRobot):
         drive_z = (
             -rescale_js(self.gamepad.getRightX(), 0.1, exponential=2) * max_spin_rate
         )
-        local_driving = self.gamepad.getXButton()
+        local_driving = self.gamepad.getRightBumper()
 
         if local_driving:
             self.chassis.drive_local(drive_x, drive_y, drive_z)

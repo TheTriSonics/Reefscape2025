@@ -8,7 +8,7 @@ class Gyro:
     def __init__(self):
         self.pigeon = Pigeon2(CanId.PIGEON, "canivore")
 
-    def reset_heading(self, heading=0) -> None:
+    def reset_heading(self, heading=0.0) -> None:
         self.pigeon.set_yaw(heading)
 
     @feedback

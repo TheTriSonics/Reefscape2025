@@ -243,6 +243,11 @@ class DrivetrainComponent:
     # TODO: Read from positions.py once autonomous is finished
 
     def __init__(self) -> None:
+
+        self.publisher = (ntcore.NetworkTableInstance.getDefault()
+                                                .getStructTopic("MyPose", Pose2d)
+                                                .publish()
+        )
         self.heading_controller = ProfiledPIDControllerRadians(
             0.5, 0, 0, TrapezoidProfileRadians.Constraints(100, 100)
         )
@@ -253,6 +258,8 @@ class DrivetrainComponent:
 
         self.choreo_x_controller = PIDController(10, 0, 0)
         self.choreo_y_controller = PIDController(10, 0, 0)
+        self.choreo_heading_controller = PIDController(7.5, 0, 0)
+        self.choreo_heading_controller.enableContinuousInput(-math.pi, math.pi)
         self.on_red_alliance = False
 
         self.modules = (
@@ -375,6 +382,7 @@ class DrivetrainComponent:
         if abs(omega) < 0.01 and self.snap_heading is None:
             self.snap_to_heading(self.get_heading().radians())
         self.chassis_speeds = ChassisSpeeds(vx, vy, omega)
+        wpilib.SmartDashboard.putNumber("Tele Omega", omega)
 
     def snap_to_heading(self, heading: float) -> None:
         """set a heading target for the heading controller"""
@@ -420,7 +428,13 @@ class DrivetrainComponent:
         # Generate the next speeds for the robot
         dx = sample.vx + self.choreo_x_controller.calculate(pose.X(), sample.x)
         dy = sample.vy + self.choreo_y_controller.calculate(pose.Y(), sample.y)
-        do = sample.omega + self.heading_controller.calculate(pose.rotation().radians(), sample.heading)
+        do = sample.omega + self.choreo_heading_controller.calculate(pose.rotation().radians(), sample.heading)
+        fakedo = sample.omega + self.heading_controller.calculate(pose.rotation().radians(), sample.heading)
+        pn = wpilib.SmartDashboard.putNumber
+        pn('choreo dx', dx)
+        pn('choreo dy', dy)
+        pn('choreo do', do)
+        pn('choreo fakedo', fakedo)
         # Apply the generated speeds
         self.drive_field(dx, dy, do)
 
@@ -476,6 +490,7 @@ class DrivetrainComponent:
     def update_odometry(self) -> None:
         self.estimator.update(self.gyro.get_Rotation2d(), self.get_module_positions())
         self.field_obj.setPose(self.get_pose())
+        self.publisher.set(self.get_pose())
         if self.send_modules:
             self.setpoints_publisher.set([module.state for module in self.modules])
             self.measurements_publisher.set([module.get() for module in self.modules])
