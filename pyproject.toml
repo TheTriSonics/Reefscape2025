@@ -88,8 +88,9 @@ dependencies = [
     "phoenix6~=25.1.0",
     "robotpy[apriltag]==2025.2.1.0",
     "robotpy-wpilib-utilities==2025.0.0",
-    "photonlibpy==2025.1.1rc1",
+    "photonlibpy==2025.1.1",
     "sleipnirgroup-choreolib>=2025.0.2",
+    "pip",
 ]
 
 [tool.robotpy]
@@ -97,7 +98,7 @@ requires = [
     "numpy~=2.1",
     "phoenix6~=25.1.0",
     "robotpy-wpilib-utilities==2025.0.0",
-    "photonlibpy==2025.1.1rc1",
+    "photonlibpy==2025.1.1",
     "sleipnirgroup-choreolib>=2025.0.2",
 ]
 robotpy_version = "2025.2.1.0"

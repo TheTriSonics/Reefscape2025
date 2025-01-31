@@ -167,10 +167,12 @@ class SwerveModule:
         target_displacement = self.state.angle - current_angle
         target_angle = self.state.angle.radians()
         
+        """
         wpilib.SmartDashboard.putNumber(f"{self.name} ang-tau", target_angle / math.tau)
         wpilib.SmartDashboard.putNumber(f"{self.name} target", target_angle)
         wpilib.SmartDashboard.putNumber(f"{self.name} current", current_angle.radians())
         wpilib.SmartDashboard.putNumber(f"{self.name} orig", current_angle.radians())
+        """
 
         newP = wpilib.SmartDashboard.getNumber('magicP', 0.3)
         self.steer_pid.setP(newP)
@@ -382,7 +384,6 @@ class DrivetrainComponent:
         if abs(omega) < 0.01 and self.snap_heading is None:
             self.snap_to_heading(self.get_heading().radians())
         self.chassis_speeds = ChassisSpeeds(vx, vy, omega)
-        wpilib.SmartDashboard.putNumber("Tele Omega", omega)
 
     def snap_to_heading(self, heading: float) -> None:
         """set a heading target for the heading controller"""
@@ -396,10 +397,6 @@ class DrivetrainComponent:
         self.snap_heading = None
     
     def execute(self) -> None:
-        for m in self.modules:
-            pn = wpilib.SmartDashboard.putNumber
-            pn(f"{m.name} heading", m.get_angle_absolute() * math.tau)
-        
         if self.snapping_to_heading:
             self.chassis_speeds.omega = self.heading_controller.calculate(
                 self.get_rotation().radians()
@@ -430,43 +427,15 @@ class DrivetrainComponent:
         dy = sample.vy + self.choreo_y_controller.calculate(pose.Y(), sample.y)
         do = sample.omega + self.choreo_heading_controller.calculate(pose.rotation().radians(), sample.heading)
         fakedo = sample.omega + self.heading_controller.calculate(pose.rotation().radians(), sample.heading)
+        """
         pn = wpilib.SmartDashboard.putNumber
         pn('choreo dx', dx)
         pn('choreo dy', dy)
         pn('choreo do', do)
         pn('choreo fakedo', fakedo)
+        """
         # Apply the generated speeds
         self.drive_field(dx, dy, do)
-
-    def execute_old(self) -> None:
-        # rotate desired velocity to compensate for skew caused by
-        # discretization
-        # see https://www.chiefdelphi.com/t/field-relative-swervedrive-drift-even-with-simulated-perfect-modules/413892/
-
-        for m in self.modules:
-            pn = wpilib.SmartDashboard.putNumber
-            pn(f"{m.name} heading", m.get_angle_absolute() * math.tau)
-
-        if self.snapping_to_heading:
-            self.chassis_speeds.omega = self.heading_controller.calculate(
-                self.get_rotation().radians()
-            )
-        else:
-            self.heading_controller.reset(
-                self.get_rotation().radians(), self.get_rotational_velocity()
-            )
-
-        desired_speeds = self.chassis_speeds
-        desired_states = self.kinematics.toSwerveModuleStates(desired_speeds)
-        desired_states = self.kinematics.desaturateWheelSpeeds(
-            desired_states, attainableMaxSpeed=self.max_wheel_speed
-        )
-
-        for state, module in zip(desired_states, self.modules):
-            module.module_locked = self.swerve_lock
-            module.set(state)
-
-        self.update_odometry()
 
     def on_enable(self) -> None:
         """update the odometry so the pose estimator doesn't have an empty

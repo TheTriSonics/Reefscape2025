@@ -11,6 +11,7 @@ from wpimath.geometry import Rotation3d, Translation3d
 
 from components.drivetrain import DrivetrainComponent
 from components.gyro import Gyro
+from components.vision import Vision
 
 from utilities.scalers import rescale_js
 from utilities.game import is_red
@@ -23,6 +24,7 @@ class MyRobot(magicbot.MagicRobot):
     # Components
     gyro: Gyro
     chassis: DrivetrainComponent
+    vision: Vision
 
     max_speed = magicbot.tunable(32)  # m/s
     lower_max_speed = magicbot.tunable(6)  # m/s
@@ -106,4 +108,5 @@ class MyRobot(magicbot.MagicRobot):
         self.chassis.update_odometry()
 
     def disabledPeriodic(self) -> None:
+        self.vision.execute()
         self.chassis.update_odometry()
