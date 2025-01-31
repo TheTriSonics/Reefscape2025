@@ -1,6 +1,10 @@
 # py2025
 
-The Drop Bears' robot code for FRC 2025
+TriSonics's robotpy project for Reefscape in 2025
+
+Heavily influenced by The Drop Bears' robot code for 2025 and 2024.
+https://github.com/thedropbears/pyreefscape
+https://github.com/thedropbears/pycresendo
 
 ## Setup
 
