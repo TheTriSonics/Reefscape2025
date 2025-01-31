@@ -50,7 +50,11 @@ class MyRobot(magicbot.MagicRobot):
 
     def autonomousPeriodic(self):
         pass
+
     def teleopInit(self) -> None:
+        if self.isSimulation():
+            wpilib.DriverStation.silenceJoystickConnectionWarning(True)
+
         self.field.getObject("Intended start pos").setPoses([])
 
     def handle_drivetrain(self) -> None:
