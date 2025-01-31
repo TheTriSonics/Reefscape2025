@@ -17,6 +17,15 @@ warn_unused_ignores = true
 warn_unreachable = true
 strict_equality = true
 
+[[tool.mypy.overrides]]
+module = 'generated.*'
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = 'choreo'
+ignore_missing_imports = true
+follow_imports = "skip"
+
 [tool.pyright]
 exclude = [
     "ctre_sim",
@@ -75,7 +84,7 @@ dev-dependencies = [
 prerelease = "allow"
 
 [project]
-name = "pyreefscape"
+name = "Reefscape2025"
 version = "0.0.0"
 description = "The TriSoncis 2025 Robot Code"
 authors = [{ name = "The TriSonids", email = "contact@allendalerobotics.com" }]

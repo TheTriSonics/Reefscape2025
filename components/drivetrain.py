@@ -73,7 +73,7 @@ class SwerveModule:
         mag_config = MagnetSensorConfigs()
         mag_config.with_magnet_offset(mag_offset)
         enc_config.with_magnet_sensor(mag_config)
-        self.encoder.configurator.apply(enc_config) # type: ignore
+        self.encoder.configurator.apply(enc_config)
 
         # Configure steer motor
         steer_config = self.steer.configurator
@@ -101,7 +101,7 @@ class SwerveModule:
         steer_config.apply(steer_pid, 0.01)
         steer_config.apply(steer_gear_ratio_config)
         steer_config.apply(steer_closed_loop_config)
-        
+
 
         # Configure drive motor
         drive_config = self.drive.configurator
@@ -130,7 +130,7 @@ class SwerveModule:
         self.module_locked = False
 
         self.sync_steer_encoder()
-        
+
         self.steer_pid = PIDController(0, 0, 0)
         self.steer_pid.enableContinuousInput(-math.pi, math.pi)
         wpilib.SmartDashboard.putNumber('magicP', 0.3)
@@ -166,7 +166,7 @@ class SwerveModule:
 
         target_displacement = self.state.angle - current_angle
         target_angle = self.state.angle.radians()
-        
+
         """
         wpilib.SmartDashboard.putNumber(f"{self.name} ang-tau", target_angle / math.tau)
         wpilib.SmartDashboard.putNumber(f"{self.name} target", target_angle)
@@ -179,15 +179,7 @@ class SwerveModule:
         steer_output = self.steer_pid.calculate(current_angle.radians(), target_angle)
         self.steer.set_control(DutyCycleOut(steer_output))
 
-        # Skip the closed loop controller for now
-        # self.steer_request = PositionDutyCycle(target_angle)
-        # self.steer.set_control(self.steer_request)
-        
-        # steer_output = self.steer_pid.calculate(current_angle.radians(),
-        #                                         target_angle.radians())
-
-        target_angle = self.state.angle
-        diff = target_angle - current_angle
+        diff = self.state.angle - current_angle
         if (abs(diff.degrees()) < 1):
             self.steer.set_control(DutyCycleOut(0))
         else:
@@ -256,7 +248,7 @@ class DrivetrainComponent:
         self.heading_controller.enableContinuousInput(-math.pi, math.pi)
         self.snapping_to_heading = False
         self.heading_controller.setTolerance(self.HEADING_TOLERANCE)
-        self.snap_heading = None
+        self.snap_heading: float | None = None
 
         self.choreo_x_controller = PIDController(10, 0, 0)
         self.choreo_y_controller = PIDController(10, 0, 0)
@@ -389,13 +381,14 @@ class DrivetrainComponent:
         """set a heading target for the heading controller"""
         self.snapping_to_heading = True
         self.snap_heading = heading
-        self.heading_controller.setGoal(self.snap_heading)
+        if self.snap_heading is not None:
+            self.heading_controller.setGoal(self.snap_heading)
 
     def stop_snapping(self) -> None:
         """stops the heading_controller"""
         self.snapping_to_heading = False
         self.snap_heading = None
-    
+
     def execute(self) -> None:
         if self.snapping_to_heading:
             self.chassis_speeds.omega = self.heading_controller.calculate(

@@ -30,14 +30,15 @@ class Vision():
                 t = Translation3d(p.x, p.y, p.z)
                 r = p.rotation()
                 vision_pose = Pose3d(t, r)
-                vision_pose -= self.camera_offset
+                tmp = vision_pose - self.camera_offset
+                vision_pose = Pose3d(tmp.translation(), tmp.rotation())
                 twod_pose = Pose2d(vision_pose.x,
                                    vision_pose.y,
                                    vision_pose.rotation().toRotation2d())
                 self.publisher.set(twod_pose)
                 """
                 # TODO: We can come up with a dynamic way of determining these
-                xdev, ydev, rdev = 0.5, 0.5, 0.2 
+                xdev, ydev, rdev = 0.5, 0.5, 0.2
                 self.chassis.estimator.setVisionMeasurementStdDevs((xdev, ydev, rdev))
                 """
                 self.chassis.estimator.addVisionMeasurement(twod_pose,
