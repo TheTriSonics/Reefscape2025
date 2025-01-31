@@ -43,11 +43,6 @@ class MyRobot(magicbot.MagicRobot):
         wpilib.SmartDashboard.putData(self.field)
 
         # side: (28*3)*2 + front: (30*3) - 2 (R.I.P)
-        self.status_lights_strip_length = (28 * 3) * 2 + (30 * 3) - 2
-
-        self.vision_name = "ardu_cam"
-        self.vision_pos = Translation3d(0.25, 0.0, 0.20)
-        self.vision_rot = Rotation3d(0, -math.radians(20), 0)
         self.timer = wpilib.Timer()
 
     def autonomousInit(self):
