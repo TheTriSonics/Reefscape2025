@@ -25,6 +25,7 @@ class Vision():
     def execute(self) -> None:
         results = self.camera.getAllUnreadResults()
         for res in results:
+            res.getTimestampSeconds
             if res.multitagResult:
                 p = res.multitagResult.estimatedPose.best
                 t = Translation3d(p.x, p.y, p.z)
@@ -41,5 +42,14 @@ class Vision():
                 xdev, ydev, rdev = 0.5, 0.5, 0.2
                 self.chassis.estimator.setVisionMeasurementStdDevs((xdev, ydev, rdev))
                 """
-                self.chassis.estimator.addVisionMeasurement(twod_pose,
-                                                            self.timer.getFPGATimestamp())
+                setDevs = self.chassis.estimator.setVisionMeasurementStdDevs
+                tv, rv = self.chassis.get_robot_speeds()
+                if abs(tv) < 0.10 and abs(rv) < 0.05:
+                    setDevs((0.4, 0.4, 0.2))
+                elif abs(tv < 2) and abs(rv) < 0.5:
+                    setDevs((0.8, 0.8, 0.4))
+                else:
+                    setDevs((1, 1, 0.8))
+
+                ts = self.timer.getTimestamp() - res.getLatencyMillis() / 1000.0
+                self.chassis.estimator.addVisionMeasurement(twod_pose, ts)

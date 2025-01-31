@@ -15,6 +15,7 @@ from components.vision import Vision
 
 from utilities.scalers import rescale_js
 from utilities.game import is_red
+from robotpy_ext.autonomous import AutonomousModeSelector
 
 
 
@@ -109,3 +110,8 @@ class MyRobot(magicbot.MagicRobot):
     def disabledPeriodic(self) -> None:
         self.vision.execute()
         self.chassis.update_odometry()
+        # mode = self._automodes.active_mode
+        mode = self._automodes.chooser.getSelected()
+        if mode:
+            if hasattr(mode, 'set_initial_pose'):
+                mode.set_initial_pose()

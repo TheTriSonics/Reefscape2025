@@ -8,6 +8,9 @@ class Gyro:
     def __init__(self):
         self.pigeon = Pigeon2(CanId.PIGEON, "canivore")
 
+    # TODO: Set this to heading=None
+    # then use:
+    # heading = 180 if is_red() else 0
     def reset_heading(self, heading=0.0) -> None:
         self.pigeon.set_yaw(heading)
 

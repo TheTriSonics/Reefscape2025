@@ -356,7 +356,7 @@ class DrivetrainComponent:
             self.get_heading(),
             self.get_module_positions(),
             initial_pose,
-            stateStdDevs=(0.05, 0.05, 0.01),  # How much to trust wheel odometry
+            stateStdDevs=(0.01, 0.01, 0.01),  # How much to trust wheel odometry
             visionMeasurementStdDevs=(0.4, 0.4, 0.2),
         )
         self.field_obj = self.field.getObject("fused_pose")
@@ -370,6 +370,12 @@ class DrivetrainComponent:
         self.chassis_speeds = ChassisSpeeds.fromFieldRelativeSpeeds(
             vx, vy, omega, current_heading
         )
+
+    def get_robot_speeds(self) -> tuple[float, float]:
+        vx = self.chassis_speeds.vx
+        vy = self.chassis_speeds.vy
+        total_speed = math.sqrt(vx*vx + vy*vy)
+        return total_speed, self.chassis_speeds.omega
 
     def drive_local(self, vx: float, vy: float, omega: float) -> None:
         """Robot oriented drive commands"""
