@@ -6,12 +6,12 @@ from components.drivetrain import DrivetrainComponent
 from components.gyro import Gyro
 from choreo import load_swerve_trajectory  # type: ignore
 
-class MoveOffLine():
+class JustinAuton():
 
     chassis: DrivetrainComponent
     gyro: Gyro
 
-    MODE_NAME = 'Circle Reef'
+    MODE_NAME = 'Justin'
 
     pose_set = False
     selected_alliance = None
