@@ -1,9 +1,13 @@
+import wpilib
+from robotpy_apriltag import AprilTagFieldLayout, AprilTagField
 from wpilib import Timer
 import ntcore
-from wpimath.geometry import Pose2d, Pose3d, Translation2d, Translation3d, Rotation3d, Rotation2d
+from wpimath.geometry import Pose2d, Pose3d, Translation2d, Translation3d, Rotation3d, Rotation2d, Transform3d
 from photonlibpy.photonCamera import PhotonCamera
+from photonlibpy.photonPoseEstimator import PhotonPoseEstimator, PoseStrategy
 from components.drivetrain import DrivetrainComponent
 from wpimath import units
+
 
 class Vision():
 
@@ -11,45 +15,84 @@ class Vision():
 
     def __init__(self) -> None:
         self.timer = Timer()
-        self.camera = PhotonCamera("ardu_cam-1")
-        self.publisher = (ntcore.NetworkTableInstance.getDefault()
-                                                .getStructTopic("PhotonPose", Pose2d)
-                                                .publish()
+        self.camera_center = PhotonCamera("ardu_cam-1")
+        self.camera_fl = PhotonCamera("ardu_cam-2")
+
+        self.camera_center_offset = Transform3d(
+            Translation3d(
+                units.inchesToMeters(1.5),
+                units.inchesToMeters(0.5),
+                units.inchesToMeters(16),
+            ),
+            Rotation3d.fromDegrees(0, 0, 0),
         )
-        self.camera_offset = Pose3d(units.inchesToMeters(1.5),
-                                    units.inchesToMeters(0.5),
-                                    units.inchesToMeters(16),
-                                    Rotation3d(0, 0, 0),
-                        )
+        self.camera_fl_offset = Transform3d(
+            Translation3d(
+                units.inchesToMeters(10.25),
+                units.inchesToMeters(10.25),
+                units.inchesToMeters(5.75),
+            ),
+            Rotation3d.fromDegrees(0, 27, 45),
+        )
+
+        field = AprilTagFieldLayout.loadField(AprilTagField.k2025Reefscape)
+        wpilib.SmartDashboard.putNumber('field length (m)', field.getFieldLength())
+        wpilib.SmartDashboard.putNumber('field width (m)', field.getFieldWidth())
+
+        self.pose_estimator_center = PhotonPoseEstimator(
+            field,
+            PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+            self.camera_center,
+            self.camera_center_offset,
+        )
+        self.pose_estimator_fl = PhotonPoseEstimator(
+            field,
+            PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+            self.camera_fl,
+            self.camera_fl_offset,
+        )
+
+        self.publisher_center = (
+            ntcore.NetworkTableInstance.getDefault()
+            .getStructTopic("PhotonPose_center", Pose2d)
+            .publish()
+        )
+        self.publisher_fl = (
+            ntcore.NetworkTableInstance.getDefault()
+            .getStructTopic("PhotonPose_fl", Pose2d)
+            .publish()
+        )
+        """
+        # Disabled so we can run only one camera for now
+        self.cameras = [self.camera_center, self.camera_fl]
+        self.pose_estimators = [self.pose_estimator_center, self.pose_estimator_fl]
+        self.publishers = [self.publisher_center, self.publisher_fl]
+        """
+
+        self.cameras = [self.camera_center]
+        self.pose_estimators = [self.pose_estimator_center]
+        self.publishers = [self.publisher_center]
 
     def execute(self) -> None:
-        results = self.camera.getAllUnreadResults()
-        for res in results:
-            res.getTimestampSeconds
-            if res.multitagResult:
-                p = res.multitagResult.estimatedPose.best
-                t = Translation3d(p.x, p.y, p.z)
-                r = p.rotation()
-                vision_pose = Pose3d(t, r)
-                tmp = vision_pose - self.camera_offset
-                vision_pose = Pose3d(tmp.translation(), tmp.rotation())
-                twod_pose = Pose2d(vision_pose.x,
-                                   vision_pose.y,
-                                   vision_pose.rotation().toRotation2d())
-                self.publisher.set(twod_pose)
-                """
-                # TODO: We can come up with a dynamic way of determining these
-                xdev, ydev, rdev = 0.5, 0.5, 0.2
-                self.chassis.estimator.setVisionMeasurementStdDevs((xdev, ydev, rdev))
-                """
-                setDevs = self.chassis.estimator.setVisionMeasurementStdDevs
-                tv, rv = self.chassis.get_robot_speeds()
-                if abs(tv) < 0.10 and abs(rv) < 0.05:
-                    setDevs((0.4, 0.4, 0.2))
-                elif abs(tv < 2) and abs(rv) < 0.5:
-                    setDevs((0.8, 0.8, 0.4))
-                else:
-                    setDevs((1, 1, 0.8))
-
-                ts = self.timer.getTimestamp() - res.getLatencyMillis() / 1000.0
-                self.chassis.estimator.addVisionMeasurement(twod_pose, ts)
+        setDevs = self.chassis.estimator.setVisionMeasurementStdDevs
+        for cam, pose_est, pub in zip(
+            self.cameras, self.pose_estimators, self.publishers
+        ):
+            results = cam.getAllUnreadResults()
+            for res in results:
+                target_count = len(res.getTargets())
+                pupdate = pose_est.update(res)
+                if pupdate:
+                    pose = pupdate.estimatedPose
+                    twod_pose = Pose2d(pose.x, pose.y,
+                                        pose.rotation().toRotation2d())
+                    pub.set(twod_pose)
+                    ts = self.timer.getTimestamp() - res.getLatencyMillis() / 1000.0
+                    tv, rv = self.chassis.get_robot_speeds()
+                    # TODO: Take into account rv, rotational velocity
+                    # for standard deviations. A spinning robot is not accurate!
+                    std_x = (0.4 * max(abs(tv**1.5), 1)) / target_count
+                    std_y = std_x
+                    std_rot = std_x / 2
+                    setDevs((std_x, std_y, std_rot))
+                    self.chassis.estimator.addVisionMeasurement(twod_pose, ts)
