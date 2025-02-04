@@ -73,10 +73,10 @@ class PhysicsEngine:
     def __init__(self, physics_controller: PhysicsInterface, robot: MyRobot):
         self.physics_controller = physics_controller
 
-        self.kinematics: SwerveDrive4Kinematics = robot.chassis.kinematics
+        self.kinematics: SwerveDrive4Kinematics = robot.drivetrain.kinematics
         self.swerve_modules: tuple[
             SwerveModule, SwerveModule, SwerveModule, SwerveModule
-        ] = robot.chassis.modules
+        ] = robot.drivetrain.modules
 
         # Motors
         self.wheels = [
@@ -85,7 +85,7 @@ class PhysicsEngine:
                 units_per_rev=1 / 0.0503,
                 kV=2.7,
             )
-            for module in robot.chassis.modules
+            for module in robot.drivetrain.modules
         ]
         self.steer = [
             Falcon500MotorSim(
@@ -94,7 +94,7 @@ class PhysicsEngine:
                 # measured from MKCad CAD
                 moi=0.0009972,
             )
-            for module in robot.chassis.modules
+            for module in robot.drivetrain.modules
         ]
 
         # Replace NavX with Pigeon 2

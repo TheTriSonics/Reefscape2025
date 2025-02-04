@@ -11,7 +11,7 @@ from wpimath import units
 
 class Vision():
 
-    chassis: DrivetrainComponent
+    drivetrain: DrivetrainComponent
 
     def __init__(self) -> None:
         self.timer = Timer()
@@ -77,7 +77,7 @@ class Vision():
         if wpilib.RobotBase.isSimulation():
             # Skip vision on sim for now
             return
-        setDevs = self.chassis.estimator.setVisionMeasurementStdDevs
+        setDevs = self.drivetrain.estimator.setVisionMeasurementStdDevs
         for cam, pose_est, pub in zip(
             self.cameras, self.pose_estimators, self.publishers
         ):
@@ -91,11 +91,13 @@ class Vision():
                                         pose.rotation().toRotation2d())
                     pub.set(twod_pose)
                     ts = self.timer.getTimestamp() - res.getLatencyMillis() / 1000.0
-                    tv, rv = self.chassis.get_robot_speeds()
+                    tv, rv = self.drivetrain.get_robot_speeds()
                     # TODO: Take into account rv, rotational velocity
                     # for standard deviations. A spinning robot is not accurate!
                     std_x = (0.4 * max(abs(tv**1.5), 1)) / target_count
                     std_y = std_x
                     std_rot = std_x / 2
                     setDevs((std_x, std_y, std_rot))
-                    self.chassis.estimator.addVisionMeasurement(twod_pose, ts)
+                    # TODO: Reject pose if it's too far off where the robot
+                    # thinks it is.
+                    self.drivetrain.estimator.addVisionMeasurement(twod_pose, ts)

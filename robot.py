@@ -15,11 +15,12 @@ from components.vision import Vision
 from components.arm import ArmComponent
 from components.elevator import ElevatorComponent
 from components.intake import IntakeComponent
+from components.battery_monitor import BatteryMonitorComponent
+from components.leds import LEDs
 
 from utilities.scalers import rescale_js
 from utilities.game import is_red
 from robotpy_ext.autonomous import AutonomousModeSelector
-
 
 
 class MyRobot(magicbot.MagicRobot):
@@ -27,11 +28,13 @@ class MyRobot(magicbot.MagicRobot):
 
     # Components
     gyro: Gyro
-    chassis: DrivetrainComponent
+    drivetrain: DrivetrainComponent
     vision: Vision
     intake: IntakeComponent
     arm: ArmComponent
     elevator: ElevatorComponent
+    battery_monitor: BatteryMonitorComponent
+    leds: LEDs
 
     max_speed = magicbot.tunable(32)  # m/s
     lower_max_speed = magicbot.tunable(6)  # m/s
@@ -81,15 +84,15 @@ class MyRobot(magicbot.MagicRobot):
         local_driving = self.gamepad.getRightBumper()
 
         if local_driving:
-            self.chassis.drive_local(drive_x, drive_y, drive_z)
+            self.drivetrain.drive_local(drive_x, drive_y, drive_z)
         else:
             if is_red():
                 drive_x = -drive_x
                 drive_y = -drive_y
-            self.chassis.drive_field(drive_x, drive_y, drive_z)
+            self.drivetrain.drive_field(drive_x, drive_y, drive_z)
         # Give rotational access to the driver
         if drive_z != 0:
-            self.chassis.stop_snapping()
+            self.drivetrain.stop_snapping()
 
     def teleopPeriodic(self) -> None:
         self.handle_drivetrain()
@@ -102,22 +105,24 @@ class MyRobot(magicbot.MagicRobot):
         wpilib.SmartDashboard.putNumber('DPAD', dpad)
         if dpad != -1:
             if is_red():
-                self.chassis.snap_to_heading(-math.radians(dpad) + math.pi)
+                self.drivetrain.snap_to_heading(-math.radians(dpad) + math.pi)
             else:
-                self.chassis.snap_to_heading(-math.radians(dpad))
+                self.drivetrain.snap_to_heading(-math.radians(dpad))
         else:
-            self.chassis.stop_snapping()
-            self.chassis.drive_local(0, 0, 0)
+            self.drivetrain.stop_snapping()
+            self.drivetrain.drive_local(0, 0, 0)
 
-        self.chassis.execute()
+        self.drivetrain.execute()
 
-        self.chassis.update_odometry()
+        self.drivetrain.update_odometry()
 
     def disabledPeriodic(self) -> None:
         self.vision.execute()
-        self.chassis.update_odometry()
+        self.battery_monitor.execute()
+        self.leds.execute()
+        self.drivetrain.update_odometry()
         # mode = self._automodes.active_mode
         mode = self._automodes.chooser.getSelected()
-        if mode:
-            if hasattr(mode, 'set_initial_pose'):
-                mode.set_initial_pose()
+        if mode and hasattr(mode, 'set_initial_pose'):
+            mode.set_initial_pose()
+
