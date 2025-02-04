@@ -32,7 +32,7 @@ class Vision():
                 units.inchesToMeters(10.25),
                 units.inchesToMeters(5.75),
             ),
-            Rotation3d.fromDegrees(0, 27, 45),
+            Rotation3d.fromDegrees(0, 0, 28),
         )
 
         field = AprilTagFieldLayout.loadField(AprilTagField.k2025Reefscape)
@@ -62,18 +62,21 @@ class Vision():
             .getStructTopic("PhotonPose_fl", Pose2d)
             .publish()
         )
-        """
+        
         # Disabled so we can run only one camera for now
         self.cameras = [self.camera_center, self.camera_fl]
         self.pose_estimators = [self.pose_estimator_center, self.pose_estimator_fl]
         self.publishers = [self.publisher_center, self.publisher_fl]
-        """
+        
 
-        self.cameras = [self.camera_center]
-        self.pose_estimators = [self.pose_estimator_center]
-        self.publishers = [self.publisher_center]
+        # self.cameras = [self.camera_center]
+        # self.pose_estimators = [self.pose_estimator_center]
+        # self.publishers = [self.publisher_center]
 
     def execute(self) -> None:
+        if wpilib.RobotBase.isSimulation():
+            # Skip vision on sim for now
+            return
         setDevs = self.chassis.estimator.setVisionMeasurementStdDevs
         for cam, pose_est, pub in zip(
             self.cameras, self.pose_estimators, self.publishers
