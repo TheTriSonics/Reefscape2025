@@ -12,6 +12,9 @@ from wpimath.geometry import Rotation3d, Translation3d
 from components.drivetrain import DrivetrainComponent
 from components.gyro import Gyro
 from components.vision import Vision
+from components.arm import ArmComponent
+from components.elevator import ElevatorComponent
+from components.intake import IntakeComponent
 
 from utilities.scalers import rescale_js
 from utilities.game import is_red
@@ -26,6 +29,9 @@ class MyRobot(magicbot.MagicRobot):
     gyro: Gyro
     chassis: DrivetrainComponent
     vision: Vision
+    intake: IntakeComponent
+    arm: ArmComponent
+    elevator: ElevatorComponent
 
     max_speed = magicbot.tunable(32)  # m/s
     lower_max_speed = magicbot.tunable(6)  # m/s
