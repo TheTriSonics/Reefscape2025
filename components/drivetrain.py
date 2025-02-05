@@ -29,7 +29,7 @@ from wpimath.kinematics import (
     SwerveModuleState,
 )
 from wpimath.trajectory import TrapezoidProfileRadians
-from utilities.game import is_red
+from utilities.game import is_red, is_sim
 
 from ids import CancoderId, TalonId
 
@@ -456,7 +456,9 @@ class DrivetrainComponent:
         self.swerve_lock = False
 
     def update_odometry(self) -> None:
-        self.estimator.update(self.gyro.get_Rotation2d(), self.get_module_positions())
+        if not is_sim():
+            self.estimator.update(self.gyro.get_Rotation2d(), self.get_module_positions())
+
         self.field_obj.setPose(self.get_pose())
         self.publisher.set(self.get_pose())
         if self.send_modules:
@@ -468,9 +470,11 @@ class DrivetrainComponent:
             m.sync_steer_encoder()
 
     def set_pose(self, pose: Pose2d) -> None:
+        print('set pose called -- force location')
         self.estimator.resetPosition(
             self.gyro.get_Rotation2d(), self.get_module_positions(), pose
         )
+        self.publisher.set(pose)
         self.field.setRobotPose(pose)
         self.field_obj.setPose(pose)
 

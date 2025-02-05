@@ -50,3 +50,7 @@ def field_flip_translation2d(t: Translation2d):
 # This will default to the blue alliance if a proper link to the driver station has not yet been established
 def is_red() -> bool:
     return wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed
+
+
+def is_sim() -> bool:
+    return wpilib.RobotBase.isSimulation()

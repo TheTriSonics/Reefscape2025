@@ -72,6 +72,7 @@ class Falcon500MotorSim:
 class PhysicsEngine:
     def __init__(self, physics_controller: PhysicsInterface, robot: MyRobot):
         self.physics_controller = physics_controller
+        self.robot = robot
 
         self.kinematics: SwerveDrive4Kinematics = robot.drivetrain.kinematics
         self.swerve_modules: tuple[
@@ -134,5 +135,4 @@ class PhysicsEngine:
         self.gyro.set_raw_yaw(self.current_yaw)
 
         self.physics_controller.drive(speeds, tm_diff)
-
         # self.vision.update(self.physics_controller.get_pose())

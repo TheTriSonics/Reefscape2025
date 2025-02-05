@@ -7,6 +7,7 @@ from photonlibpy.photonCamera import PhotonCamera
 from photonlibpy.photonPoseEstimator import PhotonPoseEstimator, PoseStrategy
 from components.drivetrain import DrivetrainComponent
 from wpimath import units
+from utilities.game import is_sim
 
 
 class Vision():
@@ -62,19 +63,13 @@ class Vision():
             .getStructTopic("PhotonPose_fl", Pose2d)
             .publish()
         )
-        
-        # Disabled so we can run only one camera for now
+
         self.cameras = [self.camera_center, self.camera_fl]
         self.pose_estimators = [self.pose_estimator_center, self.pose_estimator_fl]
         self.publishers = [self.publisher_center, self.publisher_fl]
-        
-
-        # self.cameras = [self.camera_center]
-        # self.pose_estimators = [self.pose_estimator_center]
-        # self.publishers = [self.publisher_center]
 
     def execute(self) -> None:
-        if wpilib.RobotBase.isSimulation():
+        if is_sim():
             # Skip vision on sim for now
             return
         setDevs = self.drivetrain.estimator.setVisionMeasurementStdDevs
