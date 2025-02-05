@@ -12,9 +12,7 @@ from wpimath.geometry import Rotation3d, Translation3d
 from components.drivetrain import DrivetrainComponent
 from components.gyro import Gyro
 from components.vision import Vision
-from components.arm import ArmComponent
-from components.elevator import ElevatorComponent
-from components.intake import IntakeComponent
+from components.manipulator import ManipulatorComponent
 from components.battery_monitor import BatteryMonitorComponent
 from components.leds import LEDs
 
@@ -30,9 +28,7 @@ class MyRobot(magicbot.MagicRobot):
     gyro: Gyro
     drivetrain: DrivetrainComponent
     vision: Vision
-    intake: IntakeComponent
-    arm: ArmComponent
-    elevator: ElevatorComponent
+    elevator: ManipulatorComponent
     battery_monitor: BatteryMonitorComponent
     leds: LEDs
 
