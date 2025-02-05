@@ -30,9 +30,9 @@ class ManipulatorComponent:
 
     elevator_target_pos = tunable(0.0)
     arm_target_pos = tunable(0.0)
-    wrist_target_pos = tunable(0.0)
+    wrist_target_pos = tunable(20.0)
 
-    wrist_request = MotionMagicVoltage(0)
+    wrist_request = MotionMagicVoltage(0, override_brake_dur_neutral=True)
 
     def __init__(self):
         # TODO: Set the right motor to follow the left and then set motion magic
@@ -135,7 +135,7 @@ class ManipulatorComponent:
             # TODO: Make this real
             pass
         if not self.wrist_at_goal():
-            req = self.wrist_request.with_position(self.wrist_target_pos).with_enable_foc(False)
+            req = self.wrist_request.with_position(self.wrist_target_pos)
             self.wrist_motor.set_control(req)
 
         intake_motor_speed = 0
