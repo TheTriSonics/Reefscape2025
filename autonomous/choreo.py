@@ -6,6 +6,7 @@ from magicbot import AutonomousStateMachine, timed_state, state, feedback
 
 from utilities.game import is_red
 
+from components.manipulator import ManipulatorComponent
 from components.drivetrain import DrivetrainComponent
 from components.gyro import Gyro
 from components.battery_monitor import BatteryMonitorComponent
@@ -21,6 +22,7 @@ class AutonPlace2(AutonomousStateMachine):
     drivetrain: DrivetrainComponent
     gyro: Gyro
     battery_monitor: BatteryMonitorComponent
+    manipulator: ManipulatorComponent
 
     MODE_NAME = 'Place 2 Coral'
     DEFAULT = True
@@ -98,9 +100,11 @@ class AutonPlace2(AutonomousStateMachine):
         if photoeyes.has_coral():
             self.next_state(self.drive_to_reef)
         """
+        self.manipulator.intake_in()
         print('waiting...')
 
 
     @timed_state(must_finish=True, duration=5.0)
     def drive_to_reef(self, tm, state_tm):
+        self.manipulator.intake_off()
         self.drive_trajectory(self.to_reef_from_ps, state_tm)

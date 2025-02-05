@@ -98,7 +98,30 @@ class PhysicsEngine:
             for module in robot.drivetrain.modules
         ]
 
-        # Replace NavX with Pigeon 2
+        self.intake_motor = Falcon500MotorSim(
+            robot.manipulator.intake_motor,
+            gearing=1,
+            moi=0.001
+        )
+
+        self.wrist_motor = Falcon500MotorSim(
+            robot.manipulator.wrist_motor,
+            gearing=1,
+            moi=0.00001
+        )
+
+        self.elevator_motor_left = SimpleTalonFXMotorSim(
+            robot.manipulator.elevator_motor_left,
+            units_per_rev=1,
+            kV=2.7,
+        )
+
+        self.elevator_motor_right = SimpleTalonFXMotorSim(
+            robot.manipulator.elevator_motor_right,
+            units_per_rev=1,
+            kV=2.7,
+        )
+
         self.current_yaw = 0.0
         self.gyro = robot.gyro.pigeon.sim_state  # Access the Pigeon 2's sim state
         self.gyro.set_supply_voltage(12.0)  # Set the supply voltage for simulation
@@ -123,6 +146,14 @@ class PhysicsEngine:
             wheel.update(tm_diff)
         for steer in self.steer:
             steer.update(tm_diff)
+
+        for m in [
+            self.elevator_motor_left,
+            self.elevator_motor_right,
+            self.intake_motor,
+            self.wrist_motor,
+        ]:
+            m.update(tm_diff)
 
         speeds = self.kinematics.toChassisSpeeds((
             self.swerve_modules[0].get(),

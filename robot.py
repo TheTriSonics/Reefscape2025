@@ -31,6 +31,7 @@ class MyRobot(magicbot.MagicRobot):
     elevator: ManipulatorComponent
     battery_monitor: BatteryMonitorComponent
     leds: LEDs
+    manipulator: ManipulatorComponent
 
     max_speed = magicbot.tunable(32)  # m/s
     lower_max_speed = magicbot.tunable(6)  # m/s
@@ -63,6 +64,11 @@ class MyRobot(magicbot.MagicRobot):
 
         self.field.getObject("Intended start pos").setPoses([])
 
+    def handle_manipulator(self) -> None:
+        if self.gamepad.getAButtonPressed():
+            self.manipulator.wrist_target_pos += 1
+        pass
+
     def handle_drivetrain(self) -> None:
         max_speed = self.max_speed
         max_spin_rate = self.max_spin_rate
@@ -92,6 +98,7 @@ class MyRobot(magicbot.MagicRobot):
 
     def teleopPeriodic(self) -> None:
         self.handle_drivetrain()
+        self.handle_manipulator()
 
     def testInit(self) -> None:
         pass

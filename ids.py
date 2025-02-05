@@ -15,10 +15,11 @@ class TalonId(enum.IntEnum):
     TURN_BL = 24
     TURN_BR = 23
 
-    AMP_LIFT_MOTOR = 54
-
-    SHOOTER_MOTOR_LEFT = 41
-    SHOOTER_MOTOR_RIGHT = 42
+    MANIP_ELEVATOR_LEFT = 41
+    MANIP_ELEVATOR_RIGHT = 42
+    MANIP_ARM = 43
+    MANIP_WRIST = 44
+    MANIP_INTAKE = 45
 
 
 @enum.unique

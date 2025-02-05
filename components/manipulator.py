@@ -1,7 +1,16 @@
-from magicbot import feedback
+import wpilib
+from magicbot import feedback, tunable
 from phoenix6.hardware import TalonFX
-from phoenix6.controls import PositionDutyCycle, DutyCycleOut
+from phoenix6.controls import (
+    DutyCycleOut,
+    MotionMagicVoltage,
+    DynamicMotionMagicVoltage,
+)
+from phoenix6.configs import TalonFXConfiguration
 from enum import Enum
+from ids import TalonId
+
+pn = wpilib.SmartDashboard.putNumber
 
 
 class IntakeDirection(Enum):
@@ -12,20 +21,35 @@ class IntakeDirection(Enum):
 
 class ManipulatorComponent:
     # TODO: Change these numbers out for something in ids.py
-    elevator_motor_left = TalonFX(1, 'elevator_can')
-    elevator_motor_right = TalonFX(2, 'elevator_can')
-    arm_motor = TalonFX(3, 'elevator_can')
-    wrist_motor = TalonFX(4, 'elevator_can')
-    intake_motor = TalonFX(5, 'elevator_can')
+    bus = 'elevator_can'
+    elevator_motor_left = TalonFX(TalonId.MANIP_ELEVATOR_LEFT, bus)
+    elevator_motor_right = TalonFX(TalonId.MANIP_ELEVATOR_RIGHT, bus)
+    arm_motor = TalonFX(TalonId.MANIP_ARM, bus)
+    wrist_motor = TalonFX(TalonId.MANIP_WRIST, bus)
+    intake_motor = TalonFX(TalonId.MANIP_INTAKE, bus)
+
+    elevator_target_pos = tunable(0.0)
+    arm_target_pos = tunable(0.0)
+    wrist_target_pos = tunable(0.0)
+
+    wrist_request = MotionMagicVoltage(0)
 
     def __init__(self):
         # TODO: Set the right motor to follow the left and then set motion magic
         # controls up
-        self.elevator_target_pos = 0
-        self.arm_target_pos = 0
-        self.wrist_target_pos = 0
         self.intake_direction = IntakeDirection.NONE
-        pass
+
+        wrist_config = TalonFXConfiguration()
+        wrist_config.slot0.k_s = 0.25
+        wrist_config.slot0.k_v = 0.12
+        wrist_config.slot0.k_a = 0.01
+        wrist_config.slot0.k_p = 0.1
+        wrist_config.slot0.k_i = 0
+        wrist_config.slot0.k_d = 0.1
+        wrist_config.motion_magic.motion_magic_cruise_velocity = 10
+        wrist_config.motion_magic.motion_magic_acceleration = 40
+        wrist_config.motion_magic.motion_magic_jerk = 400
+        self.wrist_motor.configurator.apply(wrist_config)  # type: ignore
 
     def elevator_go_level1(self):
         self.elevator_target_pos = 100
@@ -89,10 +113,16 @@ class ManipulatorComponent:
         return diff < 0.01
 
     @feedback
+    def wrist_position(self) -> float:
+        return self.wrist_motor.get_position().value
+
+    @feedback
     def wrist_at_goal(self):
-        current_pos = self.wrist_motor.get_position().value
+        current_pos = self.wrist_position()
         diff = abs(self.wrist_target_pos - current_pos)
-        return diff < 0.01
+        pn('wrist pos', current_pos)
+        pn('wrist diff', diff)
+        return diff < 0.50
 
     def execute(self):
         if not self.elevator_at_goal():
@@ -105,8 +135,8 @@ class ManipulatorComponent:
             # TODO: Make this real
             pass
         if not self.wrist_at_goal():
-            # TODO: Make this real
-            pass
+            req = self.wrist_request.with_position(self.wrist_target_pos).with_enable_foc(False)
+            self.wrist_motor.set_control(req)
 
         intake_motor_speed = 0
         if self.intake_direction == IntakeDirection.FORWARD:
