@@ -456,8 +456,7 @@ class DrivetrainComponent:
         self.swerve_lock = False
 
     def update_odometry(self) -> None:
-        if not is_sim():
-            self.estimator.update(self.gyro.get_Rotation2d(), self.get_module_positions())
+        self.estimator.update(self.gyro.get_Rotation2d(), self.get_module_positions())
 
         self.field_obj.setPose(self.get_pose())
         self.publisher.set(self.get_pose())

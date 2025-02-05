@@ -24,7 +24,7 @@ class AutonPlace2(AutonomousStateMachine):
 
     MODE_NAME = 'Place 2 Coral'
     DEFAULT = True
-    
+
     pose_set = False
     selected_alliance = None
 
@@ -34,13 +34,6 @@ class AutonPlace2(AutonomousStateMachine):
         self.to_reef_from_ps = load_swerve_trajectory('AutonPlace2_03')
         pb('auton/choreo/placing_coral', False)
         return
-
-    def on_iteration(self, tm):
-        stop = self.battery_monitor.is_stop_active()
-        warn = self.battery_monitor.is_warning_active()
-        if stop or warn:
-            ps('StatusMessage', 'Shutdown: Low Battery')
-            self.done()
 
     def set_initial_pose(self) -> None:
         # No need to set the pose twice!
@@ -61,12 +54,12 @@ class AutonPlace2(AutonomousStateMachine):
     def drive_trajectory(self, traj: SwerveTrajectory, tm):
         sample = traj.sample_at(tm, is_red())
         if sample:
+            self.drivetrain.follow_trajectory(sample)
             if False:   # Disable some debugging stuff
                 rh = self.drivetrain.get_pose().rotation().degrees()
                 sh = sample.get_pose().rotation().degrees()
                 pn("sh", sh)
                 pn("rh", rh)
-            self.drivetrain.follow_trajectory(sample)
 
     def at_pose(self, pose: Pose2d) -> bool:
         robot_pose = self.drivetrain.get_pose()
@@ -75,7 +68,8 @@ class AutonPlace2(AutonomousStateMachine):
         pn('distance of traj', dist)
         return dist < 0.03
 
-    @timed_state(first=True, duration=2.0, must_finish=True)
+    @timed_state(first=True, duration=2.0, must_finish=True,
+                 next_state='place_coral')
     def drive_to_reef11(self, tm, state_tm):
         self.drive_trajectory(self.to_reef_from_start, state_tm)
         last_pose = self.to_reef_from_start.get_final_pose(is_red())
