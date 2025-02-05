@@ -109,6 +109,12 @@ class PhysicsEngine:
             gearing=1,
             moi=0.00001
         )
+        
+        self.arm_motor = Falcon500MotorSim(
+            robot.manipulator.arm_motor,
+            gearing=1,
+            moi=0.00001
+        )
 
         self.elevator_motor_left = SimpleTalonFXMotorSim(
             robot.manipulator.elevator_motor_left,
@@ -152,6 +158,7 @@ class PhysicsEngine:
             self.elevator_motor_right,
             self.intake_motor,
             self.wrist_motor,
+            self.arm_motor,
         ]:
             m.update(tm_diff)
 
