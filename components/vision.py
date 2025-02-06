@@ -10,7 +10,7 @@ from wpimath import units
 from utilities.game import is_sim
 
 
-class Vision():
+class VisionComponent():
 
     drivetrain: DrivetrainComponent
 

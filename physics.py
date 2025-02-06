@@ -99,31 +99,31 @@ class PhysicsEngine:
         ]
 
         self.intake_motor = Falcon500MotorSim(
-            robot.manipulator.intake_motor,
+            robot.intake.motor,
             gearing=1,
             moi=0.001
         )
 
         self.wrist_motor = Falcon500MotorSim(
-            robot.manipulator.wrist_motor,
+            robot.wrist.motor,
             gearing=1,
             moi=0.00001
         )
         
         self.arm_motor = Falcon500MotorSim(
-            robot.manipulator.arm_motor,
+            robot.arm.motor,
             gearing=1,
             moi=0.00001
         )
 
         self.elevator_motor_left = SimpleTalonFXMotorSim(
-            robot.manipulator.elevator_motor_left,
+            robot.elevator.motor_left,
             units_per_rev=1,
             kV=2.7,
         )
 
         self.elevator_motor_right = SimpleTalonFXMotorSim(
-            robot.manipulator.elevator_motor_right,
+            robot.elevator.motor_right,
             units_per_rev=1,
             kV=2.7,
         )

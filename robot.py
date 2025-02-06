@@ -9,12 +9,19 @@ from wpimath.geometry import Pose2d
 from magicbot import tunable
 from wpimath.geometry import Rotation3d, Translation3d
 
-from components.drivetrain import DrivetrainComponent
-from components.gyro import GyroComponent
-from components.vision import Vision
-from components.manipulator import ManipulatorComponent
-from components.battery_monitor import BatteryMonitorComponent
-from components.leds import LEDComponent
+from components import (
+    DrivetrainComponent,
+    GyroComponent,
+    VisionComponent,
+    BatteryMonitorComponent,
+    LEDComponent,
+    WristComponent,
+    ArmComponent,
+    ElevatorComponent,
+    IntakeComponent,
+)
+
+from controllers.manipulator import Manipulator
 
 from utilities.scalers import rescale_js
 from utilities.game import is_red
@@ -23,15 +30,21 @@ from robotpy_ext.autonomous import AutonomousModeSelector
 
 class MyRobot(magicbot.MagicRobot):
     # Controllers
+    manipulator: Manipulator
 
     # Components
     gyro: GyroComponent
     drivetrain: DrivetrainComponent
-    vision: Vision
-    elevator: ManipulatorComponent
+    vision: VisionComponent
     battery_monitor: BatteryMonitorComponent
     leds: LEDComponent
-    manipulator: ManipulatorComponent
+
+    # These 3 should not be used directly except in testing!
+    # Only use the controller/state machine when doing real things!
+    wrist: WristComponent
+    arm: ArmComponent
+    elevator: ElevatorComponent
+    intake: IntakeComponent
 
     max_speed = magicbot.tunable(32)  # m/s
     lower_max_speed = magicbot.tunable(6)  # m/s
@@ -66,7 +79,7 @@ class MyRobot(magicbot.MagicRobot):
 
     def handle_manipulator(self) -> None:
         if self.gamepad.getAButtonPressed():
-            self.manipulator.wrist_target_pos += 1
+            self.wrist.target_pos += 1
         pass
 
     def handle_drivetrain(self) -> None:

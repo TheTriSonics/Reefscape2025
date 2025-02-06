@@ -6,7 +6,8 @@ from magicbot import AutonomousStateMachine, timed_state, state, feedback
 
 from utilities.game import is_red
 
-from components.manipulator import ManipulatorComponent
+from controllers.manipulator import Manipulator
+
 from components.drivetrain import DrivetrainComponent
 from components.gyro import GyroComponent
 from components.battery_monitor import BatteryMonitorComponent
@@ -22,7 +23,7 @@ class AutonPlace2(AutonomousStateMachine):
     drivetrain: DrivetrainComponent
     gyro: GyroComponent
     battery_monitor: BatteryMonitorComponent
-    manipulator: ManipulatorComponent
+    manipulator: Manipulator
 
     MODE_NAME = 'Place 2 Coral'
     DEFAULT = True
