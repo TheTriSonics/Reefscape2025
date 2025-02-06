@@ -33,6 +33,7 @@ class ManipulatorComponent:
     wrist_target_pos = tunable(20.0)
 
     wrist_request = MotionMagicVoltage(0, override_brake_dur_neutral=True)
+    arm_request = MotionMagicVoltage(0, override_brake_dur_neutral=True)
 
     def __init__(self):
         # TODO: Set the right motor to follow the left and then set motion magic
@@ -50,6 +51,18 @@ class ManipulatorComponent:
         wrist_config.motion_magic.motion_magic_acceleration = 40
         wrist_config.motion_magic.motion_magic_jerk = 400
         self.wrist_motor.configurator.apply(wrist_config)  # type: ignore
+
+        arm_config = TalonFXConfiguration()
+        arm_config.slot0.k_s = 0.25
+        arm_config.slot0.k_v = 0.12
+        arm_config.slot0.k_a = 0.01
+        arm_config.slot0.k_p = 0.1
+        arm_config.slot0.k_i = 0
+        arm_config.slot0.k_d = 0.1
+        arm_config.motion_magic.motion_magic_cruise_velocity = 10
+        arm_config.motion_magic.motion_magic_acceleration = 40
+        arm_config.motion_magic.motion_magic_jerk = 400
+        self.arm_motor.configurator.apply(arm_config) #type: ignore
 
     def elevator_go_level1(self):
         self.elevator_target_pos = 100
@@ -108,13 +121,17 @@ class ManipulatorComponent:
 
     @feedback
     def arm_at_goal(self):
-        current_pos = self.arm_motor.get_position().value
+        current_pos = self.arm_position()
         diff = abs(self.arm_target_pos - current_pos)
         return diff < 0.01
 
     @feedback
     def wrist_position(self) -> float:
         return self.wrist_motor.get_position().value
+
+    @feedback
+    def arm_position(self) -> float:
+        return self.arm_motor.get_position().value
 
     @feedback
     def wrist_at_goal(self):
@@ -133,7 +150,10 @@ class ManipulatorComponent:
             pass
         if not self.arm_at_goal():
             # TODO: Make this real
-            pass
+            req = self.arm_request.with_position(self.arm_target_pos)
+            self.arm_motor.set_control(req)
+        pass
+    
         if not self.wrist_at_goal():
             req = self.wrist_request.with_position(self.wrist_target_pos)
             self.wrist_motor.set_control(req)
