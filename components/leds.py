@@ -12,7 +12,7 @@ def iterable(obj):
     return True
 
 
-class LEDs:
+class LEDComponent:
     battery_monitor: BatteryMonitorComponent
     
     def __init__(self):

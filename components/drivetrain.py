@@ -33,7 +33,7 @@ from utilities.game import is_red, is_sim
 
 from ids import CancoderId, TalonId
 
-from .gyro import Gyro
+from .gyro import GyroComponent
 
 from generated.tuner_constants import TunerConstants
 
@@ -206,7 +206,7 @@ class DrivetrainComponent:
     # Here's where we inject the other components
     # Note that you can't use the components directly in the __init__ method
     # You have to use them in the setup() method
-    gyro: Gyro
+    gyro: GyroComponent
 
     # meters between center of left and right wheels
     TRACK_WIDTH = 0.540

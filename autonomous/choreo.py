@@ -8,7 +8,7 @@ from utilities.game import is_red
 
 from components.manipulator import ManipulatorComponent
 from components.drivetrain import DrivetrainComponent
-from components.gyro import Gyro
+from components.gyro import GyroComponent
 from components.battery_monitor import BatteryMonitorComponent
 from choreo import load_swerve_trajectory  # type: ignore
 from choreo.trajectory import SwerveTrajectory
@@ -20,7 +20,7 @@ ps = SmartDashboard.putString
 
 class AutonPlace2(AutonomousStateMachine):
     drivetrain: DrivetrainComponent
-    gyro: Gyro
+    gyro: GyroComponent
     battery_monitor: BatteryMonitorComponent
     manipulator: ManipulatorComponent
 

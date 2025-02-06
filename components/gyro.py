@@ -4,7 +4,7 @@ from ids import CanId
 from magicbot import feedback
 
 
-class Gyro:
+class GyroComponent:
     def __init__(self):
         self.pigeon = Pigeon2(CanId.PIGEON, "canivore")
 

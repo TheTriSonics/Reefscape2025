@@ -10,11 +10,11 @@ from magicbot import tunable
 from wpimath.geometry import Rotation3d, Translation3d
 
 from components.drivetrain import DrivetrainComponent
-from components.gyro import Gyro
+from components.gyro import GyroComponent
 from components.vision import Vision
 from components.manipulator import ManipulatorComponent
 from components.battery_monitor import BatteryMonitorComponent
-from components.leds import LEDs
+from components.leds import LEDComponent
 
 from utilities.scalers import rescale_js
 from utilities.game import is_red
@@ -25,12 +25,12 @@ class MyRobot(magicbot.MagicRobot):
     # Controllers
 
     # Components
-    gyro: Gyro
+    gyro: GyroComponent
     drivetrain: DrivetrainComponent
     vision: Vision
     elevator: ManipulatorComponent
     battery_monitor: BatteryMonitorComponent
-    leds: LEDs
+    leds: LEDComponent
     manipulator: ManipulatorComponent
 
     max_speed = magicbot.tunable(32)  # m/s
