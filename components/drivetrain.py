@@ -73,7 +73,7 @@ class SwerveModule:
         mag_config = MagnetSensorConfigs()
         mag_config.with_magnet_offset(mag_offset)
         enc_config.with_magnet_sensor(mag_config)
-        self.encoder.configurator.apply(enc_config)
+        self.encoder.configurator.apply(enc_config)  # type: ignore
 
         # Configure steer motor
         steer_config = self.steer.configurator
@@ -377,6 +377,9 @@ class DrivetrainComponent:
         total_speed = math.sqrt(vx*vx + vy*vy)
         return total_speed, self.chassis_speeds.omega
 
+    def halt(self):
+        self.drive_local(0, 0, 0)
+
     def drive_local(self, vx: float, vy: float, omega: float) -> None:
         """Robot oriented drive commands"""
         if abs(omega) < 0.01 and self.snap_heading is None:
@@ -425,7 +428,6 @@ class DrivetrainComponent:
         dx = sample.vx + self.choreo_x_controller.calculate(pose.X(), sample.x)
         dy = sample.vy + self.choreo_y_controller.calculate(pose.Y(), sample.y)
         do = sample.omega + self.choreo_heading_controller.calculate(pose.rotation().radians(), sample.heading)
-        fakedo = sample.omega + self.heading_controller.calculate(pose.rotation().radians(), sample.heading)
         """
         pn = wpilib.SmartDashboard.putNumber
         pn('choreo dx', dx)
