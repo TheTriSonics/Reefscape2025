@@ -20,7 +20,7 @@ class IntakeDirection(Enum):
 
 
 class IntakeComponent:
-    bus = 'elevator_can'
+    bus = 'canivore'
     motor = TalonFX(TalonId.MANIP_ARM, bus)
     target_pos = tunable(0.0)
     motor_request = DutyCycleOut(0, override_brake_dur_neutral=True)

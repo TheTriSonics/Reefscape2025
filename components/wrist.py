@@ -14,7 +14,7 @@ pn = wpilib.SmartDashboard.putNumber
 
 
 class WristComponent:
-    bus = 'elevator_can'
+    bus = 'canivore'
     motor = TalonFX(TalonId.MANIP_WRIST, bus)
     target_pos = tunable(0.0)
     motor_request = MotionMagicVoltage(0, override_brake_dur_neutral=True)

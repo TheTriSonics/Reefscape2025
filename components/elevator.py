@@ -13,7 +13,7 @@ pn = wpilib.SmartDashboard.putNumber
 
 
 class ElevatorComponent:
-    bus = 'elevator_can'
+    bus = 'canivore'
     motor_left = TalonFX(TalonId.MANIP_ELEVATOR_LEFT, bus)
     motor_right = TalonFX(TalonId.MANIP_ELEVATOR_RIGHT, bus)
     target_pos = tunable(0.0)

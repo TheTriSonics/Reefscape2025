@@ -1,3 +1,4 @@
+import math
 import wpilib
 from robotpy_apriltag import AprilTagFieldLayout, AprilTagField
 from wpilib import Timer
@@ -7,12 +8,14 @@ from photonlibpy.photonCamera import PhotonCamera
 from photonlibpy.photonPoseEstimator import PhotonPoseEstimator, PoseStrategy
 from components.drivetrain import DrivetrainComponent
 from wpimath import units
-from utilities.game import is_sim
+from utilities.game import is_sim, is_disabled
+
 
 
 class VisionComponent():
 
     drivetrain: DrivetrainComponent
+
 
     def __init__(self) -> None:
         self.timer = Timer()
@@ -29,11 +32,11 @@ class VisionComponent():
         )
         self.camera_fl_offset = Transform3d(
             Translation3d(
-                units.inchesToMeters(10.25),
+                units.inchesToMeters(16.75), # Forward/backward offset
                 units.inchesToMeters(10.25),
                 units.inchesToMeters(5.75),
             ),
-            Rotation3d.fromDegrees(0, 0, 28),
+            Rotation3d.fromDegrees(0, 0, 0),
         )
 
         field = AprilTagFieldLayout.loadField(AprilTagField.k2025Reefscape)
@@ -93,6 +96,10 @@ class VisionComponent():
                     std_y = std_x
                     std_rot = std_x / 2
                     setDevs((std_x, std_y, std_rot))
-                    # TODO: Reject pose if it's too far off where the robot
-                    # thinks it is.
-                    self.drivetrain.estimator.addVisionMeasurement(twod_pose, ts)
+                    # Check if we're too far off for this to be valid
+                    robot_pose = self.drivetrain.get_pose()
+                    xdiff = abs(robot_pose.X() -twod_pose.X())
+                    ydiff = abs(robot_pose.Y() -twod_pose.Y())
+                    distance = math.sqrt(xdiff**2 + ydiff**2) 
+                    if distance < 1 or is_disabled():
+                        self.drivetrain.estimator.addVisionMeasurement(twod_pose, ts)

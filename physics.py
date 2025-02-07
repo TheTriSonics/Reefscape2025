@@ -98,6 +98,7 @@ class PhysicsEngine:
             for module in robot.drivetrain.modules
         ]
 
+        """
         self.intake_motor = Falcon500MotorSim(
             robot.intake.motor,
             gearing=1,
@@ -127,6 +128,7 @@ class PhysicsEngine:
             units_per_rev=1,
             kV=2.7,
         )
+        """
 
         self.current_yaw = 0.0
         self.gyro = robot.gyro.pigeon.sim_state  # Access the Pigeon 2's sim state
@@ -153,6 +155,7 @@ class PhysicsEngine:
         for steer in self.steer:
             steer.update(tm_diff)
 
+        """
         for m in [
             self.elevator_motor_left,
             self.elevator_motor_right,
@@ -161,6 +164,7 @@ class PhysicsEngine:
             self.arm_motor,
         ]:
             m.update(tm_diff)
+        """
 
         speeds = self.kinematics.toChassisSpeeds((
             self.swerve_modules[0].get(),

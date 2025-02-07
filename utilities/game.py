@@ -54,3 +54,7 @@ def is_red() -> bool:
 
 def is_sim() -> bool:
     return wpilib.RobotBase.isSimulation()
+
+def is_disabled() -> bool:
+    mode = wpilib.SmartDashboard.getString('/robot/mode', '')
+    return mode in ['disabled', '']

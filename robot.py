@@ -30,7 +30,7 @@ from robotpy_ext.autonomous import AutonomousModeSelector
 
 class MyRobot(magicbot.MagicRobot):
     # Controllers
-    manipulator: Manipulator
+    # manipulator: Manipulator
 
     # Components
     gyro: GyroComponent
@@ -41,10 +41,10 @@ class MyRobot(magicbot.MagicRobot):
 
     # These 3 should not be used directly except in testing!
     # Only use the controller/state machine when doing real things!
-    wrist: WristComponent
-    arm: ArmComponent
-    elevator: ElevatorComponent
-    intake: IntakeComponent
+    # wrist: WristComponent
+    # arm: ArmComponent
+    # elevator: ElevatorComponent
+    # intake: IntakeComponent
 
     max_speed = magicbot.tunable(32)  # m/s
     lower_max_speed = magicbot.tunable(6)  # m/s
@@ -78,6 +78,7 @@ class MyRobot(magicbot.MagicRobot):
         self.field.getObject("Intended start pos").setPoses([])
 
     def handle_manipulator(self) -> None:
+        return
         if self.gamepad.getAButtonPressed():
             self.wrist.target_pos += 1
         pass

@@ -23,7 +23,7 @@ class AutonPlace2(AutonomousStateMachine):
     drivetrain: DrivetrainComponent
     gyro: GyroComponent
     battery_monitor: BatteryMonitorComponent
-    manipulator: Manipulator
+    # manipulator: Manipulator
 
     MODE_NAME = 'Place 2 Coral'
     DEFAULT = True
@@ -101,11 +101,66 @@ class AutonPlace2(AutonomousStateMachine):
         if photoeyes.has_coral():
             self.next_state(self.drive_to_reef)
         """
-        self.manipulator.intake_in()
+        # self.manipulator.intake.intake_in()
         print('waiting...')
 
 
     @timed_state(must_finish=True, duration=5.0)
     def drive_to_reef(self, tm, state_tm):
-        self.manipulator.intake_off()
+        # self.manipulator.intake.intake_off()
         self.drive_trajectory(self.to_reef_from_ps, state_tm)
+
+
+class CircleReef(AutonomousStateMachine):
+    drivetrain: DrivetrainComponent
+    gyro: GyroComponent
+    battery_monitor: BatteryMonitorComponent
+    # manipulator: Manipulator
+
+    MODE_NAME = 'Circle Reef'
+    DEFAULT = False
+
+    pose_set = False
+    selected_alliance = None
+
+    def __init__(self):
+        self.trajectory = load_swerve_trajectory('CircleReef')
+        return
+
+    def set_initial_pose(self) -> None:
+        # No need to set the pose twice!
+        alliance = 'red' if is_red() else 'blue'
+        if alliance is not self.selected_alliance:
+            self.pose_set = False
+
+        if self.pose_set is True:
+            return
+
+        initial_pose = self.trajectory.get_initial_pose(is_red())
+        if initial_pose is not None:
+            self.drivetrain.set_pose(initial_pose)
+            self.selected_alliance = alliance
+            # self.gyro.reset_heading(initial_pose.rotation().degrees())
+            self.pose_set = True
+
+    def drive_trajectory(self, traj: SwerveTrajectory, tm):
+        sample = traj.sample_at(tm, is_red())
+        if sample:
+            self.drivetrain.follow_trajectory(sample)
+            if False:   # Disable some debugging stuff
+                rh = self.drivetrain.get_pose().rotation().degrees()
+                sh = sample.get_pose().rotation().degrees()
+                pn("sh", sh)
+                pn("rh", rh)
+
+    def at_pose(self, pose: Pose2d) -> bool:
+        robot_pose = self.drivetrain.get_pose()
+        diff = robot_pose.relativeTo(pose)
+        dist = math.sqrt(diff.X()**2 + diff.Y()**2)
+        pn('distance of traj', dist)
+        return dist < 0.03
+
+    @state(first=True, must_finish=True)
+    def drive_to_reef11(self, tm, state_tm):
+        self.drive_trajectory(self.trajectory, state_tm)
+        last_pose = self.trajectory.get_final_pose(is_red())
