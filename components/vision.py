@@ -81,7 +81,10 @@ class VisionComponent():
         ):
             results = cam.getAllUnreadResults()
             for res in results:
-                target_count = len(res.getTargets())
+                best_target = res.getBestTarget()
+                if best_target and best_target.poseAmbiguity > 0.2:
+                    # Skip using this pose in a vision update; it is too ambiguous
+                    continue
                 pupdate = pose_est.update(res)
                 if pupdate:
                     pose = pupdate.estimatedPose
@@ -92,9 +95,16 @@ class VisionComponent():
                     tv, rv = self.drivetrain.get_robot_speeds()
                     # TODO: Take into account rv, rotational velocity
                     # for standard deviations. A spinning robot is not accurate!
+                    """
+                    # Getting rid of this dynamic std deviation idea.
+                    # I think this is a hold-over from days where the
+                    # camera was mounted higher on the robot and it would
+                    # vibrate when it ran
                     std_x = (0.4 * max(abs(tv**1.5), 1)) / target_count
                     std_y = std_x
                     std_rot = std_x / 2
+                    """
+                    std_x, std_y, std_rot = 0.4, 0.4, 0.2
                     setDevs((std_x, std_y, std_rot))
                     # Check if we're too far off for this to be valid
                     robot_pose = self.drivetrain.get_pose()
