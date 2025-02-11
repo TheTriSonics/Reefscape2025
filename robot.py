@@ -112,15 +112,16 @@ class MyRobot(magicbot.MagicRobot):
             self.drivetrain.stop_snapping()
 
     def lock_on_apriltag(self):
-        self.apriltag_status = 'searching for apriltag'
+        # self.apriltag_status = 'searching for apriltag'
         tag_pose = self.drivetrain.closest_apriltag_pose
         if tag_pose:
-            robot_rotation = tag_pose.rotation().toRotation2d().rotateBy(Rotation2d(math.pi))
-            self.drivetrain.snap_to_heading(robot_rotation.radians())
-            self.drivetrain.drive_local(0, 0, 0)
+            tag_heading_z = tag_pose.rotation().z_degrees
+            robot_rotation = math.radians(tag_heading_z + 180)
+            self.drivetrain.snap_to_heading(robot_rotation)
+            # self.drivetrain.drive_local(0, 0, 0)
 
     def teleopPeriodic(self) -> None:
-        print(self.apriltag_status)
+        # print(self.apriltag_status)
         if self.gamepad.getYButtonPressed():
             self.lock_on_apriltag()
         else:

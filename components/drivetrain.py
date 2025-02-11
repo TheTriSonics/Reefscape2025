@@ -247,7 +247,7 @@ class DrivetrainComponent:
                                                 .publish()
         )
         self.heading_controller = ProfiledPIDControllerRadians(
-            0.5, 0, 0, TrapezoidProfileRadians.Constraints(2, 4)
+            8, 0, 0, TrapezoidProfileRadians.Constraints(5, 30)
         )
         self.heading_controller.enableContinuousInput(-math.pi, math.pi)
         self.snapping_to_heading = False
@@ -394,6 +394,7 @@ class DrivetrainComponent:
         """set a heading target for the heading controller"""
         self.snapping_to_heading = True
         self.snap_heading = heading
+        print(f"snapping to heading = {self.snap_heading}")
         if self.snap_heading is not None:
             self.heading_controller.setGoal(self.snap_heading)
 
