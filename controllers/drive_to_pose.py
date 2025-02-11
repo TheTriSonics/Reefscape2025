@@ -33,7 +33,7 @@ class DriveToPose(StateMachine):
             waypoints,
             constraints,
             None, # ideal start state -- ignored
-            GoalEndState(0.0, Rotation2d.fromDegrees(-90))
+            GoalEndState(0.0, target_pose.rotation())
         )
         return path.generateTrajectory(
             self.drivetrain.get_chassis_speeds(),
