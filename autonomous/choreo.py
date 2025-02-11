@@ -56,7 +56,7 @@ class AutonPlace2(AutonomousStateMachine):
     def drive_trajectory(self, traj: SwerveTrajectory, tm):
         sample = traj.sample_at(tm, is_red())
         if sample:
-            self.drivetrain.follow_trajectory(sample)
+            self.drivetrain.follow_choreo_trajectory(sample)
             if False:   # Disable some debugging stuff
                 rh = self.drivetrain.get_pose().rotation().degrees()
                 sh = sample.get_pose().rotation().degrees()
@@ -145,7 +145,7 @@ class CircleReef(AutonomousStateMachine):
     def drive_trajectory(self, traj: SwerveTrajectory, tm):
         sample = traj.sample_at(tm, is_red())
         if sample:
-            self.drivetrain.follow_trajectory(sample)
+            self.drivetrain.follow_choreo_trajectory(sample)
             if False:   # Disable some debugging stuff
                 rh = self.drivetrain.get_pose().rotation().degrees()
                 sh = sample.get_pose().rotation().degrees()

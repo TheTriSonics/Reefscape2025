@@ -16,12 +16,12 @@ pn = SmartDashboard.putNumber
 ps = SmartDashboard.putString
 
 
-class AutonWPITrajTest(AutonomousStateMachine):
+class AutonPPTrajTest(AutonomousStateMachine):
     drivetrain: DrivetrainComponent
     gyro: GyroComponent
     drive_to_pose: DriveToPose
 
-    MODE_NAME = 'Test WPILib Trajectories'
+    MODE_NAME = 'Test PathPlanner Trajectories'
     DEFAULT = False
 
     def __init__(self):

@@ -60,7 +60,7 @@ class AutonPlaceHard(AutonomousStateMachine):
         pb('auton/choreo/placing_coral', False)
         sample = traj.sample_at(tm, is_red())
         if sample:
-            self.drivetrain.follow_trajectory(sample)
+            self.drivetrain.follow_choreo_trajectory(sample)
 
     def at_pose(self, pose: Pose2d) -> bool:
         robot_pose = self.drivetrain.get_pose()

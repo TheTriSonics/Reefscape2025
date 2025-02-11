@@ -395,7 +395,8 @@ class DrivetrainComponent:
 
     def drive_local(self, vx: float, vy: float, omega: float) -> None:
         """Robot oriented drive commands"""
-        if abs(omega) < 0.01 and self.snap_heading is None:
+        # We will ignore the heading snapping in sim mode
+        if not is_sim() and abs(omega) < 0.01 and self.snap_heading is None:
             self.snap_to_heading(self.get_heading().radians())
         self.chassis_speeds = ChassisSpeeds(vx, vy, omega)
 
@@ -433,7 +434,7 @@ class DrivetrainComponent:
 
         self.update_odometry()
 
-    def follow_trajectory(self, sample: ChoreoSwerveSample):
+    def follow_choreo_trajectory(self, sample: ChoreoSwerveSample):
         # Get the current pose of the robot
         pose = self.get_pose()
 
@@ -477,35 +478,6 @@ class DrivetrainComponent:
         # Apply the generated speeds
         self.drive_field(dx, dy, do)
     
-    def follow_wpi_trajectory(self, sample: WPITrajectory.State):
-        # Get the current pose of the robot
-        pose = self.get_pose()
-
-        vx, vy, omega = 0, 0, 0
-        xdiff = sample.pose.X() - pose.X()
-        ydiff = sample.pose.Y() - pose.Y()
-        hypot = math.hypot(xdiff, ydiff)
-        if hypot != 0:
-            cosine_val = xdiff / hypot
-            sine_val = ydiff / hypot
-            vx = sample.velocity * cosine_val
-            vy = sample.velocity * sine_val
-
-        # Generate the next speeds for the robot
-        dx = vx + self.choreo_x_controller.calculate(pose.X(), sample.pose.X())
-        dy = vy + self.choreo_y_controller.calculate(pose.Y(), sample.pose.Y())
-        do = omega + self.choreo_heading_controller.calculate(pose.rotation().radians(),
-                                                              sample.pose.rotation().radians())
-        """
-        pn = wpilib.SmartDashboard.putNumber
-        pn('choreo dx', dx)
-        pn('choreo dy', dy)
-        pn('choreo do', do)
-        pn('choreo fakedo', fakedo)
-        """
-        # Apply the generated speeds
-        self.drive_field(dx, dy, do)
-
     def on_enable(self) -> None:
         """update the odometry so the pose estimator doesn't have an empty
         buffer
