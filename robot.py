@@ -22,6 +22,7 @@ from components import (
 )
 
 from controllers.manipulator import Manipulator
+from controllers.drive_to_pose import DriveToPose
 
 from utilities.scalers import rescale_js
 from utilities.game import is_red
@@ -31,6 +32,7 @@ from robotpy_ext.autonomous import AutonomousModeSelector
 class MyRobot(magicbot.MagicRobot):
     # Controllers
     # manipulator: Manipulator
+    drive_to_pose: DriveToPose
 
     # Components
     gyro: GyroComponent

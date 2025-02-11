@@ -12,7 +12,7 @@ from components.drivetrain import DrivetrainComponent
 from components.gyro import GyroComponent
 from components.battery_monitor import BatteryMonitorComponent
 from choreo import load_swerve_trajectory  # type: ignore
-from choreo.trajectory import SwerveTrajectory
+from choreo.trajectory import SwerveTrajectory, SwerveSample
 
 pb = SmartDashboard.putBoolean
 pn = SmartDashboard.putNumber

@@ -29,6 +29,8 @@ from wpimath.kinematics import (
     SwerveModuleState,
 )
 from wpimath.trajectory import TrapezoidProfileRadians
+from wpimath.trajectory import Trajectory as WPITrajectory
+from choreo.trajectory import SwerveSample as ChoreoSwerveSample
 from utilities.game import is_red, is_sim
 
 from ids import CancoderId, TalonId
@@ -315,14 +317,24 @@ class DrivetrainComponent:
         )
         self.sync_all()
 
-        nt = ntcore.NetworkTableInstance.getDefault().getTable("/components/drivetrain")
+        nt = (
+            ntcore
+            .NetworkTableInstance
+            .getDefault()
+            .getTable("/components/drivetrain")
+        )
         module_states_table = nt.getSubTable("module_states")
-        self.setpoints_publisher = module_states_table.getStructArrayTopic(
-            "setpoints", SwerveModuleState
-        ).publish()
-        self.measurements_publisher = module_states_table.getStructArrayTopic(
-            "measured", SwerveModuleState
-        ).publish()
+
+        self.setpoints_publisher = (
+            module_states_table
+            .getStructArrayTopic("setpoints", SwerveModuleState)
+            .publish()
+        )
+        self.measurements_publisher = (
+            module_states_table
+            .getStructArrayTopic("measured", SwerveModuleState)
+            .publish()
+        )
 
         wpilib.SmartDashboard.putData("Heading PID", self.heading_controller)
 
@@ -420,7 +432,7 @@ class DrivetrainComponent:
 
         self.update_odometry()
 
-    def follow_trajectory(self, sample):
+    def follow_trajectory(self, sample: ChoreoSwerveSample):
         # Get the current pose of the robot
         pose = self.get_pose()
 
@@ -428,6 +440,35 @@ class DrivetrainComponent:
         dx = sample.vx + self.choreo_x_controller.calculate(pose.X(), sample.x)
         dy = sample.vy + self.choreo_y_controller.calculate(pose.Y(), sample.y)
         do = sample.omega + self.choreo_heading_controller.calculate(pose.rotation().radians(), sample.heading)
+        """
+        pn = wpilib.SmartDashboard.putNumber
+        pn('choreo dx', dx)
+        pn('choreo dy', dy)
+        pn('choreo do', do)
+        pn('choreo fakedo', fakedo)
+        """
+        # Apply the generated speeds
+        self.drive_field(dx, dy, do)
+    
+    def follow_wpi_trajectory(self, sample: WPITrajectory.State):
+        # Get the current pose of the robot
+        pose = self.get_pose()
+
+        vx, vy, omega = 0, 0, 0
+        xdiff = sample.pose.X() - pose.X()
+        ydiff = sample.pose.Y() - pose.Y()
+        hypot = math.hypot(xdiff, ydiff)
+        if hypot != 0:
+            cosine_val = xdiff / hypot
+            sine_val = ydiff / hypot
+            vx = sample.velocity * cosine_val
+            vy = sample.velocity * sine_val
+
+        # Generate the next speeds for the robot
+        dx = vx + self.choreo_x_controller.calculate(pose.X(), sample.pose.X())
+        dy = vy + self.choreo_y_controller.calculate(pose.Y(), sample.pose.Y())
+        do = omega + self.choreo_heading_controller.calculate(pose.rotation().radians(),
+                                                              sample.pose.rotation().radians())
         """
         pn = wpilib.SmartDashboard.putNumber
         pn('choreo dx', dx)
@@ -504,6 +545,9 @@ class DrivetrainComponent:
             self.modules[2].get_position(),
             self.modules[3].get_position(),
         )
+
+    def get_chassis_speeds(self) -> ChassisSpeeds:
+        return self.chassis_speeds
 
     def get_pose(self) -> Pose2d:
         """Get the current location of the robot relative to ???"""
