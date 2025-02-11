@@ -7,7 +7,7 @@ import ntcore
 import wpilib.event
 from wpimath.geometry import Pose2d
 from magicbot import tunable
-from wpimath.geometry import Rotation3d, Translation3d
+from wpimath.geometry import Rotation3d, Translation3d, Rotation2d
 
 from components import (
     DrivetrainComponent,
@@ -51,6 +51,7 @@ class MyRobot(magicbot.MagicRobot):
     max_spin_rate = magicbot.tunable(32)  # m/s
     lower_max_spin_rate = magicbot.tunable(8)  # m/s
     inclination_angle = tunable(0.0)
+    apriltag_status = tunable('')
 
     START_POS_TOLERANCE = 1
 
@@ -110,8 +111,20 @@ class MyRobot(magicbot.MagicRobot):
         if drive_z != 0:
             self.drivetrain.stop_snapping()
 
+    def lock_on_apriltag(self):
+        self.apriltag_status = 'searching for apriltag'
+        tag_pose = self.drivetrain.closest_apriltag_pose
+        if tag_pose:
+            robot_rotation = tag_pose.rotation().toRotation2d().rotateBy(Rotation2d(math.pi))
+            self.drivetrain.snap_to_heading(robot_rotation.radians())
+            self.drivetrain.drive_local(0, 0, 0)
+
     def teleopPeriodic(self) -> None:
-        self.handle_drivetrain()
+        print(self.apriltag_status)
+        if self.gamepad.getYButtonPressed():
+            self.lock_on_apriltag()
+        else:
+            self.handle_drivetrain()
         self.handle_manipulator()
 
     def testInit(self) -> None:
