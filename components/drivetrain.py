@@ -30,6 +30,7 @@ from wpimath.kinematics import (
 )
 from wpimath.trajectory import TrapezoidProfileRadians
 from wpimath.trajectory import Trajectory as WPITrajectory
+from pathplannerlib.path import PathPlannerTrajectoryState
 from choreo.trajectory import SwerveSample as ChoreoSwerveSample
 from utilities.game import is_red, is_sim
 
@@ -446,6 +447,32 @@ class DrivetrainComponent:
         pn('choreo dy', dy)
         pn('choreo do', do)
         pn('choreo fakedo', fakedo)
+        """
+        # Apply the generated speeds
+        self.drive_field(dx, dy, do)
+    
+    def follow_pp_trajectory(self, sample: PathPlannerTrajectoryState):
+        # Get the current pose of the robot
+        pose = self.get_pose()
+        curr_x = pose.X()
+        curr_y = pose.Y()
+        tgt_x = sample.pose.X()
+        tgt_y = sample.pose.Y()
+        curr_heading = pose.rotation().radians()
+        tgt_heading = sample.pose.rotation().radians()
+
+        vx, vy, omega = sample.fieldSpeeds.vx, sample.fieldSpeeds.vy, sample.fieldSpeeds.omega
+
+        # Generate the next speeds for the robot
+        dx = vx + self.choreo_x_controller.calculate(curr_x, tgt_x)
+        dy = vy + self.choreo_y_controller.calculate(curr_y, tgt_y)
+        do = omega + self.choreo_heading_controller.calculate(curr_heading,
+                                                              tgt_heading)
+        """
+        pn = wpilib.SmartDashboard.putNumber
+        pn('pp dx', dx)
+        pn('cpp dy', dy)
+        pn('pp do', do)
         """
         # Apply the generated speeds
         self.drive_field(dx, dy, do)

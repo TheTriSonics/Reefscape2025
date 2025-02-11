@@ -2,43 +2,48 @@ import math
 import wpilib
 from magicbot import StateMachine, state
 
-from wpimath.geometry import Pose2d, Translation2d
-from wpimath.trajectory import TrajectoryConfig, TrajectoryGenerator, Trajectory
-from wpimath.trajectory.constraint import CentripetalAccelerationConstraint
-
 from components import DrivetrainComponent
+
+from pathplannerlib.path import PathPlannerPath, PathConstraints, GoalEndState, PathPlannerTrajectory
+from pathplannerlib.config import RobotConfig
+from wpimath.geometry import Pose2d, Rotation2d
+import math
 
 
 class DriveToPose(StateMachine):
     drivetrain: DrivetrainComponent
-    trajectory: Trajectory | None = None
+    trajectory: PathPlannerTrajectory | None = None
     field: wpilib.Field2d
 
+    def __init__(self):
+
+        self.ppconfig = RobotConfig.fromGUISettings()
+
     def generate_trajectory(self, current_pose: Pose2d, target_pose: Pose2d):
-        print('Generating trajectory')
-        print(f'Current pose: {current_pose}')
-        print(f'Target pose: {target_pose}')
-        config = TrajectoryConfig(maxVelocity=5, maxAcceleration=10)
-        # Add centripetal acceleration constraint for smoother turns
-        config.addConstraint(CentripetalAccelerationConstraint(8.0))
-        # Configure for swerve drive (holonomic)
-        config.setKinematics(self.drivetrain.kinematics)
-        
-        # Generate trajectory
-        traj = TrajectoryGenerator.generateTrajectory(
-            current_pose,  # Starting pose
-            [],  # No intermediate waypoints, this is where we could put in a 1 meter out waypoint to line up
-            target_pose,  # Ending pose
-            config,
+        waypoints = PathPlannerPath.waypointsFromPoses(
+            [current_pose, target_pose]
         )
-        return traj
+        constraints = PathConstraints(3.0, 3.0, 2 * math.pi, 4 * math.pi)
+        # You can also use unlimited constraints, only limited by motor torque
+        # and nominal battery voltage
+        # constraints = PathConstraints.unlimitedConstraints(12.0)
+
+        # Create the path using the waypoints created above
+        path = PathPlannerPath(
+            waypoints,
+            constraints,
+            None, # ideal start state -- ignored
+            GoalEndState(0.0, Rotation2d.fromDegrees(-90))
+        )
+        return path.generateTrajectory(
+            self.drivetrain.get_chassis_speeds(),
+            self.drivetrain.get_pose().rotation(),
+            self.ppconfig
+        )
 
     def drive_to_pose(self, target_pose: Pose2d):
         current_pose = self.drivetrain.get_pose()
         self.trajectory = self.generate_trajectory(current_pose, target_pose)
-        self.field = wpilib.Field2d()
-        wpilib.SmartDashboard.putData(self.field)
-        self.field.getObject('WPI Trajectory').setTrajectory(self.trajectory)
         self.next_state(self.follow_trajectory)
 
     @state(first=True, must_finish=True)
@@ -48,4 +53,4 @@ class DriveToPose(StateMachine):
         else:
             sample = self.trajectory.sample(state_tm)
             if sample:
-                self.drivetrain.follow_wpi_trajectory(sample)
+                self.drivetrain.follow_pp_trajectory(sample)
