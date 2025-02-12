@@ -7,7 +7,7 @@ import ntcore
 import wpilib.event
 from wpimath.geometry import Pose2d
 from magicbot import tunable
-from wpimath.geometry import Rotation3d, Translation3d, Rotation2d
+from wpimath.geometry import Rotation3d, Translation3d, Rotation2d, Transform2d, Translation2d
 
 from components import (
     DrivetrainComponent,
@@ -54,6 +54,7 @@ class MyRobot(magicbot.MagicRobot):
     apriltag_status = tunable('')
 
     START_POS_TOLERANCE = 1
+
 
     def createObjects(self) -> None:
         self.data_log = wpilib.DataLogManager.getLog()
@@ -110,20 +111,30 @@ class MyRobot(magicbot.MagicRobot):
         # Give rotational access to the driver
         if drive_z != 0:
             self.drivetrain.stop_snapping()
+        if drive_x != 0:
+            self.drivetrain.stop_snapping_position()
 
-    def lock_on_apriltag(self):
+    def lock_on_apriltag(self, offset):
+        pn=wpilib.SmartDashboard.putNumber
+        self.drivetrain.reset_controllers()
         # self.apriltag_status = 'searching for apriltag'
         tag_pose = self.drivetrain.closest_apriltag_pose
         if tag_pose:
-            tag_heading_z = tag_pose.rotation().z_degrees
-            robot_rotation = math.radians(tag_heading_z + 180)
+            tag_pose2d = Pose2d(tag_pose.X(), tag_pose.Y(),tag_pose.rotation().toRotation2d())
+            print(f"tag_pose2d = {tag_pose2d}")
+            target_offset = Transform2d(Translation2d(0.7, offset), Rotation2d(math.pi))
+            target_pose = tag_pose2d.transformBy(target_offset)
+            print(f"target_pose {target_pose}")
+            robot_rotation = target_pose.rotation().radians()
             self.drivetrain.snap_to_heading(robot_rotation)
+            self.drivetrain.snap_to_position(target_pose.X(), target_pose.Y())
+
             # self.drivetrain.drive_local(0, 0, 0)
 
     def teleopPeriodic(self) -> None:
         # print(self.apriltag_status)
         if self.gamepad.getYButtonPressed():
-            self.lock_on_apriltag()
+            self.lock_on_apriltag(0.175)    
         else:
             self.handle_drivetrain()
         self.handle_manipulator()
@@ -149,8 +160,8 @@ class MyRobot(magicbot.MagicRobot):
 
     def disabledPeriodic(self) -> None:
         self.vision.execute()
-        self.battery_monitor.execute()
-        self.leds.execute()
+       # self.battery_monitor.execute()
+        #self.leds.execute()
         self.drivetrain.update_odometry()
         # mode = self._automodes.active_mode
         mode = self._automodes.chooser.getSelected()

@@ -20,6 +20,7 @@ from phoenix6.signals import InvertedValue, NeutralModeValue
 from wpimath.controller import (
     ProfiledPIDControllerRadians,
     SimpleMotorFeedforwardMeters,
+    ProfiledPIDController,
 )
 from wpimath.estimator import SwerveDrive4PoseEstimator
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
@@ -29,7 +30,7 @@ from wpimath.kinematics import (
     SwerveModulePosition,
     SwerveModuleState,
 )
-from wpimath.trajectory import TrapezoidProfileRadians
+from wpimath.trajectory import TrapezoidProfileRadians, TrapezoidProfile
 from utilities.game import is_red, is_sim
 
 from ids import CancoderId, TalonId
@@ -221,6 +222,8 @@ class DrivetrainComponent:
     DRIVE_CURRENT_THRESHOLD = 35
 
     HEADING_TOLERANCE = math.radians(1)
+    POSITION_X_TOLERANCE = 0.02
+    POSITION_Y_TOLERANCE = 0.02
 
     # maxiumum speed for any wheel
     # TODO: Pull in from Tuner Contants
@@ -247,12 +250,27 @@ class DrivetrainComponent:
                                                 .publish()
         )
         self.heading_controller = ProfiledPIDControllerRadians(
-            8, 0, 0, TrapezoidProfileRadians.Constraints(5, 30)
+            32, 0, 0, TrapezoidProfileRadians.Constraints(10, 50)
         )
         self.heading_controller.enableContinuousInput(-math.pi, math.pi)
         self.snapping_to_heading = False
         self.heading_controller.setTolerance(self.HEADING_TOLERANCE)
         self.snap_heading: float | None = None
+
+        self.position_X_controller = ProfiledPIDController(
+            4, 0, 0, TrapezoidProfile.Constraints(5, 10)
+        )
+        self.snapping_to_position = False
+        self.position_X_controller.setTolerance(self.POSITION_X_TOLERANCE)
+        self.snap_position_X: float | None = None
+
+        self.position_Y_controller = ProfiledPIDController(
+            4, 0, 0, TrapezoidProfile.Constraints(5, 10)
+        )
+        self.position_Y_controller.setTolerance(self.POSITION_Y_TOLERANCE)
+        self.snap_position_Y: float | None = None
+
+
 
         self.choreo_x_controller = PIDController(10, 0, 0)
         self.choreo_y_controller = PIDController(10, 0, 0)
@@ -403,6 +421,23 @@ class DrivetrainComponent:
         self.snapping_to_heading = False
         self.snap_heading = None
 
+    def snap_to_position(self, target_X: float, target_Y: float) -> None:
+        """set a position target for the position controller"""
+        self.snapping_to_position = True
+        self.snap_position_X = target_X
+        self.snap_position_Y = target_Y
+        #print(f"snapping to heading = {self.snap_pos}")
+        if self.snap_position_X is not None and self.snap_position_Y is not None:
+            self.position_X_controller.setGoal(self.snap_position_X)
+            self.position_Y_controller.setGoal(self.snap_position_Y)
+
+    def stop_snapping_position(self) -> None:
+        """stops the position_controller"""
+        self.snapping_to_position = False
+        self.snap_position_X = None
+        self.snap_position_Y = None
+
+
     def execute(self) -> None:
         if self.snapping_to_heading:
             self.chassis_speeds.omega = self.heading_controller.calculate(
@@ -412,6 +447,17 @@ class DrivetrainComponent:
             self.heading_controller.reset(
                 self.get_rotation().radians(), self.get_rotational_velocity()
             )
+
+        if self.snapping_to_position:
+            self.chassis_speeds.vx = self.position_X_controller.calculate(
+                self.get_pose().X()
+            )
+
+            self.chassis_speeds.vy = self.position_Y_controller.calculate(
+                self.get_pose().Y()
+            )
+        else:
+            self.reset_controllers()
 
         desired_speeds = self.chassis_speeds
         desired_states = self.kinematics.toSwerveModuleStates(desired_speeds)
@@ -424,6 +470,14 @@ class DrivetrainComponent:
             module.set(state)
 
         self.update_odometry()
+
+    def reset_controllers(self):
+        self.position_X_controller.reset(
+                self.get_pose().X(), self.chassis_speeds.vx
+            )
+        self.position_Y_controller.reset(
+            self.get_pose().Y(), self.chassis_speeds.vy
+            )
 
     def follow_trajectory(self, sample):
         # Get the current pose of the robot
