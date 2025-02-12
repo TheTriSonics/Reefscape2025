@@ -5,6 +5,7 @@ import magicbot
 import ntcore
 import wpilib
 from magicbot import feedback
+from robotpy_apriltag import AprilTagFieldLayout, AprilTagField
 from wpimath.controller import PIDController
 from phoenix6.configs import (
     ClosedLoopGeneralConfigs,
@@ -233,17 +234,20 @@ class DrivetrainComponent:
 
     send_modules = magicbot.tunable(True)
     swerve_lock = magicbot.tunable(False)
+    closest_apriltag_id = magicbot.tunable(-1)
+
 
     # TODO: Read from positions.py once autonomous is finished
 
     def __init__(self) -> None:
+        self.apriltags = AprilTagFieldLayout.loadField(AprilTagField.k2025Reefscape)
 
         self.publisher = (ntcore.NetworkTableInstance.getDefault()
                                                 .getStructTopic("MyPose", Pose2d)
                                                 .publish()
         )
         self.heading_controller = ProfiledPIDControllerRadians(
-            0.5, 0, 0, TrapezoidProfileRadians.Constraints(100, 100)
+            0.5, 0, 0, TrapezoidProfileRadians.Constraints(2, 4)
         )
         self.heading_controller.enableContinuousInput(-math.pi, math.pi)
         self.snapping_to_heading = False
@@ -459,6 +463,20 @@ class DrivetrainComponent:
 
     def update_odometry(self) -> None:
         self.estimator.update(self.gyro.get_Rotation2d(), self.get_module_positions())
+        robot_pose = self.get_pose()
+        closest_dist = 100  # meters
+        closest_tag = -1
+        for tag in self.apriltags.getTags():
+            # Now check distance between robot_pose and tag.pose
+            # No: dist = robot_pose.translation().distance(tag.pose.translation())
+            xdiff = robot_pose.X() - tag.pose.translation().X()
+            ydiff = robot_pose.Y() - tag.pose.translation().Y()
+            dist = math.sqrt(xdiff**2 + ydiff**2)
+            if dist < closest_dist:
+                closest_dist = dist
+                closest_tag = tag.ID
+        self.closest_apriltag_pose = self.apriltags.getTagPose(closest_tag)
+        self.closest_apriltag_id = closest_tag
 
         self.field_obj.setPose(self.get_pose())
         self.publisher.set(self.get_pose())
@@ -516,3 +534,10 @@ class DrivetrainComponent:
     @feedback
     def at_desired_heading(self) -> bool:
         return self.heading_controller.atGoal()
+
+    def drive_to_point(self, x: float, y: float) -> None:
+        """Drive to a point on the field"""
+        pose = self.get_pose()
+        dx = x - pose.X()
+        dy = y - pose.Y()
+        self.drive_field(dx, dy, 0)

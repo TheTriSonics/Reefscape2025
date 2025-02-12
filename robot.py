@@ -66,7 +66,96 @@ class MyRobot(magicbot.MagicRobot):
         # side: (28*3)*2 + front: (30*3) - 2 (R.I.P)
         self.timer = wpilib.Timer()
 
+    def disabledPeriodic(self) -> None:
+        self.vision.execute()
+        self.battery_monitor.execute()
+        self.leds.execute()
+        self.drivetrain.update_odometry()
+        # mode = self._automodes.active_mode
+        mode = self._automodes.chooser.getSelected()
+        if mode and hasattr(mode, 'set_initial_pose'):
+            mode.set_initial_pose()
+        nt_instance = ntcore.NetworkTableInstance.getDefault()
+        self.reefscape_table = nt_instance.getTable("Reefscape")
+
+        # Starting locations
+        self.start_chooser = wpilib.SendableChooser()
+        START_OPTIONS = {
+            "Left": "Left", 
+            "Middle": "Middle",
+            "Right": "Right"
+        }
+        for display, value in START_OPTIONS.items():
+            self.start_chooser.addOption(display, value)
+        self.start_chooser.setDefaultOption("Left", "Left")
+        wpilib.SmartDashboard.putData("Start Location", self.start_chooser)
+
+        # Pickup locations
+        self.pickup_chooser = wpilib.SendableChooser()
+        PICKUP_OPTIONS = {
+            "Left 12": "L12", "Left 13": "L3",
+            "Right 12": "R12", "Right 13": "R13"
+        }
+        for display, value in PICKUP_OPTIONS.items():
+            self.pickup_chooser.addOption(display, value)
+        self.pickup_chooser.setDefaultOption("Left 13", "L13")
+        wpilib.SmartDashboard.putData("Pickup Location", self.pickup_chooser)
+
+        # Scoring sequence using AprilTag IDs (17-22)
+        self.score_sequence = []
+        for i in range(5):
+            score_chooser = wpilib.SendableChooser()
+            score_chooser.addOption("None", "")
+            
+            # Generate scoring options for tags 17-22 with L/R variants
+            for tag in range(17, 22):
+                score_chooser.addOption(f"Left {tag}", f"L{tag}")
+                score_chooser.addOption(f"Right {tag}", f"R{tag}")
+                
+            wpilib.SmartDashboard.putData(f"Score Position {i+1}", score_chooser)
+            self.score_sequence.append(score_chooser)
+
+
+    def get_scoring_sequence(self) -> list[str]:
+        """Generate choreo path names from selected positions"""
+        start = self.start_chooser.getSelected()
+        pickup = self.pickup_chooser.getSelected()
+        paths = []
+        
+        for scorer in self.score_sequence[:1]:
+            target = scorer.getSelected()
+            if target:
+                path_name = f"{start} to {target}"
+                paths.append(path_name)
+        
+        # Start from index 1 (second element) of score_sequence
+        for scorer in self.score_sequence[1:]:
+            target = scorer.getSelected()
+            if target:
+                path_name = f"{pickup} to {target}"
+                paths.append(path_name)
+                
+        return paths        
+
+    def get_pickup_sequence(self) -> list[str]:
+        """Generate choreo path names from selected positions"""
+        pickup = self.pickup_chooser.getSelected()
+        paths = []
+        
+        if pickup:
+            for scorer in self.score_sequence:
+                target = scorer.getSelected()
+                if target:
+                    path_name = f"{target} to {pickup}"
+                    paths.append(path_name)
+                
+        return paths        
+
     def autonomousInit(self):
+        score_paths = self.get_scoring_sequence()
+        pickup_paths = self.get_pickup_sequence()
+        print("Score paths:", score_paths)
+        print("Pickup paths:", pickup_paths)
         return
 
     def autonomousPeriodic(self):
@@ -108,13 +197,6 @@ class MyRobot(magicbot.MagicRobot):
             # If they hit the button in that state then we're ready to score
             # into the barge so raise elevator into scoring position
             # On the next press score the algae and return to home position
-
-
-            
-            
-
-    
-       
 
     def handle_drivetrain(self) -> None:
         max_speed = self.max_speed
@@ -167,13 +249,4 @@ class MyRobot(magicbot.MagicRobot):
 
         self.drivetrain.update_odometry()
 
-    def disabledPeriodic(self) -> None:
-        self.vision.execute()
-        self.battery_monitor.execute()
-        self.leds.execute()
-        self.drivetrain.update_odometry()
-        # mode = self._automodes.active_mode
-        mode = self._automodes.chooser.getSelected()
-        if mode and hasattr(mode, 'set_initial_pose'):
-            mode.set_initial_pose()
 
