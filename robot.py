@@ -142,7 +142,6 @@ class MyRobot(magicbot.MagicRobot):
             self.lock_reef(shift_right=True)
         else:
             self.handle_drivetrain()
-        self.handle_manipulator()
 
     def testInit(self) -> None:
         pass
