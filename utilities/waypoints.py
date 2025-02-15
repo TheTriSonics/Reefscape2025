@@ -162,7 +162,7 @@ def closest_processor_tag_id(pose: Pose2d) -> tuple[int, float]:
         for tpose in [get_tag_pose(tag) for tag in processor_tags]
     ]
     dist = min(processor_distances)
-    return ps_tags[processor_distances.index(dist)], dist
+    return processor_tags[processor_distances.index(dist)], dist
 
 
 def closest_barge_tag_id(pose: Pose2d) -> tuple[int, float]:

@@ -133,6 +133,20 @@ class MyRobot(magicbot.MagicRobot):
         self.final_pose_pub.set(final_pose)
         self.drivetrain.drive_to_pose(final_pose)
 
+    def lock_ps(self):
+        from utilities.waypoints import (
+            closest_ps_tag_id, get_tag_robot_away,
+            shift_reef_left, shift_reef_right
+        )
+        pose = self.drivetrain.get_pose()
+        tag_id, dist = closest_ps_tag_id(pose)
+        final_pose = (
+            get_tag_robot_away(tag_id)
+        )
+        self.final_pose_pub.set(final_pose)
+        self.drivetrain.drive_to_pose(final_pose)
+
+
     def teleopPeriodic(self) -> None:
         if self.driver_controller.getRightBumper() and self.driver_controller.getLeftBumper():
             self.lock_reef()
@@ -140,6 +154,8 @@ class MyRobot(magicbot.MagicRobot):
             self.lock_reef(shift_left=True)
         elif self.driver_controller.getRightBumper():
             self.lock_reef(shift_right=True)
+        elif self.driver_controller.getAButton():
+            self.lock_ps()
         else:
             self.handle_drivetrain()
 
