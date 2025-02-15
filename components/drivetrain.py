@@ -5,7 +5,6 @@ import magicbot
 import ntcore
 import wpilib
 from magicbot import feedback
-from robotpy_apriltag import AprilTagFieldLayout, AprilTagField
 from wpimath.controller import PIDController
 from phoenix6.configs import (
     ClosedLoopGeneralConfigs,
@@ -18,7 +17,6 @@ from phoenix6.controls import PositionDutyCycle, VelocityVoltage, VoltageOut, Du
 from phoenix6.hardware import CANcoder, TalonFX
 from phoenix6.signals import InvertedValue, NeutralModeValue
 from wpimath.controller import (
-    ProfiledPIDController,
     ProfiledPIDControllerRadians,
     SimpleMotorFeedforwardMeters,
 )
@@ -30,12 +28,8 @@ from wpimath.kinematics import (
     SwerveModulePosition,
     SwerveModuleState,
 )
-from wpimath.trajectory import TrapezoidProfileRadians, TrapezoidProfile
-from wpimath.trajectory import Trajectory as WPITrajectory
-from pathplannerlib.path import PathPlannerTrajectoryState
-from choreo.trajectory import SwerveSample as ChoreoSwerveSample
+from wpimath.trajectory import TrapezoidProfileRadians
 from utilities.game import is_red, is_sim
-from utilities.waypoints import get_tag_pose
 
 from ids import CancoderId, TalonId
 
@@ -181,6 +175,8 @@ class SwerveModule:
         wpilib.SmartDashboard.putNumber(f"{self.name} orig", current_angle.radians())
         """
 
+        newP = wpilib.SmartDashboard.getNumber('magicP', 0.3)
+        self.steer_pid.setP(newP)
         steer_output = self.steer_pid.calculate(current_angle.radians(), target_angle)
         self.steer.set_control(DutyCycleOut(steer_output))
 
@@ -242,33 +238,23 @@ class DrivetrainComponent:
     # TODO: Read from positions.py once autonomous is finished
 
     def __init__(self) -> None:
-        self.apriltags = AprilTagFieldLayout.loadField(AprilTagField.k2025Reefscape)
 
         self.publisher = (ntcore.NetworkTableInstance.getDefault()
-                                                .getStructTopic("/components/drivetrain/fused_pose", Pose2d)
+                                                .getStructTopic("MyPose", Pose2d)
                                                 .publish()
         )
-        self.snapping_to_heading = False
-        self.snap_heading: float | None = None
-
         self.heading_controller = ProfiledPIDControllerRadians(
-            32, 0, 0, TrapezoidProfileRadians.Constraints(10, 50)
+            0.5, 0, 0, TrapezoidProfileRadians.Constraints(100, 100)
         )
         self.heading_controller.enableContinuousInput(-math.pi, math.pi)
+        self.snapping_to_heading = False
         self.heading_controller.setTolerance(self.HEADING_TOLERANCE)
-        self.x_controller = PIDController(12, 0, 0)
-        self.y_controller = PIDController(12, 0, 0)
-        self.auto_heading_controller = PIDController(7.5, 0, 0)
-        self.auto_heading_controller.enableContinuousInput(-math.pi, math.pi)
-        self.auto_heading_controller.setTolerance(self.HEADING_TOLERANCE)
+        self.snap_heading: float | None = None
 
-        if is_sim():
-            p, i, d = 14.0, 0.0, 0.0
-            for x in [self.x_controller, self.y_controller]:
-                x.setP(p)
-                x.setI(i)
-                x.setD(d)
-        self.heading_controller.enableContinuousInput(-math.pi, math.pi)
+        self.choreo_x_controller = PIDController(10, 0, 0)
+        self.choreo_y_controller = PIDController(10, 0, 0)
+        self.choreo_heading_controller = PIDController(15, 0, 0)
+        self.choreo_heading_controller.enableContinuousInput(-math.pi, math.pi)
         self.on_red_alliance = False
 
         self.modules = (
@@ -330,24 +316,14 @@ class DrivetrainComponent:
         )
         self.sync_all()
 
-        nt = (
-            ntcore
-            .NetworkTableInstance
-            .getDefault()
-            .getTable("/components/drivetrain")
-        )
+        nt = ntcore.NetworkTableInstance.getDefault().getTable("/components/drivetrain")
         module_states_table = nt.getSubTable("module_states")
-
-        self.setpoints_publisher = (
-            module_states_table
-            .getStructArrayTopic("setpoints", SwerveModuleState)
-            .publish()
-        )
-        self.measurements_publisher = (
-            module_states_table
-            .getStructArrayTopic("measured", SwerveModuleState)
-            .publish()
-        )
+        self.setpoints_publisher = module_states_table.getStructArrayTopic(
+            "setpoints", SwerveModuleState
+        ).publish()
+        self.measurements_publisher = module_states_table.getStructArrayTopic(
+            "measured", SwerveModuleState
+        ).publish()
 
         wpilib.SmartDashboard.putData("Heading PID", self.heading_controller)
 
@@ -384,6 +360,7 @@ class DrivetrainComponent:
             stateStdDevs=(0.01, 0.01, 0.01),  # How much to trust wheel odometry
             visionMeasurementStdDevs=(0.4, 0.4, 0.2),
         )
+        self.field_obj = self.field.getObject("fused_pose")
         self.set_pose(initial_pose)
         heading = 180 if is_red() else 0
         self.gyro.reset_heading(heading)
@@ -403,37 +380,39 @@ class DrivetrainComponent:
 
     def halt(self):
         self.drive_local(0, 0, 0)
-
+    
     def drive_to_pose(self, pose: Pose2d) -> None:
         self.drive_to_position(pose.X(), pose.Y(), pose.rotation().radians())
 
     def drive_to_position(self, x: float, y: float, heading: float) -> None:
-        """Drive to a specific position on the field"""
-        pose = self.get_pose()
-        xval = self.x_controller.calculate(pose.X(), x)
-        yval = self.y_controller.calculate(pose.Y(), y)
-        hval = self.heading_controller.calculate(pose.rotation().radians(), heading)
-        hval = 0
-        self.drive_field(xval, yval, hval)
+        robot_pose = self.get_pose()
+        xvel = self.choreo_x_controller.calculate(robot_pose.X(), x)
+        yvel = self.choreo_y_controller.calculate(robot_pose.Y(), y)
+        hvel = self.choreo_heading_controller.calculate(robot_pose.rotation().radians(), heading)
+        diff = abs(robot_pose.rotation().radians() - heading)
 
+        self.wait_until_aligned = 90
+        tol = math.radians(self.wait_until_aligned)
+        pn = wpilib.SmartDashboard.putNumber
+        pn('hval', hvel)
+        # Stop the drivetrain from translating until rotation is close to target
+        if diff > tol:
+            xvel = 0
+            yvel = 0
+        self.drive_field(xvel, yvel, hvel)
 
     def drive_local(self, vx: float, vy: float, omega: float) -> None:
         """Robot oriented drive commands"""
-        # We will ignore the heading snapping in sim mode
         if abs(omega) < 0.01 and self.snap_heading is None:
             self.snap_to_heading(self.get_heading().radians())
         self.chassis_speeds = ChassisSpeeds(vx, vy, omega)
-
-    def drive_local_speeds(self, speeds: ChassisSpeeds) -> None:
-        self.chassis_speeds = speeds
 
     def snap_to_heading(self, heading: float) -> None:
         """set a heading target for the heading controller"""
         self.snapping_to_heading = True
         self.snap_heading = heading
         if self.snap_heading is not None:
-            pass
-            # self.heading_controller.setGoal(self.snap_heading)
+            self.heading_controller.setGoal(self.snap_heading)
 
     def stop_snapping(self) -> None:
         """stops the heading_controller"""
@@ -441,7 +420,7 @@ class DrivetrainComponent:
         self.snap_heading = None
 
     def execute(self) -> None:
-        if False:
+        if self.snapping_to_heading:
             self.chassis_speeds.omega = self.heading_controller.calculate(
                 self.get_rotation().radians()
             )
@@ -462,14 +441,14 @@ class DrivetrainComponent:
 
         self.update_odometry()
 
-    def follow_choreo_trajectory(self, sample: ChoreoSwerveSample):
+    def follow_trajectory(self, sample):
         # Get the current pose of the robot
         pose = self.get_pose()
 
         # Generate the next speeds for the robot
-        dx = sample.vx + self.x_controller.calculate(pose.X(), sample.x)
-        dy = sample.vy + self.y_controller.calculate(pose.Y(), sample.y)
-        do = sample.omega + self.auto_heading_controller.calculate(pose.rotation().radians(), sample.heading)
+        dx = sample.vx + self.choreo_x_controller.calculate(pose.X(), sample.x)
+        dy = sample.vy + self.choreo_y_controller.calculate(pose.Y(), sample.y)
+        do = sample.omega + self.choreo_heading_controller.calculate(pose.rotation().radians(), sample.heading)
         """
         pn = wpilib.SmartDashboard.putNumber
         pn('choreo dx', dx)
@@ -479,33 +458,7 @@ class DrivetrainComponent:
         """
         # Apply the generated speeds
         self.drive_field(dx, dy, do)
-    
-    def follow_pp_trajectory(self, sample: PathPlannerTrajectoryState):
-        # Get the current pose of the robot
-        pose = self.get_pose()
-        curr_x = pose.X()
-        curr_y = pose.Y()
-        tgt_x = sample.pose.X()
-        tgt_y = sample.pose.Y()
-        curr_heading = pose.rotation().radians()
-        tgt_heading = sample.pose.rotation().radians()
 
-        vx, vy, omega = sample.fieldSpeeds.vx, sample.fieldSpeeds.vy, sample.fieldSpeeds.omega
-
-        # Generate the next speeds for the robot
-        dx = vx + self.x_controller.calculate(curr_x, tgt_x)
-        dy = vy + self.y_controller.calculate(curr_y, tgt_y)
-        do = omega + self.auto_heading_controller.calculate(curr_heading,
-                                                              tgt_heading)
-        """
-        pn = wpilib.SmartDashboard.putNumber
-        pn('pp dx', dx)
-        pn('cpp dy', dy)
-        pn('pp do', do)
-        """
-        # Apply the generated speeds
-        self.drive_field(dx, dy, do)
-    
     def on_enable(self) -> None:
         """update the odometry so the pose estimator doesn't have an empty
         buffer
@@ -527,6 +480,8 @@ class DrivetrainComponent:
 
     def update_odometry(self) -> None:
         self.estimator.update(self.gyro.get_Rotation2d(), self.get_module_positions())
+
+        self.field_obj.setPose(self.get_pose())
         self.publisher.set(self.get_pose())
         if self.send_modules:
             self.setpoints_publisher.set([module.state for module in self.modules])
@@ -543,6 +498,7 @@ class DrivetrainComponent:
         )
         self.publisher.set(pose)
         self.field.setRobotPose(pose)
+        self.field_obj.setPose(pose)
 
     def reset_yaw(self) -> None:
         """Sets pose to current pose but with a heading of forwards"""
@@ -569,9 +525,6 @@ class DrivetrainComponent:
             self.modules[2].get_position(),
             self.modules[3].get_position(),
         )
-
-    def get_chassis_speeds(self) -> ChassisSpeeds:
-        return self.chassis_speeds
 
     def get_pose(self) -> Pose2d:
         """Get the current location of the robot relative to ???"""

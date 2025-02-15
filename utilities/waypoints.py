@@ -4,7 +4,7 @@ from generated.tuner_constants import TunerConstants
 
 apriltags = AprilTagFieldLayout.loadField(AprilTagField.k2025Reefscape)
 
-bumper_width = 0.0
+bumper_width = 0.30
 robot_y_offset = TunerConstants._front_left_y_pos + bumper_width
 
 reef_tags = [6, 7, 8, 9, 10, 11, 17, 18, 19, 20, 21, 22]
