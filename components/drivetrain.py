@@ -412,7 +412,8 @@ class DrivetrainComponent:
         pose = self.get_pose()
         xval = self.x_controller.calculate(pose.X(), x)
         yval = self.y_controller.calculate(pose.Y(), y)
-        hval = self.auto_heading_controller.calculate(pose.rotation().radians(), heading)
+        hval = self.heading_controller.calculate(pose.rotation().radians(), heading)
+        hval = 0
         self.drive_field(xval, yval, hval)
 
 
@@ -431,7 +432,8 @@ class DrivetrainComponent:
         self.snapping_to_heading = True
         self.snap_heading = heading
         if self.snap_heading is not None:
-            self.heading_controller.setGoal(self.snap_heading)
+            pass
+            # self.heading_controller.setGoal(self.snap_heading)
 
     def stop_snapping(self) -> None:
         """stops the heading_controller"""
@@ -439,7 +441,7 @@ class DrivetrainComponent:
         self.snap_heading = None
 
     def execute(self) -> None:
-        if self.snapping_to_heading:
+        if False:
             self.chassis_speeds.omega = self.heading_controller.calculate(
                 self.get_rotation().radians()
             )
