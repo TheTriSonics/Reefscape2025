@@ -60,6 +60,7 @@ class MyRobot(magicbot.MagicRobot):
         self.data_log = wpilib.DataLogManager.getLog()
 
         self.gamepad = wpilib.XboxController(0)
+        
 
         self.field = wpilib.Field2d()
         wpilib.SmartDashboard.putData(self.field)
@@ -112,8 +113,23 @@ class MyRobot(magicbot.MagicRobot):
         if drive_z != 0:
             self.drivetrain.stop_snapping()
 
+    def lock_apriltag(self):
+        from utilities.waypoints import (
+        closest_reef_tag_id, get_tag_robot_away,
+        shift_reef_left, shift_reef_right
+        )
+        print("Locking to reef")
+        current_pose = self.drivetrain.get_pose()
+        nearest_reef_id = closest_reef_tag_id(current_pose)
+        final_pose = get_tag_robot_away(nearest_reef_id)
+        self.drivetrain.drive_to_pose(final_pose)
+
+
     def teleopPeriodic(self) -> None:
-        self.handle_drivetrain()
+        if self.gamepad.getRawAxis(5) > 0.5:
+            self.lock_apriltag()
+        else:
+            self.handle_drivetrain()
         self.handle_manipulator()
 
     def testInit(self) -> None:
