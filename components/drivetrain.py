@@ -38,6 +38,18 @@ from .gyro import GyroComponent
 from generated.tuner_constants import TunerConstants
 
 
+def angle_difference(angle1, angle2):
+    """
+    Calculate the smallest difference between two angles in radians.
+    Returns the absolute difference in radians.
+    """
+    # Normalize the difference to be between -π and π
+    diff = (angle1 - angle2) % (2 * math.pi)
+    if diff > math.pi:
+        diff = 2 * math.pi - diff
+    return diff
+
+
 class SwerveModule:
     # limit the acceleration of the commanded speeds of the robot to what is
     # actually achiveable without the wheels slipping. This is done to improve
@@ -389,12 +401,16 @@ class DrivetrainComponent:
         xvel = self.choreo_x_controller.calculate(robot_pose.X(), x)
         yvel = self.choreo_y_controller.calculate(robot_pose.Y(), y)
         hvel = self.choreo_heading_controller.calculate(robot_pose.rotation().radians(), heading)
-        diff = abs(robot_pose.rotation().radians() - heading)
-
+        diff = angle_difference(robot_pose.rotation().radians(), heading)
         self.wait_until_aligned = 90
         tol = math.radians(self.wait_until_aligned)
+        """
         pn = wpilib.SmartDashboard.putNumber
-        pn('hval', hvel)
+        pn('hvel', hvel)
+        pn('diff', diff)
+        pn('heading', heading)
+        pn('rot', robot_pose.rotation().radians())
+        """
         # Stop the drivetrain from translating until rotation is close to target
         if diff > tol:
             xvel = 0
