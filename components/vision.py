@@ -1,5 +1,6 @@
 import math
 import wpilib
+from magicbot import tunable
 from robotpy_apriltag import AprilTagFieldLayout, AprilTagField
 from wpilib import Timer
 import ntcore
@@ -9,13 +10,16 @@ from photonlibpy.photonPoseEstimator import PhotonPoseEstimator, PoseStrategy
 from components.drivetrain import DrivetrainComponent
 from wpimath import units
 from utilities.game import is_sim, is_disabled
-
+from utilities.waypoints import closest_reef_tag_id
 
 
 class VisionComponent():
 
     drivetrain: DrivetrainComponent
 
+    std_x = tunable(0.4)
+    std_y = tunable(0.4)
+    std_rot = tunable(0.2)
 
     def __init__(self) -> None:
         self.timer = Timer()
@@ -58,12 +62,12 @@ class VisionComponent():
 
         self.publisher_center = (
             ntcore.NetworkTableInstance.getDefault()
-            .getStructTopic("PhotonPose_center", Pose2d)
+            .getStructTopic("/components/vision/pose_center", Pose2d)
             .publish()
         )
         self.publisher_fl = (
             ntcore.NetworkTableInstance.getDefault()
-            .getStructTopic("PhotonPose_fl", Pose2d)
+            .getStructTopic("/components/vision/pose_fl", Pose2d)
             .publish()
         )
 
@@ -72,10 +76,8 @@ class VisionComponent():
         self.publishers = [self.publisher_center, self.publisher_fl]
 
     def execute(self) -> None:
-        if is_sim():
-            # Skip vision on sim for now
-            return
         setDevs = self.drivetrain.estimator.setVisionMeasurementStdDevs
+        tag_id, tag_dist = closest_reef_tag_id(self.drivetrain.get_pose())
         for cam, pose_est, pub in zip(
             self.cameras, self.pose_estimators, self.publishers
         ):
@@ -85,6 +87,17 @@ class VisionComponent():
                 if best_target and best_target.poseAmbiguity > 0.2:
                     # Skip using this pose in a vision update; it is too ambiguous
                     continue
+
+                taget_ids_in_frame = [t.fiducialId for t in res.getTargets()]
+                if tag_dist < 2.0 and tag_id in taget_ids_in_frame:
+                    # We're close to an apriltag, so we should use that for
+                    # vision. We'll tighten up the std devs to make sure we
+                    # are trusting this reading.
+                    self.std_x, self.std_y, self.std_rot = 0.1, 0.1, 0.2
+                else:
+                    self.std_x, self.std_y, self.std_rot = 0.4, 0.4, 0.2
+
+                setDevs((self.std_x, self.std_y, self.std_rot))
                 pupdate = pose_est.update(res)
                 if pupdate:
                     pose = pupdate.estimatedPose
@@ -92,20 +105,6 @@ class VisionComponent():
                                         pose.rotation().toRotation2d())
                     pub.set(twod_pose)
                     ts = self.timer.getTimestamp() - res.getLatencyMillis() / 1000.0
-                    tv, rv = self.drivetrain.get_robot_speeds()
-                    # TODO: Take into account rv, rotational velocity
-                    # for standard deviations. A spinning robot is not accurate!
-                    """
-                    # Getting rid of this dynamic std deviation idea.
-                    # I think this is a hold-over from days where the
-                    # camera was mounted higher on the robot and it would
-                    # vibrate when it ran
-                    std_x = (0.4 * max(abs(tv**1.5), 1)) / target_count
-                    std_y = std_x
-                    std_rot = std_x / 2
-                    """
-                    std_x, std_y, std_rot = 0.4, 0.4, 0.2
-                    setDevs((std_x, std_y, std_rot))
                     # Check if we're too far off for this to be valid
                     robot_pose = self.drivetrain.get_pose()
                     xdiff = abs(robot_pose.X() -twod_pose.X())
