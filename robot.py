@@ -19,6 +19,7 @@ from components import (
     ArmComponent,
     ElevatorComponent,
     IntakeComponent,
+    PhotoEyeComponent,
 )
 
 from controllers.manipulator import Manipulator
@@ -38,6 +39,7 @@ class MyRobot(magicbot.MagicRobot):
     vision: VisionComponent
     battery_monitor: BatteryMonitorComponent
     leds: LEDComponent
+    photoeye: PhotoEyeComponent
 
     # These 3 should not be used directly except in testing!
     # Only use the controller/state machine when doing real things!
@@ -136,10 +138,21 @@ class MyRobot(magicbot.MagicRobot):
     def lock_ps(self):
         from utilities.waypoints import (
             closest_ps_tag_id, get_tag_robot_away,
-            shift_reef_left, shift_reef_right
         )
         pose = self.drivetrain.get_pose()
         tag_id, dist = closest_ps_tag_id(pose)
+        final_pose = (
+            get_tag_robot_away(tag_id)
+        )
+        self.final_pose_pub.set(final_pose)
+        self.drivetrain.drive_to_pose(final_pose)
+
+    def lock_processor(self):
+        from utilities.waypoints import (
+            closest_processor_tag_id, get_tag_robot_away,
+        )
+        pose = self.drivetrain.get_pose()
+        tag_id, dist = closest_processor_tag_id(pose)
         final_pose = (
             get_tag_robot_away(tag_id)
         )
@@ -155,7 +168,10 @@ class MyRobot(magicbot.MagicRobot):
         elif self.driver_controller.getRightBumper():
             self.lock_reef(shift_right=True)
         elif self.driver_controller.getAButton():
-            self.lock_ps()
+            if self.photoeye.algae_held:
+                self.lock_processor()
+            else:
+                self.lock_ps()
         else:
             self.handle_drivetrain()
 
