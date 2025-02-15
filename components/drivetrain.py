@@ -67,6 +67,7 @@ class SwerveModule:
         self.name = name
         self.translation = Translation2d(x, y)
         self.state = SwerveModuleState(0, Rotation2d(0))
+        self.mag_offset = mag_offset
 
         # Create Motor and encoder objects
         self.steer = TalonFX(steer_id, "canivore")
