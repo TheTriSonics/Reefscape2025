@@ -1,13 +1,15 @@
 import math
 import choreo
+import wpimath
 
 import magicbot
 import wpilib
 import ntcore
 import wpilib.event
-from wpimath.geometry import Pose2d
+from wpimath.geometry import Pose2d, Rotation2d
 from magicbot import tunable
 from wpimath.geometry import Rotation3d, Translation3d
+import wpimath.geometry
 
 from components import (
     DrivetrainComponent,
@@ -27,6 +29,8 @@ from controllers.drive_to_pose import DriveToPose
 from utilities.scalers import rescale_js
 from utilities.game import is_red
 from robotpy_ext.autonomous import AutonomousModeSelector
+
+from utilities.waypoints import closest_ps_tag_id
 
 
 class MyRobot(magicbot.MagicRobot):
@@ -118,12 +122,44 @@ class MyRobot(magicbot.MagicRobot):
         closest_reef_tag_id, get_tag_robot_away,
         shift_reef_left, shift_reef_right
         )
-        print("Locking to reef")
+
         current_pose = self.drivetrain.get_pose()
-        nearest_reef_id = closest_reef_tag_id(current_pose)
+        nearest_reef_id, dist = closest_reef_tag_id(current_pose)
         final_pose = get_tag_robot_away(nearest_reef_id)
         self.drivetrain.drive_to_pose(final_pose)
 
+
+    def lock_ps_apriltag(self):#INDENTATION!!!!!!!!!! :)
+        from utilities.waypoints import (
+        closest_ps_tag_id, get_tag_robot_away,
+        )
+        current_pose = self.drivetrain.get_pose()
+        closest_ps_tag, dist = closest_ps_tag_id(current_pose)
+        final_pose = get_tag_robot_away(closest_ps_tag)
+
+        # Add 180-degree offset to the final pose
+        final_pose = Pose2d(
+            final_pose.translation(),
+            final_pose.rotation().rotateBy(wpimath.geometry.Rotation2d(math.pi))
+        )
+
+        self.drivetrain.drive_to_pose(final_pose)
+
+
+    def lock_proc_apriltag(self):#INDENTATION!!!!!!!!!! :)
+        from utilities.waypoints import (
+        closest_processor_tag_id, get_tag_robot_away,
+        )
+        current_pose = self.drivetrain.get_pose()
+        
+        closest_proc_tag_id, dist = closest_processor_tag_id(current_pose)
+        print("going to processor",closest_proc_tag_id)
+        final_pose = get_tag_robot_away(closest_proc_tag_id)
+        self.drivetrain.drive_to_pose(final_pose)
+
+
+
+        
 
     def teleopPeriodic(self) -> None:
         if self.gamepad.getRawAxis(5) > 0.5:
@@ -131,6 +167,10 @@ class MyRobot(magicbot.MagicRobot):
         else:
             self.handle_drivetrain()
         self.handle_manipulator()
+        if self.gamepad.getRawAxis(2) > 0.5:
+            self.lock_ps_apriltag()
+        if self.gamepad.getAButton():
+            self.lock_proc_apriltag()
 
     def testInit(self) -> None:
         pass
