@@ -379,6 +379,10 @@ class DrivetrainComponent:
 
     def drive_field(self, vx: float, vy: float, omega: float) -> None:
         """Field oriented drive commands"""
+        pn = wpilib.SmartDashboard.putNumber
+        pn('direct dx', vx)
+        pn('direct dy', vy)
+        pn('direct do', omega)
         current_heading = self.get_rotation()
         self.chassis_speeds = ChassisSpeeds.fromFieldRelativeSpeeds(
             vx, vy, omega, current_heading

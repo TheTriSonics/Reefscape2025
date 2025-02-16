@@ -26,6 +26,7 @@ from controllers.manipulator import Manipulator
 
 from utilities.scalers import rescale_js
 from utilities.game import is_red
+from utilities.position import Positions
 from robotpy_ext.autonomous import AutonomousModeSelector
 
 from hid.xbox_wired import ReefscapeDriver 
@@ -102,7 +103,7 @@ class MyRobot(magicbot.MagicRobot):
         elif js_name.startswith('Thrustmaster'):
             self.controller_choice = 'Talk to me, Goose!'
             self.driver_controller = ReefscapeDriverThrustmaster(0)
-        self.drivetrain.set_pose(Pose2d(Translation2d(12.6, 1.70), Rotation2d.fromDegrees(-60)))
+        self.drivetrain.set_pose(Positions.auton_line_2(is_red()))
 
     def handle_manipulator(self) -> None:
         return
@@ -189,6 +190,10 @@ class MyRobot(magicbot.MagicRobot):
                 self.lock_processor()
             else:
                 self.lock_ps()
+        if self.driver_controller.goHome():
+            self.drivetrain.drive_to_pose(
+                Positions.auton_line_2(is_red())
+            )
         else:
             self.handle_drivetrain()
 

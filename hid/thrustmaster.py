@@ -9,6 +9,9 @@ class ReefscapeDriver(XboxController):
     def has_extended_mode(self) -> bool:
         return True
 
+    def goHome(self) -> bool:
+        return self.getRawButton(15)
+
     def getCoralMode(self) -> bool:
         return self.getRawAxis(2) < -0.25
 

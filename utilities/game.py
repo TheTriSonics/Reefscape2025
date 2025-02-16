@@ -44,7 +44,7 @@ def field_flip_angle(r: float):
 
 
 def field_flip_translation2d(t: Translation2d):
-    return Translation2d(FIELD_LENGTH - t.x, t.y)
+    return Translation2d(FIELD_LENGTH - t.x, FIELD_WIDTH - t.y)
 
 
 # This will default to the blue alliance if a proper link to the driver station has not yet been established
@@ -54,6 +54,7 @@ def is_red() -> bool:
 
 def is_sim() -> bool:
     return wpilib.RobotBase.isSimulation()
+
 
 def is_disabled() -> bool:
     mode = wpilib.SmartDashboard.getString('/robot/mode', '')

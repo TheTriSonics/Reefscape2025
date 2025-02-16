@@ -6,7 +6,7 @@ class ReefscapeDriver(XboxController):
     def __init__(self, port: int):
         super().__init__(port)
 
-    def has_extended_moded(self) -> bool:
+    def goHome(self) -> bool:
         return False
 
     def getReefLeft(self) -> bool:
