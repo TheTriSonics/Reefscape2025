@@ -28,6 +28,9 @@ from utilities.scalers import rescale_js
 from utilities.game import is_red
 from robotpy_ext.autonomous import AutonomousModeSelector
 
+from hmi.xbox_wired import ReefscapeDriver 
+from hmi.logi_flight import ReefscapeDriver as ReefscapeDriverFlight
+from hmi.xbox_wireless import ReefscapeDriver as ReefscapeDriverWireless
 
 class MyRobot(magicbot.MagicRobot):
     # Controllers
@@ -53,13 +56,12 @@ class MyRobot(magicbot.MagicRobot):
     max_spin_rate = magicbot.tunable(32)  # m/s
     lower_max_spin_rate = magicbot.tunable(8)  # m/s
     inclination_angle = tunable(0.0)
+    controller_choice = tunable('')
 
     START_POS_TOLERANCE = 1
 
     def createObjects(self) -> None:
         self.data_log = wpilib.DataLogManager.getLog()
-
-        self.driver_controller = wpilib.XboxController(0)
 
         self.field = wpilib.Field2d()
         wpilib.SmartDashboard.putData(self.field)
@@ -81,8 +83,20 @@ class MyRobot(magicbot.MagicRobot):
     def teleopInit(self) -> None:
         if self.isSimulation():
             wpilib.DriverStation.silenceJoystickConnectionWarning(True)
-
-        self.field.getObject("Intended start pos").setPoses([])
+        
+        # Determine which Joystick to use for the driver.
+        js_name = wpilib.DriverStation.getJoystickName(0)
+        print('Joystick name:', js_name)
+        # We'll default to a stock Xbox controller unless the name tells us
+        # another one is better
+        self.controller_choice = 'Stock Xbox controller'
+        self.driver_controller = ReefscapeDriver(0)
+        if js_name == 'Xbox Wireless Controller':
+            self.controller_choice = 'Using Xbox wireless controller config'
+            self.driver_controller = ReefscapeDriverWireless(0)
+        elif js_name == 'Logitech Logitech Extreme 3D':
+            self.controller_choice = 'Going with a flight stick, eh, Mav?'
+            self.driver_controller = ReefscapeDriverFlight(0)
 
     def handle_manipulator(self) -> None:
         return
@@ -93,20 +107,18 @@ class MyRobot(magicbot.MagicRobot):
     def handle_drivetrain(self) -> None:
         max_speed = self.max_speed
         max_spin_rate = self.max_spin_rate
-        if self.driver_controller.getRawButton(8):  # the hamburger menu button
-            max_speed = self.lower_max_speed
-            max_spin_rate = self.lower_max_spin_rate
 
-        if self.driver_controller.getRawButton(7):  # the window button
+        if self.driver_controller.getFieldReset():  # the window button
             self.gyro.reset_heading()
         drive_x = -rescale_js(self.driver_controller.getLeftY(), 0.05, 2.5) * max_speed
         drive_y = -rescale_js(self.driver_controller.getLeftX(), 0.05, 2.5) * max_speed
         drive_z = (
             -rescale_js(self.driver_controller.getRightX(), 0.1, exponential=2) * max_spin_rate
         )
-        local_driving = self.driver_controller.getRawButton(8)
 
-        if local_driving:
+        if self.driver_controller.getDriveLocal():
+            max_speed = self.lower_max_speed
+            max_spin_rate = self.lower_max_spin_rate
             self.drivetrain.drive_local(drive_x, drive_y, drive_z)
         else:
             if is_red():
@@ -159,15 +171,14 @@ class MyRobot(magicbot.MagicRobot):
         self.final_pose_pub.set(final_pose)
         self.drivetrain.drive_to_pose(final_pose)
 
-
     def teleopPeriodic(self) -> None:
-        if self.driver_controller.getRightBumper() and self.driver_controller.getLeftBumper():
+        if self.driver_controller.getReefAlgae():
             self.lock_reef()
-        elif self.driver_controller.getLeftBumper():
+        elif self.driver_controller.getReefLeft():
             self.lock_reef(shift_left=True)
-        elif self.driver_controller.getRightBumper():
+        elif self.driver_controller.getReefRight():
             self.lock_reef(shift_right=True)
-        elif self.driver_controller.getAButton():
+        elif self.driver_controller.getToWallTarget():
             if self.photoeye.algae_held:
                 self.lock_processor()
             else:
