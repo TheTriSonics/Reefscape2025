@@ -31,6 +31,7 @@ from robotpy_ext.autonomous import AutonomousModeSelector
 from hid.xbox_wired import ReefscapeDriver 
 from hid.logi_flight import ReefscapeDriver as ReefscapeDriverFlight
 from hid.xbox_wireless import ReefscapeDriver as ReefscapeDriverWireless
+from hid.thrustmaster import ReefscapeDriver as ReefscapeDriverThrustmaster
 
 
 class MyRobot(magicbot.MagicRobot):
@@ -52,10 +53,10 @@ class MyRobot(magicbot.MagicRobot):
     # elevator: ElevatorComponent
     # intake: IntakeComponent
 
-    max_speed = magicbot.tunable(32)  # m/s
-    lower_max_speed = magicbot.tunable(6)  # m/s
-    max_spin_rate = magicbot.tunable(32)  # m/s
-    lower_max_spin_rate = magicbot.tunable(8)  # m/s
+    max_speed = magicbot.tunable(5)  # m/s
+    lower_max_speed = magicbot.tunable(3)  # m/s
+    max_spin_rate = magicbot.tunable(8)  # m/s
+    lower_max_spin_rate = magicbot.tunable(4)  # m/s
     inclination_angle = tunable(0.0)
     controller_choice = tunable('')
 
@@ -98,6 +99,10 @@ class MyRobot(magicbot.MagicRobot):
         elif js_name == 'Logitech Logitech Extreme 3D':
             self.controller_choice = 'Going with a flight stick, eh, Mav?'
             self.driver_controller = ReefscapeDriverFlight(0)
+        elif js_name.startswith('Thrustmaster'):
+            self.controller_choice = 'Talk to me, Goose!'
+            self.driver_controller = ReefscapeDriverThrustmaster(0)
+        self.drivetrain.set_pose(Pose2d(Translation2d(12.6, 1.70), Rotation2d.fromDegrees(-60)))
 
     def handle_manipulator(self) -> None:
         return
