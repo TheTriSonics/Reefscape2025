@@ -54,9 +54,9 @@ class MyRobot(magicbot.MagicRobot):
     # elevator: ElevatorComponent
     # intake: IntakeComponent
 
-    max_speed = magicbot.tunable(5)  # m/s
+    max_speed = magicbot.tunable(32)  # m/s
     lower_max_speed = magicbot.tunable(3)  # m/s
-    max_spin_rate = magicbot.tunable(8)  # m/s
+    max_spin_rate = magicbot.tunable(12)  # m/s
     lower_max_spin_rate = magicbot.tunable(4)  # m/s
     inclination_angle = tunable(0.0)
     controller_choice = tunable('')
