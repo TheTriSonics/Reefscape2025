@@ -260,7 +260,7 @@ class PhysicsEngine:
         self.wrist_mech_algae.setAngle(wrist_angle + 180)
 
         # Now figure out what the arrows indicating intake should be doing
-        intake_v = self.robot.intake.motor.sim_state.motor_voltage
+        intake_v = self.robot.intake.motor_request.output   
         # This gets us the raw voltage applied to the motor. We can use this
         # to scale the size of the arrows.
         if intake_v > 0:

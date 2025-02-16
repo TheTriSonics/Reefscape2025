@@ -5,7 +5,7 @@ import magicbot
 import wpilib
 import ntcore
 import wpilib.event
-from wpimath.geometry import Pose2d, Rotation2d, Transform2d, Translation2d
+from wpimath.geometry import Pose2d, Pose3d, Rotation2d, Transform2d, Translation2d
 from magicbot import tunable
 from wpimath.geometry import Rotation3d, Translation3d
 
@@ -49,10 +49,10 @@ class MyRobot(magicbot.MagicRobot):
 
     # These 3 should not be used directly except in testing!
     # Only use the controller/state machine when doing real things!
-    # wrist: WristComponent
-    # arm: ArmComponent
-    # elevator: ElevatorComponent
-    # intake: IntakeComponent
+    wrist: WristComponent
+    arm: ArmComponent
+    elevator: ElevatorComponent
+    intake: IntakeComponent
 
     max_speed = magicbot.tunable(32)  # m/s
     lower_max_speed = magicbot.tunable(3)  # m/s
@@ -76,6 +76,9 @@ class MyRobot(magicbot.MagicRobot):
                                                 .getStructTopic("LockOnPose", Pose2d)
                                                 .publish()
         )
+        self.coral_pub = (ntcore.NetworkTableInstance.getDefault()
+                            .getStructArrayTopic('corals', Pose3d)
+                            .publish())
 
     def autonomousInit(self):
         return
@@ -104,6 +107,14 @@ class MyRobot(magicbot.MagicRobot):
             self.controller_choice = 'Talk to me, Goose!'
             self.driver_controller = ReefscapeDriverThrustmaster(0)
         self.drivetrain.set_pose(Positions.auton_line_2(is_red()))
+
+        self.coral_pub.set([
+            Pose3d(Translation3d(7, 5, 2), Rotation3d(0, 0, 0)),
+            Pose3d(Translation3d(5, 5, 2), Rotation3d(0, 0, 0)),
+            Pose3d(Translation3d(5, 3, 2), Rotation3d(0, 0, 0)),
+        ])
+
+
 
     def handle_manipulator(self) -> None:
         return
@@ -198,6 +209,7 @@ class MyRobot(magicbot.MagicRobot):
             self.handle_drivetrain()
 
     def testInit(self) -> None:
+        self.driver_controller = ReefscapeDriver(0)
         pass
 
     def testPeriodic(self) -> None:

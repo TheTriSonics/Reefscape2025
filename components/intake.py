@@ -12,6 +12,7 @@ from enum import Enum
 from ids import TalonId
 
 from components.photoeye import PhotoEyeComponent
+from utilities.game import is_sim
 
 pn = wpilib.SmartDashboard.putNumber
 
@@ -24,7 +25,7 @@ class IntakeDirection(Enum):
 class IntakeComponent:
     photoeye: PhotoEyeComponent
     bus = 'canivore'
-    motor = TalonFX(TalonId.MANIP_INTAKE, bus)
+    # motor = TalonFX(TalonId.MANIP_INTAKE, bus)
 
     force_coral_score = tunable(False)
     force_coral_intake = tunable(False)
@@ -47,15 +48,18 @@ class IntakeComponent:
 
     def execute(self):
         motor_power = 0.0
-        if self.force_coral_score:
-            self.direction = IntakeDirection.CORAL_SCORE
         if self.force_coral_intake:
-            self.direction = IntakeDirection.CORAL_IN
+            motor_power = 0.2
+        if self.force_coral_score:
+            motor_power = -0.2
 
         if self.direction == IntakeDirection.CORAL_IN:
             motor_power = 0.2
         elif self.direction == IntakeDirection.CORAL_SCORE:
             motor_power = -0.2
+        
+        if is_sim():
+            motor_power *= 10 
 
         self.motor_request.output = motor_power
-        self.motor.set_control(self.motor_request)
+        # self.motor.set_control(self.motor_request)
