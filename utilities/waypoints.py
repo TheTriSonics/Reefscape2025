@@ -1,3 +1,4 @@
+import math
 from wpimath.geometry import Pose2d, Transform2d, Translation2d, Rotation2d
 from robotpy_apriltag import AprilTagFieldLayout, AprilTagField
 from generated.tuner_constants import TunerConstants
@@ -174,9 +175,10 @@ def closest_barge_tag_id(pose: Pose2d) -> tuple[int, float]:
     return barge_tags[barge_distances.index(dist)], dist
 
 
-def get_tag_robot_away(tag_id) -> Pose2d:
+def get_tag_robot_away(tag_id, face_at=False) -> Pose2d:
     pose = get_tag_pose(tag_id)
-    robot_offset = Transform2d(Translation2d(robot_y_offset, 0), Rotation2d(0))
+    rot = 0 if face_at is False else math.pi
+    robot_offset = Transform2d(Translation2d(robot_y_offset, 0), Rotation2d(rot))
     robot_pose = pose.transformBy(robot_offset)
     return robot_pose
 
