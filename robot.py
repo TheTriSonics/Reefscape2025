@@ -28,9 +28,10 @@ from utilities.scalers import rescale_js
 from utilities.game import is_red
 from robotpy_ext.autonomous import AutonomousModeSelector
 
-from hmi.xbox_wired import ReefscapeDriver 
-from hmi.logi_flight import ReefscapeDriver as ReefscapeDriverFlight
-from hmi.xbox_wireless import ReefscapeDriver as ReefscapeDriverWireless
+from hid.xbox_wired import ReefscapeDriver 
+from hid.logi_flight import ReefscapeDriver as ReefscapeDriverFlight
+from hid.xbox_wireless import ReefscapeDriver as ReefscapeDriverWireless
+
 
 class MyRobot(magicbot.MagicRobot):
     # Controllers
