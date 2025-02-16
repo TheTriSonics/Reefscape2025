@@ -190,7 +190,7 @@ class MyRobot(magicbot.MagicRobot):
                 self.lock_processor()
             else:
                 self.lock_ps()
-        if self.driver_controller.goHome():
+        elif self.driver_controller.goHome():
             self.drivetrain.drive_to_pose(
                 Positions.auton_line_2(is_red())
             )
