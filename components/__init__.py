@@ -7,3 +7,4 @@ from .gyro import GyroComponent
 from .vision import VisionComponent
 from .leds import LEDComponent
 from .intake import IntakeComponent
+from .photoeye import PhotoEyeComponent
