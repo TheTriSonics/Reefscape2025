@@ -11,39 +11,51 @@ from phoenix6.configs import TalonFXConfiguration
 from enum import Enum
 from ids import TalonId
 
+from components.photoeye import PhotoEyeComponent
+
 pn = wpilib.SmartDashboard.putNumber
 
 class IntakeDirection(Enum):
     NONE = 0
-    FORWARD = 1
-    REVERSE = 2
+    CORAL_IN = 1
+    CORAL_SCORE = 2
 
 
 class IntakeComponent:
+    photoeye: PhotoEyeComponent
     bus = 'canivore'
-    motor = TalonFX(TalonId.MANIP_ARM, bus)
-    target_pos = tunable(0.0)
+    motor = TalonFX(TalonId.MANIP_INTAKE, bus)
+
+    force_coral_score = tunable(False)
+    force_coral_intake = tunable(False)
+
+    auto_coral_intake = tunable(True)
+
     motor_request = DutyCycleOut(0, override_brake_dur_neutral=True)
     direction = IntakeDirection.NONE
-
-    def intake_in(self):
+    
+    def intake_coral_in(self):
         # TODO: This might not always mean forward, but for now
         # we'll keep it simple
-        self.direction = IntakeDirection.FORWARD
+        self.direction = IntakeDirection.CORAL_IN
 
-    def intake_out(self):
-        self.direction = IntakeDirection.REVERSE
+    def intake_coral_score(self):
+        self.direction = IntakeDirection.CORAL_SCORE
 
     def intake_off(self):
         self.direction = IntakeDirection.NONE
 
     def execute(self):
-        motor_power = 0
-        if self.direction == IntakeDirection.FORWARD:
+        motor_power = 0.0
+        if self.force_coral_score:
+            self.direction = IntakeDirection.CORAL_SCORE
+        if self.force_coral_intake:
+            self.direction = IntakeDirection.CORAL_IN
+
+        if self.direction == IntakeDirection.CORAL_IN:
             motor_power = 0.2
-        elif self.direction == IntakeDirection.REVERSE:
+        elif self.direction == IntakeDirection.CORAL_SCORE:
             motor_power = -0.2
 
         self.motor_request.output = motor_power
         self.motor.set_control(self.motor_request)
-

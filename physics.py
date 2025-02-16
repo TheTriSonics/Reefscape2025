@@ -246,8 +246,6 @@ class PhysicsEngine:
         )
 
     def update_mech_sim(self):
-        if self.robot.manipulator is None:
-            return
         """Update mechanism visualization with current positions"""
         # Get current positions
         elevator_height = self.robot.elevator.get_position()
@@ -311,7 +309,7 @@ class PhysicsEngine:
 
         self.physics_controller.drive(speeds, tm_diff)
         self.vision_sim.update(self.robot.drivetrain.get_pose())
-        # self.update_mech_sim()
+        self.update_mech_sim()
 
         # Ok now let's do photoeyes.
         """
