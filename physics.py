@@ -16,10 +16,11 @@ from wpimath.system.plant import DCMotor, LinearSystemId
 from wpimath.units import kilogram_square_meters
 
 from components.drivetrain import SwerveModule
-from components import IntakeComponent
+from components import IntakeComponent, PhotoEyeComponent
 from components.intake import IntakeDirection
 
 from generated.tuner_constants import TunerConstants
+from utilities.waypoints import *
 
 if typing.TYPE_CHECKING:
     from robot import MyRobot
@@ -156,7 +157,7 @@ class PhysicsEngine:
         # Create arm attached to elevator
         self.arm_mech = self.elevator_tower.appendLigament(
             "arm",
-            8,   # Arm length
+            0.8,   # Arm length
             0,    # Initial angle
             4     # Line weight
         )
@@ -166,7 +167,7 @@ class PhysicsEngine:
         # Create wrist at end of arm
         self.wrist_mech_coral = self.arm_mech.appendLigament(
             "wrist_coral",
-            3,    # Wrist length
+            0.3,    # Wrist length
             0,    # Initial angle
             3,    # Line weight
             color=red
@@ -174,7 +175,7 @@ class PhysicsEngine:
         
         self.wrist_mech_algae = self.arm_mech.appendLigament(
             "wrist_algae",
-            3,    # Wrist length
+            0.3,    # Wrist length
             0,    # Initial angle
             3,    # Line weight
             color=green
@@ -182,7 +183,7 @@ class PhysicsEngine:
 
         self.intake_algae_arrow1 = self.wrist_mech_algae.appendLigament(
             "algae_arrow1",
-            2,    # Wrist length
+            0.2,    # Wrist length
             -135,    # Initial angle
             3,    # Line weight
             color=green
@@ -190,7 +191,7 @@ class PhysicsEngine:
 
         self.intake_algae_arrow2 = self.wrist_mech_algae.appendLigament(
             "algae_arrow2",
-            2,    # Wrist length
+            0.2,    # Wrist length
             135,    # Initial angle
             3,    # Line weight
             color=green
@@ -198,7 +199,7 @@ class PhysicsEngine:
 
         self.intake_coral_arrow1 = self.wrist_mech_coral.appendLigament(
             "coral_arrow1",
-            2,    # Wrist length
+            0.2,    # Wrist length
             -45,    # Initial angle
             3,    # Line weight
             color=red
@@ -206,7 +207,7 @@ class PhysicsEngine:
 
         self.intake_coral_arrow2 = self.wrist_mech_coral.appendLigament(
             "coral_arrow2",
-            2,    # Wrist length
+            0.2,    # Wrist length
             45,    # Initial angle
             3,    # Line weight
             color=red
@@ -254,7 +255,7 @@ class PhysicsEngine:
         wrist_angle = self.robot.wrist.get_position()
 
         # Update the mechanism's values with robot values
-        self.elevator_tower.setLength(elevator_height / 2 + 15)
+        self.elevator_tower.setLength((elevator_height / 2 + 15) / 10)
         self.arm_mech.setAngle(arm_angle)
         self.wrist_mech_coral.setAngle(wrist_angle)
         self.wrist_mech_algae.setAngle(wrist_angle + 180)
@@ -264,11 +265,11 @@ class PhysicsEngine:
         # This gets us the raw voltage applied to the motor. We can use this
         # to scale the size of the arrows.
         if intake_v > 0:
-            self.intake_algae_arrow1.setLength(intake_v)
-            self.intake_algae_arrow2.setLength(intake_v)
+            self.intake_algae_arrow1.setLength(intake_v / 10)
+            self.intake_algae_arrow2.setLength(intake_v / 10)
         elif intake_v < 0:
-            self.intake_coral_arrow1.setLength(intake_v)
-            self.intake_coral_arrow2.setLength(intake_v)
+            self.intake_coral_arrow1.setLength(intake_v / 10)
+            self.intake_coral_arrow2.setLength(intake_v / 10)
         else:
             self.intake_algae_arrow1.setLength(0)
             self.intake_algae_arrow2.setLength(0)
@@ -312,11 +313,13 @@ class PhysicsEngine:
         self.update_mech_sim()
 
         # Ok now let's do photoeyes.
-        """
         pe: PhotoEyeComponent = self.robot.photoeye
         intake: IntakeComponent = self.robot.intake
         if pe.coral_chute and self.pe_coral_chute_triggerd_at < 0:
             self.pe_coral_chute_triggerd_at = now
+
+        robot_pose = self.robot.drivetrain.get_pose()
+        ps_id, ps_dist = closest_ps_tag_id(robot_pose)
 
         if (intake.direction == IntakeDirection.CORAL_IN
             and
@@ -338,6 +341,7 @@ class PhysicsEngine:
         if (
             intake.direction == IntakeDirection.CORAL_IN
             and self.intake_coral_in_at + 1.6 < now
+            and ps_dist < 0.99  # We have to be within a X meters of a pick up station
         ):
             pe.coral_held = True
             self.intake_coral_in_at = -1.0
@@ -355,6 +359,9 @@ class PhysicsEngine:
             # Untrigger the chute after a half a second.
             self.pe_coral_chute_triggerd_at = -1.0
             pe.coral_chute = False
-        """
-        pass
+        
+        if (pe.coral_chute and
+            self.pe_coral_chute_triggerd_at + 0.25 < now and
+            self.intake_coral_out_at + 0.25 < now):
+            pe.coral_held = True
 

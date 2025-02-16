@@ -20,6 +20,7 @@ class ArmComponent:
     default_pos = -80.0
     target_pos = tunable(default_pos)
     motor_request = MotionMagicVoltage(0, override_brake_dur_neutral=True)
+    fake_pos = tunable(default_pos)
     
     def __init__(self):
         config = TalonFXConfiguration()
@@ -38,7 +39,7 @@ class ArmComponent:
     @feedback
     def get_position(self) -> float:
         # return self.motor.get_position().value
-        return self.target_pos
+        return self.fake_pos
 
     @feedback
     def at_goal(self):
@@ -47,6 +48,12 @@ class ArmComponent:
         return diff < 0.5
 
     def execute(self):
+        if abs(self.fake_pos - self.target_pos) < 0.25:
+            self.fake_pos = self.target_pos
+        elif self.fake_pos < self.target_pos:
+            self.fake_pos += 1
+        elif self.fake_pos > self.target_pos:
+            self.fake_pos -= 1
         if not self.at_goal():
             req = self.motor_request.with_position(self.target_pos)
             # self.motor.set_control(req)

@@ -27,6 +27,7 @@ from controllers.manipulator import Manipulator
 from utilities.scalers import rescale_js
 from utilities.game import is_red
 from utilities.position import Positions
+from utilities.waypoints import *  # JJB: Bad form, but we're going to refactor this later
 from robotpy_ext.autonomous import AutonomousModeSelector
 
 from hid.xbox_wired import ReefscapeDriver 
@@ -37,15 +38,15 @@ from hid.thrustmaster import ReefscapeDriver as ReefscapeDriverThrustmaster
 
 class MyRobot(magicbot.MagicRobot):
     # Controllers
-    # manipulator: Manipulator
+    manipulator: Manipulator
 
     # Components
     gyro: GyroComponent
+    photoeye: PhotoEyeComponent
     drivetrain: DrivetrainComponent
     vision: VisionComponent
     battery_monitor: BatteryMonitorComponent
     leds: LEDComponent
-    photoeye: PhotoEyeComponent
 
     # These 3 should not be used directly except in testing!
     # Only use the controller/state machine when doing real things!
@@ -76,10 +77,6 @@ class MyRobot(magicbot.MagicRobot):
                                                 .getStructTopic("LockOnPose", Pose2d)
                                                 .publish()
         )
-        self.coral_pub = (ntcore.NetworkTableInstance.getDefault()
-                            .getStructArrayTopic('corals', Pose3d)
-                            .publish())
-
     def autonomousInit(self):
         return
 
@@ -106,21 +103,26 @@ class MyRobot(magicbot.MagicRobot):
         elif js_name.startswith('Thrustmaster'):
             self.controller_choice = 'Talk to me, Goose!'
             self.driver_controller = ReefscapeDriverThrustmaster(0)
-        self.drivetrain.set_pose(Positions.auton_line_2(is_red()))
-
-        self.coral_pub.set([
-            Pose3d(Translation3d(7, 5, 2), Rotation3d(0, 0, 0)),
-            Pose3d(Translation3d(5, 5, 2), Rotation3d(0, 0, 0)),
-            Pose3d(Translation3d(5, 3, 2), Rotation3d(0, 0, 0)),
-        ])
-
-
+        # self.drivetrain.set_pose(Positions.auton_line_2(is_red()))
+        tag = get_tag_id_from_letter('A', True)
+        pose = get_tag_robot_away(tag, face_at=True)
+        pose = shift_reef_right(pose)
+        self.drivetrain.set_pose(pose)
+        self.manipulator.engage()
 
     def handle_manipulator(self) -> None:
-        return
-        if self.driver_controller.getAButtonPressed():
-            self.wrist.target_pos += 1
-        pass
+        from controllers.manipulator import Locations
+        # Let's set some heights with the driver controller
+        if self.driver_controller.getHeightPlacement1():
+            self.manipulator.request_location(Locations.CORAL_REEF_1)
+        if self.driver_controller.getHeightPlacement2():
+            self.manipulator.request_location(Locations.CORAL_REEF_2)
+        if self.driver_controller.getHeightPlacement3():
+            self.manipulator.request_location(Locations.CORAL_REEF_3)
+        if self.driver_controller.getHeightPlacement4():
+            self.manipulator.request_location(Locations.CORAL_REEF_4)
+        if self.driver_controller.getManipulatorAdvance():
+            self.manipulator.request_advance()
 
     def handle_drivetrain(self) -> None:
         max_speed = self.max_speed
@@ -190,6 +192,8 @@ class MyRobot(magicbot.MagicRobot):
         self.drivetrain.drive_to_pose(final_pose)
 
     def teleopPeriodic(self) -> None:
+        self.handle_manipulator()
+
         if self.driver_controller.getReefAlgae():
             self.lock_reef()
         elif self.driver_controller.getReefLeft():

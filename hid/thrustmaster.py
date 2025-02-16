@@ -1,22 +1,11 @@
 from wpilib import XboxController
+from hid.reefscape_controller_base import ReefscapeControllerBase
 
 
-class ReefscapeDriver(XboxController):
+class ReefscapeDriver(ReefscapeControllerBase):
 
     def __init__(self, port: int):
         super().__init__(port)
-
-    def has_extended_mode(self) -> bool:
-        return True
-
-    def goHome(self) -> bool:
-        return self.getRawButton(15)
-
-    def getCoralMode(self) -> bool:
-        return self.getRawAxis(2) < -0.25
-
-    def getAlgaeMode(self) -> bool:
-        return self.getRawAxis(2) < 0.25
 
     def getLeftX(self) -> float:
         return self.getRawAxis(0)
@@ -56,3 +45,19 @@ class ReefscapeDriver(XboxController):
 
     def getHeightPlacement1(self) -> bool:
         return self.getRawButton(8)
+
+    def has_extended_mode(self) -> bool:
+        return True
+
+    # Here are things I would not expect on a regular XBox controller
+    def goHome(self) -> bool:
+        return self.getRawButton(15)
+
+    def getCoralMode(self) -> bool:
+        return self.getRawAxis(2) < -0.25
+
+    def getAlgaeMode(self) -> bool:
+        return self.getRawAxis(2) < 0.25
+
+    def getManipulatorAdvance(self) -> bool:
+        return self.getRawButton(9)
