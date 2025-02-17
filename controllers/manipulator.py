@@ -1,3 +1,7 @@
+
+""""
+This is a state machine that will control the manipulator.
+"""
 import enum
 from magicbot import StateMachine, state, tunable, feedback
 from components import (
@@ -7,28 +11,6 @@ from components import (
     IntakeComponent,
     PhotoEyeComponent
 )
-
-from magicbot import StateMachine
-import wpilib
-import math
-
-""""
-This is a state machine that will control the manipulator. Internally it keeps
-track of what state we're in and when it completes a motion it returns to
-a common state that waits for the operator to request the next action.
-
-Though it doesn't have to immediately return back to the operator; it can
-chain states together to perform a sequence of actions before returning
-control back to the operator.
-
-Consequently, we keep track of the following:
-Whether we're in algae or coral mode
-What coral level we're trying to score at (reef 1-4)
-What algae level we're trying to score at (processor or barge)
-What algae level we're trying to intake from (reef 1-2)
-Whether we are currenting waiting to intake, intaking, waiting to score,
-scoring, or waiting to elevate for intake or score.
-"""
 
 
 class GamePieces(enum.Enum):
@@ -55,7 +37,7 @@ class Location:
         This is what's used to turn the object into a string; handy if you
         want to print it out for debugging, or put it on a smart dashboard
         """
-        return f'Location(wrist={self.wrist_pos}, arm={self.arm_pos}, elevator={self.elevator_pos})'
+        return f'Location(elevator={self.elevator_pos}, arm={self.arm_pos}, wrist={self.wrist_pos})'
     
 
 class Locations:
@@ -63,6 +45,8 @@ class Locations:
     And we can define what is basicaly another enumeration, but with a Location
     object for a datatype, not an integer.
     """
+    # Order of params is elevator, arm, wrist, just as in the Location's
+    # __init__ method
     HOME = Location(0, -80, 135) 
     CORAL_REEF_1 = Location(0, -60, 75)
     CORAL_REEF_2 = Location(0, -20, -12)

@@ -22,6 +22,8 @@ from components import (
     PhotoEyeComponent,
 )
 
+from components.manipulator_sim import ManipulatorSim
+
 from controllers.manipulator import Manipulator
 
 from utilities.scalers import rescale_js
@@ -39,6 +41,7 @@ from hid.thrustmaster import ReefscapeDriver as ReefscapeDriverThrustmaster
 class MyRobot(magicbot.MagicRobot):
     # Controllers
     manipulator: Manipulator
+    manipulator_sim: ManipulatorSim
 
     # Components
     gyro: GyroComponent
@@ -54,6 +57,7 @@ class MyRobot(magicbot.MagicRobot):
     arm: ArmComponent
     elevator: ElevatorComponent
     intake: IntakeComponent
+
 
     max_speed = magicbot.tunable(32)  # m/s
     lower_max_speed = magicbot.tunable(3)  # m/s
@@ -132,6 +136,20 @@ class MyRobot(magicbot.MagicRobot):
             self.manipulator.go_home()
         if self.operator_controller.getManipulatorAdvance():
             self.manipulator.request_advance()
+
+        # Some buttons to force the manipulator to certain heights. Not to be
+        # used in the actual driving of the robot, but handy for debugging
+        if self.operator_controller.getRightBumper():
+            dpad = self.operator_controller.getPOV()
+            match dpad:
+                case 0:  # Up arrow, top coral 
+                    self.manipulator.request_location(Locations.CORAL_REEF_4)
+                case 90:  # Right arrow, 2nd coral
+                    self.manipulator.request_location(Locations.CORAL_REEF_2)
+                case 270:  # Left arrow, 3rd coral
+                    self.manipulator.request_location(Locations.CORAL_REEF_3)
+                case 180:  # Down arrow, trough level 1
+                    self.manipulator.request_location(Locations.CORAL_REEF_1)
 
     def handle_drivetrain(self) -> None:
         max_speed = self.max_speed

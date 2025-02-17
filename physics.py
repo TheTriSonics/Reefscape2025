@@ -143,79 +143,6 @@ class PhysicsEngine:
             self.manip_motors.append(self.elevator_motor_right)
         """
         
-        # Create a 2D mechanism for the Manipulator
-        self.mech2d = wpilib.Mechanism2d(25, 30)
-        # Create the base structure
-        self.base = self.mech2d.getRoot("base", 12.5, 0)
-        # Create elevator tower
-        self.elevator_tower = self.base.appendLigament(
-            "elevator_tower", 
-            0,  # Length of tower
-            90   # Straight up
-        )
-        
-        # Create arm attached to elevator
-        self.arm_mech = self.elevator_tower.appendLigament(
-            "arm",
-            0.4,   # Arm length
-            0,    # Initial angle
-            4     # Line weight
-        )
-        
-        red = wpilib.Color8Bit(255, 0, 0)
-        green = wpilib.Color8Bit(0, 255, 0)
-        # Create wrist at end of arm
-        self.wrist_mech_coral = self.arm_mech.appendLigament(
-            "wrist_coral",
-            0.15,    # Wrist length
-            0,    # Initial angle
-            3,    # Line weight
-            color=red
-        )
-        
-        self.wrist_mech_algae = self.arm_mech.appendLigament(
-            "wrist_algae",
-            0.15,    # Wrist length
-            0,    # Initial angle
-            3,    # Line weight
-            color=green
-        )
-
-        self.intake_algae_arrow1 = self.wrist_mech_algae.appendLigament(
-            "algae_arrow1",
-            0.15,    # Wrist length
-            -135,    # Initial angle
-            3,    # Line weight
-            color=green
-        )
-
-        self.intake_algae_arrow2 = self.wrist_mech_algae.appendLigament(
-            "algae_arrow2",
-            0.15,    # Wrist length
-            135,    # Initial angle
-            3,    # Line weight
-            color=green
-        )
-
-        self.intake_coral_arrow1 = self.wrist_mech_coral.appendLigament(
-            "coral_arrow1",
-            0.15,    # Wrist length
-            -45,    # Initial angle
-            3,    # Line weight
-            color=red
-        )
-
-        self.intake_coral_arrow2 = self.wrist_mech_coral.appendLigament(
-            "coral_arrow2",
-            0.15,    # Wrist length
-            45,    # Initial angle
-            3,    # Line weight
-            color=red
-        )
-        
-        # Send to SmartDashboard
-        wpilib.SmartDashboard.putData("Manipulator", self.mech2d)
-
         self.current_yaw = 0.0
         self.gyro = robot.gyro.pigeon.sim_state  # Access the Pigeon 2's sim state
         self.gyro.set_supply_voltage(12.0)  # Set the supply voltage for simulation
@@ -246,35 +173,6 @@ class PhysicsEngine:
             self.robot.vision.camera_center_offset,
         )
 
-    def update_mech_sim(self):
-        """Update mechanism visualization with current positions"""
-        # Get current positions
-        elevator_height = self.robot.elevator.get_position()
-        # Adjusted for how we think of our coordinates
-        arm_angle = self.robot.arm.get_position() - 90
-        wrist_angle = self.robot.wrist.get_position()
-
-        # Update the mechanism's values with robot values
-        self.elevator_tower.setLength((elevator_height / 2 + 10) / 10)
-        self.arm_mech.setAngle(arm_angle)
-        self.wrist_mech_coral.setAngle(wrist_angle)
-        self.wrist_mech_algae.setAngle(wrist_angle + 180)
-
-        # Now figure out what the arrows indicating intake should be doing
-        intake_v = self.robot.intake.motor_request.output   
-        # This gets us the raw voltage applied to the motor. We can use this
-        # to scale the size of the arrows.
-        if intake_v > 0:
-            self.intake_algae_arrow1.setLength(intake_v / 10)
-            self.intake_algae_arrow2.setLength(intake_v / 10)
-        elif intake_v < 0:
-            self.intake_coral_arrow1.setLength(intake_v / 10)
-            self.intake_coral_arrow2.setLength(intake_v / 10)
-        else:
-            self.intake_algae_arrow1.setLength(0)
-            self.intake_algae_arrow2.setLength(0)
-            self.intake_coral_arrow1.setLength(0)
-            self.intake_coral_arrow2.setLength(0)
 
     def update_sim(self, now: float, tm_diff: float) -> None:
         # Enable the Phoenix6 simulated devices
@@ -310,7 +208,6 @@ class PhysicsEngine:
 
         self.physics_controller.drive(speeds, tm_diff)
         self.vision_sim.update(self.robot.drivetrain.get_pose())
-        self.update_mech_sim()
 
         # Ok now let's do photoeyes.
         pe: PhotoEyeComponent = self.robot.photoeye
