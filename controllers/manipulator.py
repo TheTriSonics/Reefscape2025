@@ -134,15 +134,19 @@ class Manipulator(StateMachine):
     
     def set_coral_level1(self):
         self.coral_scoring_target = Locations.CORAL_REEF_1
+        self.intake.at_height = 1
 
     def set_coral_level2(self):
         self.coral_scoring_target = Locations.CORAL_REEF_2
+        self.intake.at_height = 2
 
     def set_coral_level3(self):
         self.coral_scoring_target = Locations.CORAL_REEF_3
+        self.intake.at_height = 3
 
     def set_coral_level4(self):
         self.coral_scoring_target = Locations.CORAL_REEF_4
+        self.intake.at_height = 4
     
     def set_algae_level1(self):
         self.algae_intake_target = Locations.ALGAE_REEF_1
@@ -216,6 +220,10 @@ class Manipulator(StateMachine):
     @state(must_finish=True)
     def coral_in_system(self, state_tm, initial_call):
         # Wait here until the operator wants to get into scoring position
+        if initial_call:
+            # We don't want the operator to spam the advance button and advance
+            # to this step
+            self.operator_advance = False
         if self.operator_advance:
             self.operator_advance = False
             self.next_state(self.coral_prepare_score)
@@ -223,6 +231,9 @@ class Manipulator(StateMachine):
     @state(must_finish=True)
     def coral_prepare_score(self, initial_call, state_tm):
         if initial_call:
+            # We don't want the operator to spam the advance button and advance
+            # to this step
+            self.operator_advance = False
             self.request_location(self.coral_scoring_target)
 
         # The operator could change the target value while we're in this state
@@ -254,7 +265,7 @@ class Manipulator(StateMachine):
             self.intake.intake_off()
         """
 
-        if self.operator_advance:
+        if self.operator_advance and self.photoeye.coral_held is False:
             self.operator_advance = False
             self.intake.intake_off()
             self.next_state(self.coral_scored)

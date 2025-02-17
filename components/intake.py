@@ -21,6 +21,7 @@ from utilities.waypoints import *
 
 pn = wpilib.SmartDashboard.putNumber
 
+
 class IntakeDirection(Enum):
     NONE = 0
     CORAL_IN = 1
@@ -62,10 +63,21 @@ class IntakeComponent:
                             .getStructArrayTopic('corals', Pose3d)
                             .publish())
 
-        self.coral_static: list[Pose3d] = [
-            Pose3d(Translation3d(7, 5, 2), Rotation3d(0, 0, 0)),
-        ]
         self._coral_pose = None
+
+    def setup(self):
+        self.coral_static: list[Pose3d] = [
+        ]
+        old_data = """
+            self.calc_coral_pose(6, force_right=True, height=4),
+            self.calc_coral_pose(6, force_right=True, height=3),
+            self.calc_coral_pose(6, force_right=True, height=2),
+            self.calc_coral_pose(6, force_right=True, height=1),
+            self.calc_coral_pose(6, force_left=True, height=4),
+            self.calc_coral_pose(6, force_left=True, height=3),
+            self.calc_coral_pose(6, force_left=True, height=2),
+            self.calc_coral_pose(6, force_left=True, height=1),
+            """
 
     def coral_in(self):
         # TODO: This might not always mean forward, but for now
@@ -115,52 +127,52 @@ class IntakeComponent:
             Rotation3d(0, 0, current_rotation.radians())
         )
 
-    def calc_coral_pose(self) -> Pose3d:
+    def calc_coral_pose(self, reef_tag_id=None, force_left=False, force_right=False, height=None) -> Pose3d:
         xoff, yoff, zoff = 0.0, 0.0, 0.0
         roll, pitch, yaw = 0.0, 0.0, 0.0
 
         robot_pose = self.drivetrain.get_pose()
-        reef_tag_id, dist = closest_reef_tag_id(robot_pose)
-        tag_pose_left = shift_reef_left(get_tag_pose(reef_tag_id))
-        tag_pose_right = shift_reef_right(get_tag_pose(reef_tag_id))
+        height = height or self.at_height
+        if reef_tag_id is None:
+            reef_tag_id, dist = closest_reef_tag_id(robot_pose)
+        tag_pose = get_tag_pose(reef_tag_id)
+        # Flip the pose so right/left make sense
+        flip = Transform2d(Translation2d(0, 0), Rotation2d(math.pi))
+        tag_pose = tag_pose.transformBy(flip)
+        tag_pose_left = shift_reef_left(tag_pose)
+        tag_pose_right = shift_reef_right(tag_pose)
 
         # If the distance from robot pose to left is less than to the right
         # then we'll use the left pose
         base_pose = tag_pose_right
         if robot_pose.translation().distance(tag_pose_left.translation()) < robot_pose.translation().distance(tag_pose_right.translation()):
             base_pose = tag_pose_left
+        
+        if force_left:
+            base_pose = tag_pose_left
+        elif force_right:
+            base_pose = tag_pose_right
 
         tag_3d_pose = Pose3d(
             Translation3d(base_pose.X(), base_pose.Y(), 0.2),
             Rotation3d(0, 0, base_pose.rotation().radians()),
         )
-        # For level 3:
-        # x 0.15
-        # y 0.045
-        # z 1.1
-        # pitch 30
 
-        # for level 2 drop the z to: 0.75:w
-        # for level 1 drop to: 0.5, pitch is -30
-        # level 4 is 1.8, x is 0.05, 90 deg on the pitch
-        # Let's mock up some that would be on the reef as if they're scored
-
-        if self.at_height == 1:
-            yoff = 0.045
-            zoff = 0.5
+        if height == 1:
+            xoff = 0.20
+            zoff = 0.35
             pitch = -30
-        elif self.at_height == 2:
-            yoff = 0.045
-            zoff = 0.75
+        elif height == 2:
+            xoff = 0.10
+            zoff = 0.55
             pitch = 30
-        elif self.at_height == 3:
-            yoff = 0.045
-            zoff = 1.1
+        elif height == 3:
+            xoff = 0.10
+            zoff = 0.95
             pitch = 30
-        elif self.at_height == 4:
-            xoff = 0.05
-            yoff = 0.045
-            zoff = 1.7
+        elif height == 4:
+            xoff = 0.075
+            zoff = 1.6
             pitch = 90
 
         coral_pose = tag_3d_pose.transformBy(
@@ -197,7 +209,7 @@ class IntakeComponent:
         
         if coral_pose:
             self.coral_pub.set(self.coral_static + [coral_pose])
-        else:
+        elif False:
             tag_id = get_tag_id_from_letter('A', True)
             tag_pose = shift_reef_left(get_tag_pose(tag_id))
             x = tag_pose.X() + self.x_off
@@ -206,6 +218,8 @@ class IntakeComponent:
 
             tpose = Pose3d(Translation3d(x, y, z), Rotation3d.fromDegrees(self.roll, self.pitch, self.yaw))
             self.coral_pub.set(self.coral_static + [tpose])
+        else:
+            self.coral_pub.set(self.coral_static)
 
     def execute(self):
         self.do_3d_repr()

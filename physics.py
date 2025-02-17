@@ -157,7 +157,7 @@ class PhysicsEngine:
         # Create arm attached to elevator
         self.arm_mech = self.elevator_tower.appendLigament(
             "arm",
-            0.8,   # Arm length
+            0.4,   # Arm length
             0,    # Initial angle
             4     # Line weight
         )
@@ -167,7 +167,7 @@ class PhysicsEngine:
         # Create wrist at end of arm
         self.wrist_mech_coral = self.arm_mech.appendLigament(
             "wrist_coral",
-            0.3,    # Wrist length
+            0.15,    # Wrist length
             0,    # Initial angle
             3,    # Line weight
             color=red
@@ -175,7 +175,7 @@ class PhysicsEngine:
         
         self.wrist_mech_algae = self.arm_mech.appendLigament(
             "wrist_algae",
-            0.3,    # Wrist length
+            0.15,    # Wrist length
             0,    # Initial angle
             3,    # Line weight
             color=green
@@ -183,7 +183,7 @@ class PhysicsEngine:
 
         self.intake_algae_arrow1 = self.wrist_mech_algae.appendLigament(
             "algae_arrow1",
-            0.2,    # Wrist length
+            0.15,    # Wrist length
             -135,    # Initial angle
             3,    # Line weight
             color=green
@@ -191,7 +191,7 @@ class PhysicsEngine:
 
         self.intake_algae_arrow2 = self.wrist_mech_algae.appendLigament(
             "algae_arrow2",
-            0.2,    # Wrist length
+            0.15,    # Wrist length
             135,    # Initial angle
             3,    # Line weight
             color=green
@@ -199,7 +199,7 @@ class PhysicsEngine:
 
         self.intake_coral_arrow1 = self.wrist_mech_coral.appendLigament(
             "coral_arrow1",
-            0.2,    # Wrist length
+            0.15,    # Wrist length
             -45,    # Initial angle
             3,    # Line weight
             color=red
@@ -207,7 +207,7 @@ class PhysicsEngine:
 
         self.intake_coral_arrow2 = self.wrist_mech_coral.appendLigament(
             "coral_arrow2",
-            0.2,    # Wrist length
+            0.15,    # Wrist length
             45,    # Initial angle
             3,    # Line weight
             color=red

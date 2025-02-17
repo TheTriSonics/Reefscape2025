@@ -114,13 +114,13 @@ class MyRobot(magicbot.MagicRobot):
         from controllers.manipulator import Locations
         # Let's set some heights with the driver controller
         if self.driver_controller.getHeightPlacement1():
-            self.manipulator.request_location(Locations.CORAL_REEF_1)
+            self.manipulator.set_coral_level1()
         if self.driver_controller.getHeightPlacement2():
-            self.manipulator.request_location(Locations.CORAL_REEF_2)
+            self.manipulator.set_coral_level2()
         if self.driver_controller.getHeightPlacement3():
-            self.manipulator.request_location(Locations.CORAL_REEF_3)
+            self.manipulator.set_coral_level3()
         if self.driver_controller.getHeightPlacement4():
-            self.manipulator.request_location(Locations.CORAL_REEF_4)
+            self.manipulator.set_coral_level4()
         if self.driver_controller.getManipulatorAdvance():
             self.manipulator.request_advance()
 

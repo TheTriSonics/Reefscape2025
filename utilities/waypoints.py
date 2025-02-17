@@ -184,10 +184,10 @@ def get_tag_robot_away(tag_id, face_at=False) -> Pose2d:
 
 
 def shift_reef_left(pose: Pose2d) -> Pose2d:
-    offset = Transform2d(Translation2d(0, 0.2), Rotation2d(0))
+    offset = Transform2d(Translation2d(0, 0.165), Rotation2d(0))
     return pose.transformBy(offset)
 
 
 def shift_reef_right(pose: Pose2d) -> Pose2d:
-    offset = Transform2d(Translation2d(0, -0.25), Rotation2d(0))
+    offset = Transform2d(Translation2d(0, -0.165), Rotation2d(0))
     return pose.transformBy(offset)
