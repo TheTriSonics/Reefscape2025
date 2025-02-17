@@ -31,6 +31,7 @@ from utilities import Waypoints, is_red
 
 from hid.xbox_wired import ReefscapeDriver, ReefscapeOperator
 from hid.logi_flight import ReefscapeDriver as ReefscapeDriverFlight
+from hid.logi_gamepad import ReefscapeDriver as ReefscapeDriverLogiGamepad
 from hid.xbox_wireless import ReefscapeDriver as ReefscapeDriverWireless
 from hid.thrustmaster import ReefscapeDriver as ReefscapeDriverThrustmaster
 
@@ -62,6 +63,7 @@ class MyRobot(magicbot.MagicRobot):
     lower_max_spin_rate = magicbot.tunable(4)  # m/s
     inclination_angle = tunable(0.0)
     controller_choice = tunable('')
+    controller_name = tunable('')
 
     START_POS_TOLERANCE = 1
 
@@ -92,6 +94,7 @@ class MyRobot(magicbot.MagicRobot):
         # Determine which Joystick to use for the driver.
         js_name = wpilib.DriverStation.getJoystickName(0)
         print('Joystick name:', js_name)
+        self.controller_name = js_name
         # We'll default to a stock Xbox controller unless the name tells us
         # another one is better
         self.controller_choice = 'Stock Xbox controller'
@@ -103,6 +106,9 @@ class MyRobot(magicbot.MagicRobot):
         elif js_name == 'Logitech Logitech Extreme 3D':
             self.controller_choice = 'Going with a flight stick, eh, Mav?'
             self.driver_controller = ReefscapeDriverFlight(0)
+        elif js_name.startswith('Logitech Gamepad'):
+            self.controller_choice = 'Logitech Gamepad'
+            self.driver_controller = ReefscapeDriverLogiGamepad(0)
         elif js_name.startswith('Thrustmaster'):
             self.controller_choice = 'Talk to me, Goose!'
             self.driver_controller = ReefscapeDriverThrustmaster(0)
