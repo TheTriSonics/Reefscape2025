@@ -13,8 +13,9 @@ from phoenix6.configs import TalonFXConfiguration
 from enum import Enum
 from ids import TalonId
 
+from components.photoeye import PhotoEyeComponent
 from components import (
-    ElevatorComponent, WristComponent, ArmComponent, PhotoEyeComponent, DrivetrainComponent
+    ElevatorComponent, WristComponent, ArmComponent, DrivetrainComponent
 )
 from utilities import Waypoints, is_sim
 

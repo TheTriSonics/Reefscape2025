@@ -4,13 +4,12 @@ This is a state machine that will control the manipulator.
 """
 import enum
 from magicbot import StateMachine, state, tunable, feedback
-from components import (
-    ElevatorComponent,
-    ArmComponent,
-    WristComponent,
-    IntakeComponent,
-    PhotoEyeComponent
-)
+
+from components.intake import IntakeComponent
+from components.photoeye import PhotoEyeComponent
+from components.arm import ArmComponent
+from components.elevator import ElevatorComponent
+from components.wrist import WristComponent
 
 
 class GamePieces(enum.Enum):
