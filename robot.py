@@ -158,16 +158,13 @@ class MyRobot(magicbot.MagicRobot):
         self.drivetrain.drive_to_pose(final_pose)
 
 
-
-        
-
     def teleopPeriodic(self) -> None:
         if self.gamepad.getRawAxis(5) > 0.5:
             self.lock_apriltag()
         else:
             self.handle_drivetrain()
         self.handle_manipulator()
-        if self.gamepad.getRawAxis(2) > 0.5:
+        if self.gamepad.getBButton() > 0.5:
             self.lock_ps_apriltag()
         if self.gamepad.getAButton():
             self.lock_proc_apriltag()
