@@ -1,13 +1,11 @@
 import math
-import choreo
 
 import magicbot
 import wpilib
 import ntcore
 import wpilib.event
-from wpimath.geometry import Pose2d, Pose3d, Rotation2d, Transform2d, Translation2d
+from wpimath.geometry import Pose2d, Rotation2d, Transform2d, Translation2d
 from magicbot import tunable
-from wpimath.geometry import Rotation3d, Translation3d
 
 from components import (
     DrivetrainComponent,
@@ -27,10 +25,8 @@ from components.manipulator_sim import ManipulatorSim
 from controllers.manipulator import Manipulator
 
 from utilities.scalers import rescale_js
-from utilities.game import is_red
 from utilities.position import Positions
-from utilities.waypoints import *  # JJB: Bad form, but we're going to refactor this later
-from robotpy_ext.autonomous import AutonomousModeSelector
+from utilities import Waypoints, is_red
 
 from hid.xbox_wired import ReefscapeDriver, ReefscapeOperator
 from hid.logi_flight import ReefscapeDriver as ReefscapeDriverFlight
@@ -57,7 +53,6 @@ class MyRobot(magicbot.MagicRobot):
     arm: ArmComponent
     elevator: ElevatorComponent
     intake: IntakeComponent
-
 
     max_speed = magicbot.tunable(32)  # m/s
     lower_max_speed = magicbot.tunable(3)  # m/s
@@ -110,9 +105,9 @@ class MyRobot(magicbot.MagicRobot):
             self.controller_choice = 'Talk to me, Goose!'
             self.driver_controller = ReefscapeDriverThrustmaster(0)
         # self.drivetrain.set_pose(Positions.auton_line_2(is_red()))
-        tag = get_tag_id_from_letter('A', True)
-        pose = get_tag_robot_away(tag, face_at=True)
-        pose = shift_reef_right(pose)
+        tag = Waypoints.get_tag_id_from_letter('A', True)
+        pose = Waypoints.get_tag_robot_away(tag, face_at=True)
+        pose = Waypoints.shift_reef_right(pose)
         self.drivetrain.set_pose(pose)
         self.manipulator.engage()
 
@@ -177,43 +172,33 @@ class MyRobot(magicbot.MagicRobot):
             self.drivetrain.stop_snapping()
 
     def lock_reef(self, shift_left=False, shift_right=False):
-        from utilities.waypoints import (
-            closest_reef_tag_id, get_tag_robot_away,
-            shift_reef_left, shift_reef_right
-        )
         pose = self.drivetrain.get_pose()
-        reef_tag_id, dist = closest_reef_tag_id(pose)
+        reef_tag_id, dist = Waypoints.closest_reef_tag_id(pose)
         final_pose = (
-            get_tag_robot_away(reef_tag_id)
+            Waypoints.get_tag_robot_away(reef_tag_id)
             .transformBy(Transform2d(Translation2d(0, 0), Rotation2d(math.pi)))
         )
         if shift_left:
-            final_pose = shift_reef_left(final_pose)
+            final_pose = Waypoints.shift_reef_left(final_pose)
         elif shift_right:
-            final_pose = shift_reef_right(final_pose)
+            final_pose = Waypoints.shift_reef_right(final_pose)
         self.final_pose_pub.set(final_pose)
         self.drivetrain.drive_to_pose(final_pose)
 
     def lock_ps(self):
-        from utilities.waypoints import (
-            closest_ps_tag_id, get_tag_robot_away,
-        )
         pose = self.drivetrain.get_pose()
-        tag_id, dist = closest_ps_tag_id(pose)
+        tag_id, dist = Waypoints.closest_ps_tag_id(pose)
         final_pose = (
-            get_tag_robot_away(tag_id)
+            Waypoints.get_tag_robot_away(tag_id)
         )
         self.final_pose_pub.set(final_pose)
         self.drivetrain.drive_to_pose(final_pose)
 
     def lock_processor(self):
-        from utilities.waypoints import (
-            closest_processor_tag_id, get_tag_robot_away,
-        )
         pose = self.drivetrain.get_pose()
-        tag_id, dist = closest_processor_tag_id(pose)
+        tag_id, dist = Waypoints.closest_processor_tag_id(pose)
         final_pose = (
-            get_tag_robot_away(tag_id)
+            Waypoints.get_tag_robot_away(tag_id)
         )
         self.final_pose_pub.set(final_pose)
         self.drivetrain.drive_to_pose(final_pose)

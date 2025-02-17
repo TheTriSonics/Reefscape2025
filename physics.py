@@ -7,9 +7,10 @@ import phoenix6
 import phoenix6.unmanaged
 import wpilib
 import robotpy_apriltag
-from photonlibpy.simulation import PhotonCameraSim, SimCameraProperties, VisionSystemSim
+from photonlibpy.simulation.visionSystemSim import VisionSystemSim
+from photonlibpy.simulation.photonCameraSim import PhotonCameraSim
+from photonlibpy.simulation.simCameraProperties import SimCameraProperties
 from pyfrc.physics.core import PhysicsInterface
-from wpimath.geometry import Transform3d
 from wpilib.simulation import DCMotorSim
 from wpimath.kinematics import SwerveDrive4Kinematics
 from wpimath.system.plant import DCMotor, LinearSystemId
@@ -20,7 +21,7 @@ from components import IntakeComponent, PhotoEyeComponent
 from components.intake import IntakeDirection
 
 from generated.tuner_constants import TunerConstants
-from utilities.waypoints import *
+from utilities import Waypoints
 
 if typing.TYPE_CHECKING:
     from robot import MyRobot
@@ -216,7 +217,7 @@ class PhysicsEngine:
             self.pe_coral_chute_triggerd_at = now
 
         robot_pose = self.robot.drivetrain.get_pose()
-        ps_id, ps_dist = closest_ps_tag_id(robot_pose)
+        ps_id, ps_dist = Waypoints.closest_ps_tag_id(robot_pose)
 
         if (intake.direction == IntakeDirection.CORAL_IN
             and

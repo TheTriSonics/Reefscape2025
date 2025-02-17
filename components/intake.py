@@ -1,7 +1,7 @@
 import math
 import ntcore
 import wpilib
-from wpimath.geometry import Pose3d, Translation3d, Rotation3d, Pose2d, Translation2d, Transform3d
+from wpimath.geometry import Pose3d, Translation3d, Rotation3d, Pose2d, Translation2d, Transform3d, Transform2d, Rotation2d
 from magicbot import feedback, tunable
 from phoenix6.hardware import TalonFX
 from phoenix6.controls import (
@@ -16,8 +16,7 @@ from ids import TalonId
 from components import (
     ElevatorComponent, WristComponent, ArmComponent, PhotoEyeComponent, DrivetrainComponent
 )
-from utilities.game import is_sim
-from utilities.waypoints import *
+from utilities import Waypoints, is_sim
 
 pn = wpilib.SmartDashboard.putNumber
 
@@ -134,7 +133,7 @@ class IntakeComponent:
         robot_pose = self.drivetrain.get_pose()
         height = height or self.at_height
         if reef_tag_id is None:
-            reef_tag_id, dist = closest_reef_tag_id(robot_pose)
+            reef_tag_id, dist = Waypoints.closest_reef_tag_id(robot_pose)
             if dist > 1.0:
                 # Just drop it on the floor!
                 robot_3d_pose = Pose3d(
@@ -146,12 +145,12 @@ class IntakeComponent:
                                 Rotation3d.fromDegrees(0, 45, 0))
                 )
                 return coral_pose
-        tag_pose = get_tag_pose(reef_tag_id)
+        tag_pose = Waypoints.get_tag_pose(reef_tag_id)
         # Flip the pose so right/left make sense
         flip = Transform2d(Translation2d(0, 0), Rotation2d(math.pi))
         tag_pose = tag_pose.transformBy(flip)
-        tag_pose_left = shift_reef_left(tag_pose)
-        tag_pose_right = shift_reef_right(tag_pose)
+        tag_pose_left = Waypoints.shift_reef_left(tag_pose)
+        tag_pose_right = Waypoints.shift_reef_right(tag_pose)
 
         # If the distance from robot pose to left is less than to the right
         # then we'll use the left pose
@@ -221,8 +220,11 @@ class IntakeComponent:
         if coral_pose:
             self.coral_pub.set(self.coral_static + [coral_pose])
         elif False:
-            tag_id = get_tag_id_from_letter('A', True)
-            tag_pose = shift_reef_left(get_tag_pose(tag_id))
+            # This block is for showing a temporary coral pose; tunables
+            # can be used to adjust where it goes via x_off, y_off, z_off,
+            # roll, pitch, and yaw
+            tag_id = Waypoints.get_tag_id_from_letter('A', True)
+            tag_pose = Waypoints.shift_reef_left(get_tag_pose(tag_id))
             x = tag_pose.X() + self.x_off
             y = tag_pose.Y() + self.y_off
             z = self.z_off

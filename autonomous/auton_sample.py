@@ -2,13 +2,11 @@
 import math
 from wpilib import SmartDashboard
 from wpimath.geometry import Pose2d
-from magicbot import AutonomousStateMachine, timed_state, state, feedback
+from magicbot import AutonomousStateMachine, state, feedback
 
 from utilities.game import is_red
 from utilities.position import Positions, reverse_choreo
-from utilities.waypoints import (
-    get_tag_id_from_letter, get_tag_robot_away, shift_reef_left, shift_reef_right
-)
+from utilities import Waypoints
 
 from controllers.manipulator import Manipulator
 
@@ -73,8 +71,8 @@ class AutonSample(AutonomousStateMachine):
     # We start here, drive from the line to the reef
     @state(first=True, must_finish=True)
     def drive_to_reef_start(self, tm, state_tm):
-        tag_id = get_tag_id_from_letter('F', is_red())
-        pose = shift_reef_left(get_tag_robot_away(tag_id, face_at=True))
+        tag_id = Waypoints.get_tag_id_from_letter('F', is_red())
+        pose = Waypoints.shift_reef_left(Waypoints.get_tag_robot_away(tag_id, face_at=True))
         self.manipulator.set_coral_level4()
         self.drivetrain.drive_to_pose(pose)
         # Get distance from current pose to target pose
@@ -113,7 +111,7 @@ class AutonSample(AutonomousStateMachine):
     @state(must_finish=True)
     def intake_second_coral(self, tm, state_tm):
         ps_target = 1 if is_red() else 13
-        end_pose = get_tag_robot_away(ps_target)
+        end_pose = Waypoints.get_tag_robot_away(ps_target)
         self.drivetrain.drive_to_pose(end_pose)
         if self.at_pose(end_pose):
             self.manipulator.intake.coral_in()
@@ -145,8 +143,8 @@ class AutonSample(AutonomousStateMachine):
     # Now shove ourselves into the right scoring location and score the coral
     @state(must_finish=True)
     def place_second_coral(self, tm, state_tm):
-        tag_id = get_tag_id_from_letter('E', is_red())
-        end_pose = shift_reef_left(get_tag_robot_away(tag_id, face_at=True))
+        tag_id = Waypoints.get_tag_id_from_letter('E', is_red())
+        end_pose = Waypoints.shift_reef_left(Waypoints.get_tag_robot_away(tag_id, face_at=True))
         assert end_pose
         self.drivetrain.drive_to_pose(end_pose)
         timeout = state_tm > 20.0

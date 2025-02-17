@@ -29,7 +29,7 @@ from wpimath.kinematics import (
     SwerveModuleState,
 )
 from wpimath.trajectory import TrapezoidProfileRadians
-from utilities.game import is_red, is_sim
+from utilities import is_red, is_sim
 
 from ids import CancoderId, TalonId
 

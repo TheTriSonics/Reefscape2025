@@ -10,7 +10,7 @@ from photonlibpy.photonPoseEstimator import PhotonPoseEstimator, PoseStrategy
 from components.drivetrain import DrivetrainComponent
 from wpimath import units
 from utilities.game import is_sim, is_disabled
-from utilities.waypoints import closest_reef_tag_id
+from utilities import Waypoints
 
 
 class VisionComponent():
@@ -77,7 +77,7 @@ class VisionComponent():
 
     def execute(self) -> None:
         setDevs = self.drivetrain.estimator.setVisionMeasurementStdDevs
-        tag_id, tag_dist = closest_reef_tag_id(self.drivetrain.get_pose())
+        tag_id, tag_dist = Waypoints.closest_reef_tag_id(self.drivetrain.get_pose())
         for cam, pose_est, pub in zip(
             self.cameras, self.pose_estimators, self.publishers
         ):
