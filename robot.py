@@ -20,6 +20,7 @@ from components import (
     PhotoEyeComponent,
 )
 
+from components.leds_sim import LEDSim
 from components.manipulator_sim import ManipulatorSim
 
 from controllers.manipulator import Manipulator
@@ -38,6 +39,7 @@ class MyRobot(magicbot.MagicRobot):
     # Controllers
     manipulator: Manipulator
     manipulator_sim: ManipulatorSim
+    leds_sim: LEDSim
 
     # Components
     gyro: GyroComponent
