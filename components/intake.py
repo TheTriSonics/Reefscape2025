@@ -135,6 +135,17 @@ class IntakeComponent:
         height = height or self.at_height
         if reef_tag_id is None:
             reef_tag_id, dist = closest_reef_tag_id(robot_pose)
+            if dist > 1.0:
+                # Just drop it on the floor!
+                robot_3d_pose = Pose3d(
+                    Translation3d(robot_pose.X(), robot_pose.Y(), 0.2),
+                    Rotation3d(0, 0, robot_pose.rotation().radians()),
+                )
+                coral_pose = robot_3d_pose.transformBy(
+                    Transform3d(Translation3d(0.5, 0, 0.0),
+                                Rotation3d.fromDegrees(0, 45, 0))
+                )
+                return coral_pose
         tag_pose = get_tag_pose(reef_tag_id)
         # Flip the pose so right/left make sense
         flip = Transform2d(Translation2d(0, 0), Rotation2d(math.pi))
