@@ -30,7 +30,7 @@ from utilities.position import Positions
 from utilities.waypoints import *  # JJB: Bad form, but we're going to refactor this later
 from robotpy_ext.autonomous import AutonomousModeSelector
 
-from hid.xbox_wired import ReefscapeDriver 
+from hid.xbox_wired import ReefscapeDriver, ReefscapeOperator
 from hid.logi_flight import ReefscapeDriver as ReefscapeDriverFlight
 from hid.xbox_wireless import ReefscapeDriver as ReefscapeDriverWireless
 from hid.thrustmaster import ReefscapeDriver as ReefscapeDriverThrustmaster
@@ -77,6 +77,7 @@ class MyRobot(magicbot.MagicRobot):
                                                 .getStructTopic("LockOnPose", Pose2d)
                                                 .publish()
         )
+
     def autonomousInit(self):
         return
 
@@ -94,6 +95,7 @@ class MyRobot(magicbot.MagicRobot):
         # another one is better
         self.controller_choice = 'Stock Xbox controller'
         self.driver_controller = ReefscapeDriver(0)
+        self.operator_controller = ReefscapeOperator(1)
         if js_name == 'Xbox Wireless Controller':
             self.controller_choice = 'Using Xbox wireless controller config'
             self.driver_controller = ReefscapeDriverWireless(0)
@@ -122,6 +124,13 @@ class MyRobot(magicbot.MagicRobot):
         if self.driver_controller.getHeightPlacement4():
             self.manipulator.set_coral_level4()
         if self.driver_controller.getManipulatorAdvance():
+            self.manipulator.request_advance()
+
+        # Now let's do the operator controller, which is how the real robot
+        # will likely work
+        if self.operator_controller.goHome():
+            self.manipulator.go_home()
+        if self.operator_controller.getManipulatorAdvance():
             self.manipulator.request_advance()
 
     def handle_drivetrain(self) -> None:

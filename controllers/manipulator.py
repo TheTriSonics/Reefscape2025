@@ -193,7 +193,9 @@ class Manipulator(StateMachine):
    
     # We'll start off idle; do nothing  until the operator requests something
     @state(must_finish=True, first=True)
-    def idling(self):
+    def idling(self, initial_call):
+        if initial_call:
+            self.operator_advance = False
         # TODO: Put a photo eye condition here to jump to intake if
         # the eye is triggered
         if self.operator_advance:
@@ -227,6 +229,10 @@ class Manipulator(StateMachine):
         if self.operator_advance:
             self.operator_advance = False
             self.next_state(self.coral_prepare_score)
+
+    @feedback
+    def opadvance(self) -> bool:
+        return self.operator_advance
     
     @state(must_finish=True)
     def coral_prepare_score(self, initial_call, state_tm):
@@ -244,7 +250,7 @@ class Manipulator(StateMachine):
         # Here we can check if we're at the position or if we've been
         # waiting too long and we should just move on, like maybe we just can't
         # quite get to the right position, but we've got to try something
-        if self.operator_advance and (self.at_position()):
+        if self.opadvance() and (self.at_position()):
             self.operator_advance = False
             self.next_state(self.coral_score)
 
@@ -260,10 +266,8 @@ class Manipulator(StateMachine):
         # the state_tm value instead of the @timed_state decorator's duration
         # parameter and the next_state.
 
-        """
-        if state_tm > 3.0:
+        if state_tm > 3.0 and self.photoeye.coral_held is False:
             self.intake.intake_off()
-        """
 
         if self.operator_advance and self.photoeye.coral_held is False:
             self.operator_advance = False

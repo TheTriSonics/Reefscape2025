@@ -1,7 +1,8 @@
 
 from wpilib import XboxController
 
-class ReefscapeControllerBase(XboxController):
+
+class ReefscapeDriverBase(XboxController):
 
     def getReefLeft(self) -> bool:
         return False
@@ -48,3 +49,18 @@ class ReefscapeControllerBase(XboxController):
 
     def getManipulatorAdvance(self) -> bool:
         return False
+
+
+class ReefscapeOperatorBase(XboxController):
+
+    def goHome(self) -> bool:
+        return self.getAButton()
+
+    def getCoralMode(self) -> bool:
+        return False
+
+    def getAlgaeMode(self) -> bool:
+        return False
+
+    def getManipulatorAdvance(self) -> bool:
+        return self.getYButton()

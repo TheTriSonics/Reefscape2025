@@ -1,8 +1,8 @@
 from wpilib import XboxController
-from hid.reefscape_controller_base import ReefscapeControllerBase
+from hid.reefscape_driver_base import ReefscapeDriverBase
 
 
-class ReefscapeDriver(ReefscapeControllerBase):
+class ReefscapeDriver(ReefscapeDriverBase):
 
     def __init__(self, port: int):
         super().__init__(port)

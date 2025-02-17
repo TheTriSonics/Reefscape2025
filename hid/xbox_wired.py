@@ -1,9 +1,9 @@
 from wpilib import XboxController
 
-from hid.reefscape_controller_base import ReefscapeControllerBase
+from hid.reefscape_driver_base import ReefscapeDriverBase, ReefscapeOperatorBase
 
 
-class ReefscapeDriver(ReefscapeControllerBase):
+class ReefscapeDriver(ReefscapeDriverBase):
 
     def __init__(self, port: int):
         super().__init__(port)
@@ -30,4 +30,10 @@ class ReefscapeDriver(ReefscapeControllerBase):
         return self.getRawButton(8)
 
 
+class ReefscapeOperator(ReefscapeOperatorBase):
 
+    def goHome(self) -> bool:
+        return self.getAButton()
+
+    def getManipulatorAdvance(self) -> bool:
+        return self.getYButton()

@@ -15,6 +15,7 @@ from controllers.manipulator import Manipulator
 from components.drivetrain import DrivetrainComponent
 from components.gyro import GyroComponent
 from components.battery_monitor import BatteryMonitorComponent
+from components.photoeye import PhotoEyeComponent
 from choreo import load_swerve_trajectory  # type: ignore
 from choreo.trajectory import SwerveTrajectory
 
@@ -27,7 +28,8 @@ class AutonSample(AutonomousStateMachine):
     drivetrain: DrivetrainComponent
     gyro: GyroComponent
     battery_monitor: BatteryMonitorComponent
-    # manipulator: Manipulator
+    manipulator: Manipulator
+    photoeye: PhotoEyeComponent
 
     MODE_NAME = 'Sample - Place Infinite'
     DEFAULT = True
@@ -54,6 +56,7 @@ class AutonSample(AutonomousStateMachine):
             self.selected_alliance = alliance
             # self.gyro.reset_heading(initial_pose.rotation().degrees())
             self.pose_set = True
+            self.photoeye.coral_held = True
 
     def drive_trajectory(self, traj: SwerveTrajectory, tm):
         sample = traj.sample_at(tm, is_red())
@@ -72,17 +75,26 @@ class AutonSample(AutonomousStateMachine):
     def drive_to_reef_start(self, tm, state_tm):
         tag_id = get_tag_id_from_letter('F', is_red())
         pose = shift_reef_left(get_tag_robot_away(tag_id, face_at=True))
-        # TODO: Set level on manipulator
+        self.manipulator.set_coral_level4()
         self.drivetrain.drive_to_pose(pose)
-        if self.at_pose(pose) or state_tm > 2.0:
+        # Get distance from current pose to target pose
+        current_pose = self.drivetrain.get_pose()
+        diff = current_pose.relativeTo(pose).translation().norm()
+        if diff < 0.3:
+            # Start the manipulator moving
+            self.manipulator.next_state(self.manipulator.coral_prepare_score)
+        if self.at_pose(pose):
             self.next_state(self.place_first_coral)
-
 
     # Now score our first coral
     @state(must_finish=True)
     def place_first_coral(self, state_tm, initial_call):
+        if (self.manipulator.at_position() and
+            self.photoeye.coral_held and
+            self.manipulator.current_state != self.manipulator.coral_score):
+            self.manipulator.next_state(self.manipulator.coral_score)
         # Wait until the photo eye is clear?
-        if state_tm > 1.0:
+        if self.photoeye.coral_held is False:
             self.next_state(self.drive_e_to_ps_choreo)
 
     # Drive from face C to the Player Station via Choreo path
@@ -103,16 +115,29 @@ class AutonSample(AutonomousStateMachine):
         ps_target = 1 if is_red() else 13
         end_pose = get_tag_robot_away(ps_target)
         self.drivetrain.drive_to_pose(end_pose)
-        if self.at_pose(end_pose):  # And we have a coral via photoeye?
+        if self.at_pose(end_pose):
+            self.manipulator.intake.coral_in()
+        if self.photoeye.coral_held:
             self.next_state(self.drive_ps_to_reef_e_choreo)
     
     # Drive back to Reef E via a Choreo path
     @state(must_finish=True)
-    def drive_ps_to_reef_e_choreo(self, state_tm):
+    def drive_ps_to_reef_e_choreo(self, state_tm, initial_call):
+        if initial_call:
+            self.manipulator.intake.intake_off()
         traj = reverse_choreo(self.reef_e_ps_left)
         self.drive_trajectory(traj, state_tm)
         end_pose = traj.get_final_pose(is_red())
         assert end_pose
+        # Check distance to end pose
+        current_pose = self.drivetrain.get_pose()
+        diff = current_pose.relativeTo(end_pose).translation().norm()
+        self.manipulator.set_coral_level4()
+        if (
+            diff < 0.3
+            and self.manipulator.current_state != self.manipulator.coral_prepare_score
+        ):
+            self.manipulator.next_state(self.manipulator.coral_prepare_score)
         timeout = state_tm > traj.get_total_time() * 2.0
         if self.at_pose(end_pose) or timeout:
             self.next_state(self.place_second_coral)
