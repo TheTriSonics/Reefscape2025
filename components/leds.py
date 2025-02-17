@@ -94,25 +94,28 @@ class LEDComponent:
     purple = (128, 0, 128)
     yellow = (255, 255, 0)
     white = (255, 255, 255)
+    black = (0, 0, 0)
 
     def execute(self) -> None:
         if not DriverStation.isDSAttached():
             self.rainbow()
         else:
             if self.intake.direction == IntakeDirection.CORAL_IN:
-                self.set_intake_color(*self.yellow)
+                self.set_intake_color(*self.green)
             elif self.intake.direction == IntakeDirection.CORAL_SCORE:
                 self.set_intake_color(*self.magenta)
             else:
                 self.set_intake_color(*self.cyan)
 
-            if self.photoeye.coral_chute:
-                self.set_pe_color(*self.cyan)
-            elif self.photoeye.coral_held:
-                self.set_pe_color(*self.green)
+            if self.photoeye.coral_held:
+                self.set_pe_color(*self.white)  # Holding coral
+            elif self.photoeye.algae_held:
+                self.set_pe_color(*self.cyan)  # Holding algae
+            elif (self.photoeye.coral_held is False and
+                  self.photoeye.algae_held is False):
+                self.set_pe_color(*self.red)  # We're empty
             else:
-                self.set_pe_color(*self.white)
-
+                self.set_pe_color(*self.black)  # Unknown state
             lvl = self.manipulator.coral_scoring_target
             match lvl:
                 case Locations.CORAL_REEF_1:
@@ -127,11 +130,11 @@ class LEDComponent:
                     self.set_manip_level_color(*self.white)
 
             ms = self.manipulator.current_state
-            if ms == self.manipulator.idling:
+            if ms == self.manipulator.idling.name:
                 self.set_manip_state_color(*self.blue)
-            elif ms == self.manipulator.coral_intake:
+            elif ms == self.manipulator.coral_intake.name:
                 self.set_manip_state_color(*self.yellow)
-            elif ms == self.manipulator.coral_score:
+            elif ms == self.manipulator.coral_score.name:
                 self.set_manip_state_color(*self.magenta)
             else:
                 self.set_manip_state_color(*self.white)
