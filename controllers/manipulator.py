@@ -3,7 +3,7 @@
 This is a state machine that will control the manipulator.
 """
 import enum
-from magicbot import StateMachine, state, tunable, feedback
+from magicbot import StateMachine, state, tunable, feedback, will_reset_to
 
 from components.intake import IntakeComponent
 from components.photoeye import PhotoEyeComponent
@@ -28,7 +28,7 @@ class Manipulator(StateMachine):
     photoeye: PhotoEyeComponent
     intake_control: IntakeControl
 
-    operator_advance = tunable(False)
+    operator_advance = will_reset_to(False)
     # JJB: Not sure if this intentional on MagicBot's part, but if we make
     # a tunable with this name the actual state value comes back with no
     # code required on our part! It's like magic!
@@ -136,12 +136,9 @@ class Manipulator(StateMachine):
     # We'll start off idle; do nothing  until the operator requests something
     @state(must_finish=True, first=True)
     def idling(self, initial_call):
-        if initial_call:
-            self.operator_advance = False
         # TODO: Put a photo eye condition here to jump to intake if
         # the eye is triggered
         if self.operator_advance:
-            self.operator_advance = False
             if self.photoeye.coral_held:
                 self.next_state(self.coral_in_system)
             elif self.photoeye.algae_held:
@@ -163,24 +160,12 @@ class Manipulator(StateMachine):
     @state(must_finish=True)
     def coral_in_system(self, state_tm, initial_call):
         # Wait here until the operator wants to get into scoring position
-        if initial_call:
-            # We don't want the operator to spam the advance button and advance
-            # to this step
-            self.operator_advance = False
         if self.operator_advance:
-            self.operator_advance = False
             self.next_state(self.coral_prepare_score)
-
-    @feedback
-    def opadvance(self) -> bool:
-        return self.operator_advance
     
     @state(must_finish=True)
     def coral_prepare_score(self, initial_call, state_tm):
         if initial_call:
-            # We don't want the operator to spam the advance button and advance
-            # to this step
-            self.operator_advance = False
             self.request_location(self.coral_scoring_target)
 
         # The operator could change the target value while we're in this state
@@ -191,8 +176,7 @@ class Manipulator(StateMachine):
         # Here we can check if we're at the position or if we've been
         # waiting too long and we should just move on, like maybe we just can't
         # quite get to the right position, but we've got to try something
-        if self.opadvance() and (self.at_position()):
-            self.operator_advance = False
+        if self.operator_advance and (self.at_position()):
             self.next_state(self.coral_score)
 
     # JJB: I'm not thrilled with the names of these states, coral_score and
@@ -228,6 +212,6 @@ class Manipulator(StateMachine):
     def algae_intake(self, state_tm, initial_call):
         # TODO: Hit intake controller up
         if self.operator_advance and state_tm > 0.5:
-            self.operator_advance = False
             # TODO: Finish out algae
             # self.next_state(self.algae_in_system)
+            pass
