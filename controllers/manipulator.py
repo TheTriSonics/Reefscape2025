@@ -135,8 +135,6 @@ class Manipulator(StateMachine):
     # We'll start off idle; do nothing  until the operator requests something
     @state(must_finish=True, first=True)
     def idling(self, initial_call):
-        # TODO: Put a photo eye condition here to jump to intake if
-        # the eye is triggered
         if self.photoeye.coral_held:
             self.next_state(self.coral_in_system)
         elif self.photoeye.algae_held:
@@ -186,6 +184,7 @@ class Manipulator(StateMachine):
         if initial_call:
             self.intake_control.go_coral_score()
 
+        # Wait until the intake controller thinks it has scored the coral
         scored = self.intake_control.current_state == self.intake_control.idling.name
         if self.operator_advance and scored:
             self.next_state(self.coral_scored)
@@ -204,7 +203,7 @@ class Manipulator(StateMachine):
 
         # Wait for the lifts to get back to home before we move on
         # to the idling state where we wait on user input to begin intake
-        if self.at_position() or state_tm > 2.0:
+        if self.at_position():
             self.next_state(self.idling)
 
     @state(must_finish=True)

@@ -59,3 +59,52 @@ def is_sim() -> bool:
 def is_disabled() -> bool:
     mode = wpilib.SmartDashboard.getString('/robot/mode', '')
     return mode in ['disabled', '']
+
+
+class ManipLocation:
+    """
+    This Location class provides a handy wrapper to the positions of the
+    components we need to move to.
+    """
+    wrist_pos: float
+    arm_pos: float
+    elevator_pos: float
+
+    def __init__(self, elevator, arm, wrist):
+        self.elevator_pos = elevator
+        self.arm_pos = arm
+        self.wrist_pos = wrist
+
+    def __eq__(self, other):
+        return (
+            abs(self.elevator_pos - other.elevator_pos) < 0.1
+            and abs(self.arm_pos - other.arm_pos) < 0.1
+            and abs(self.wrist_pos - other.wrist_pos) < 0.1
+        )
+
+    def __repr__(self):
+        """ 
+        This is what's used to turn the object into a string; handy if you
+        want to print it out for debugging, or put it on a smart dashboard
+        """
+        return f'ManipLocation(elevator={self.elevator_pos}, arm={self.arm_pos}, wrist={self.wrist_pos})'
+    
+
+class ManipLocations:
+    """
+    And we can define what is basicaly another enumeration, but with a Location
+    object for a datatype, not an integer.
+    """
+    # Order of params is elevator, arm, wrist, just as in the Location's
+    # __init__ method
+    HOME = ManipLocation(0, -80, 135) 
+    CORAL_REEF_1 = ManipLocation(0, -60, 75)
+    CORAL_REEF_2 = ManipLocation(0, -20, -12)
+    CORAL_REEF_3 = ManipLocation(0, 35, -52)
+    CORAL_REEF_4 = ManipLocation(12, 50, -130) 
+    ALGAE_REEF_1 = ManipLocation(5, -10, 20)
+    ALGAE_REEF_2 = ManipLocation(5, -10, 20)
+
+    PROCESSOR = ManipLocation(10, -60, 100)
+    BARGE = ManipLocation(50, 50, 90)
+

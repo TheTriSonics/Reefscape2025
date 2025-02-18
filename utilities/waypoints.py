@@ -94,6 +94,36 @@ class Waypoints:
         return -1
 
     @classmethod
+    def get_reef_center(cls, is_red: bool) -> Pose2d:
+        reef_A_id = cls.get_tag_id_from_letter('A', is_red)
+        reef_D_id = cls.get_tag_id_from_letter('D', is_red)
+        reef_A = cls.get_tag_pose(reef_A_id)
+        reef_D = cls.get_tag_pose(reef_D_id)
+        # Now find the midpoint between A andD 
+        avg_x = (reef_A.X() + reef_D.X()) / 2
+        avg_y = (reef_A.Y() + reef_D.Y()) / 2
+        return Pose2d(avg_x, avg_y, Rotation2d())
+
+    @classmethod
+    def get_radians_to_reef_center(cls, pose: Pose2d, is_red: bool) -> float:
+        # Get angle between the two poses
+        center = cls.get_reef_center(is_red)
+        # Now find the angle that points from the x,y of the robot pose to the x,y of the reef center
+        robot_X = pose.X()
+        robot_Y = pose.Y()
+        center_X = center.X()
+        center_Y = center.Y()
+        return math.atan2(center_Y - robot_Y, center_X - robot_X)
+
+
+
+    @classmethod
+    def get_distance_to_reef_center(cls, pose: Pose2d, is_red: bool) -> float:
+        # Get distance betwen the two poses
+        center = cls.get_reef_center(is_red)
+        return pose.translation().distance(center.translation())
+
+    @classmethod
     def find_reef_path(cls, start, end) -> list[int]:
         """
         Find shortest path between two points in a tag_ids array.
