@@ -88,7 +88,6 @@ class IntakeComponent:
         self.direction = IntakeDirection.CORAL_SCORE
 
     def intake_off(self):
-        print('intake off called by somebody')
         self.direction = IntakeDirection.NONE
 
     def pose2d_to_pose3d(self, pose2d: Pose2d, 
