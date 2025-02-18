@@ -109,7 +109,7 @@ class MyRobot(magicbot.MagicRobot):
         elif js_name.startswith('Logitech Gamepad'):
             self.controller_choice = 'Logitech Gamepad'
             self.driver_controller = ReefscapeDriverLogiGamepad(0)
-        elif js_name.startswith('Thrustmaster'):
+        elif js_name.startswith('Thrustmaster') or js_name.startswith('T.Flight Hotas'):
             self.controller_choice = 'Talk to me, Goose!'
             self.driver_controller = ReefscapeDriverThrustmaster(0)
         # self.drivetrain.set_pose(Positions.auton_line_2(is_red()))
@@ -142,8 +142,8 @@ class MyRobot(magicbot.MagicRobot):
 
         # Some buttons to force the manipulator to certain heights. Not to be
         # used in the actual driving of the robot, but handy for debugging
+        dpad = self.operator_controller.getPOV()
         if self.operator_controller.getRightBumper():
-            dpad = self.operator_controller.getPOV()
             match dpad:
                 case 0:  # Up arrow, top coral 
                     self.manipulator.request_location(Locations.CORAL_REEF_4)
@@ -153,6 +153,16 @@ class MyRobot(magicbot.MagicRobot):
                     self.manipulator.request_location(Locations.CORAL_REEF_3)
                 case 180:  # Down arrow, trough level 1
                     self.manipulator.request_location(Locations.CORAL_REEF_1)
+        else:
+            match dpad:
+                case 0:  # Up arrow, top coral 
+                    self.manipulator.set_coral_level4()
+                case 90:  # Right arrow, 2nd coral
+                    self.manipulator.set_coral_level2()
+                case 270:  # Left arrow, 3rd coral
+                    self.manipulator.set_coral_level3()
+                case 180:  # Down arrow, trough level 1
+                    self.manipulator.set_coral_level1()
 
     def handle_drivetrain(self) -> None:
         max_speed = self.max_speed
