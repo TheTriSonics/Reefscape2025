@@ -49,8 +49,11 @@ class ReefscapeDriver(ReefscapeDriverBase):
     def has_extended_mode(self) -> bool:
         return True
 
-    # Here are things I would not expect on a regular XBox controller
     def goHome(self) -> bool:
+        return self.getRawButton(13)
+
+    # Here are things I would not expect on a regular XBox controller
+    def returnToHomeLocation(self) -> bool:
         return self.getRawButton(15)
 
     def getCoralMode(self) -> bool:
@@ -61,3 +64,6 @@ class ReefscapeDriver(ReefscapeDriverBase):
 
     def getManipulatorAdvance(self) -> bool:
         return self.getRawButtonPressed(9)
+
+    def getSnap(self) -> bool:
+        return self.getRawButton(10)

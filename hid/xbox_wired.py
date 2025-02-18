@@ -8,7 +8,7 @@ class ReefscapeDriver(ReefscapeDriverBase):
     def __init__(self, port: int):
         super().__init__(port)
 
-    def goHome(self) -> bool:
+    def returnToHomeLocation(self) -> bool:
         return False
 
     def getReefLeft(self) -> bool:

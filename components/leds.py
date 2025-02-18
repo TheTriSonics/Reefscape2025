@@ -6,7 +6,7 @@ from wpilib.simulation import AddressableLEDSim
 from components.battery_monitor import BatteryMonitorComponent
 from components.intake import IntakeDirection, IntakeComponent
 from components.photoeye import PhotoEyeComponent
-from controllers.manipulator import Manipulator, Locations
+from controllers.manipulator import Manipulator, ManipLocations
 
 
 def iterable(obj):
@@ -79,10 +79,12 @@ class LEDComponent:
             self._rainbow()
 
         manip = self.manipulator
+        prep_score = manip.current_state == manip.coral_prepare_score.name
 
         if (self.intake.direction != IntakeDirection.NONE or
-            manip.current_state == manip.coral_prepare_score.name):
+            (prep_score and not manip.at_position())):
             self.setColor(*self.yellow)
-        elif (self.photoeye.coral_held):
+        elif (self.photoeye.coral_held or
+              (prep_score and manip.at_position())):
             self.setColor(*self.green)
         self._lights.setData(self._led_data)

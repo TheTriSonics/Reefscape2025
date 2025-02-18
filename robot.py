@@ -22,6 +22,7 @@ from components.leds_sim import LEDSim
 from components.manipulator_sim import ManipulatorSim
 
 from controllers.manipulator import Manipulator
+from controllers.intake import IntakeControl
 
 from utilities.scalers import rescale_js
 from utilities.position import Positions
@@ -54,6 +55,7 @@ class MyRobot(magicbot.MagicRobot):
     arm: ArmComponent
     elevator: ElevatorComponent
     intake: IntakeComponent
+    intake_control: IntakeControl
 
     max_speed = magicbot.tunable(32)  # m/s
     lower_max_speed = magicbot.tunable(3)  # m/s
@@ -62,6 +64,10 @@ class MyRobot(magicbot.MagicRobot):
     inclination_angle = tunable(0.0)
     controller_choice = tunable('')
     controller_name = tunable('')
+
+    # This is a debugging/test thing, not production code
+    driver_reef_snap_distance = tunable(-1.0)
+    driver_reef_radians_snap = tunable(0.0)
 
     START_POS_TOLERANCE = 1
 
@@ -76,6 +82,11 @@ class MyRobot(magicbot.MagicRobot):
 
         self.final_pose_pub = (ntcore.NetworkTableInstance.getDefault()
                                                 .getStructTopic("LockOnPose", Pose2d)
+                                                .publish()
+        )
+
+        self.reef_center_pose_pub = (ntcore.NetworkTableInstance.getDefault()
+                                                .getStructTopic("ReefCenterPose", Pose2d)
                                                 .publish()
         )
 
@@ -113,14 +124,14 @@ class MyRobot(magicbot.MagicRobot):
             self.controller_choice = 'Talk to me, Goose!'
             self.driver_controller = ReefscapeDriverThrustmaster(0)
         # self.drivetrain.set_pose(Positions.auton_line_2(is_red()))
-        tag = Waypoints.get_tag_id_from_letter('A', True)
+        tag = Waypoints.get_tag_id_from_letter('C', True)
         pose = Waypoints.get_tag_robot_away(tag, face_at=True)
         pose = Waypoints.shift_reef_right(pose)
         self.drivetrain.set_pose(pose)
         self.manipulator.engage()
 
     def handle_manipulator(self) -> None:
-        from controllers.manipulator import Locations
+        from controllers.manipulator import ManipLocations
         # Let's set some heights with the driver controller
         if self.driver_controller.getHeightPlacement1():
             self.manipulator.set_coral_level1()
@@ -132,6 +143,8 @@ class MyRobot(magicbot.MagicRobot):
             self.manipulator.set_coral_level4()
         if self.driver_controller.getManipulatorAdvance():
             self.manipulator.request_advance()
+        if self.driver_controller.goHome():
+            self.manipulator.go_home()
 
         # Now let's do the operator controller, which is how the real robot
         # will likely work
@@ -146,13 +159,13 @@ class MyRobot(magicbot.MagicRobot):
         if self.operator_controller.getRightBumper():
             match dpad:
                 case 0:  # Up arrow, top coral 
-                    self.manipulator.request_location(Locations.CORAL_REEF_4)
+                    self.manipulator.request_location(ManipLocations.CORAL_REEF_4)
                 case 90:  # Right arrow, 2nd coral
-                    self.manipulator.request_location(Locations.CORAL_REEF_2)
+                    self.manipulator.request_location(ManipLocations.CORAL_REEF_2)
                 case 270:  # Left arrow, 3rd coral
-                    self.manipulator.request_location(Locations.CORAL_REEF_3)
+                    self.manipulator.request_location(ManipLocations.CORAL_REEF_3)
                 case 180:  # Down arrow, trough level 1
-                    self.manipulator.request_location(Locations.CORAL_REEF_1)
+                    self.manipulator.request_location(ManipLocations.CORAL_REEF_1)
         else:
             match dpad:
                 case 0:  # Up arrow, top coral 
@@ -180,13 +193,23 @@ class MyRobot(magicbot.MagicRobot):
             max_speed = self.lower_max_speed
             max_spin_rate = self.lower_max_spin_rate
             self.drivetrain.drive_local(drive_x, drive_y, drive_z)
+        elif self.driver_controller.getSnap() and self.driver_reef_snap_distance < 0:
+            # Set a new 'snap to' distance
+            robot_pose = self.drivetrain.get_pose()
+            rc = Waypoints.get_reef_center(is_red())
+            self.reef_center_pose_pub.set(rc)
+            h = Waypoints.get_radians_to_reef_center(robot_pose, is_red())
+            self.driver_reef_radians_snap = h
+            self.drivetrain.snap_to_heading(h)
+            # self.drivetrain.snap_to_heading(math.pi/2)
         else:
             if is_red():
                 drive_x = -drive_x
                 drive_y = -drive_y
             self.drivetrain.drive_field(drive_x, drive_y, drive_z)
-        # Give rotational access to the driver
-        if drive_z != 0:
+        # Give rotational access to the driver unless they're snapping to
+        # a heading
+        if drive_z != 0 and self.driver_controller.getSnap() is False:
             self.drivetrain.stop_snapping()
 
     def lock_reef(self, shift_left=False, shift_right=False):
@@ -235,7 +258,7 @@ class MyRobot(magicbot.MagicRobot):
                 self.lock_processor()
             else:
                 self.lock_ps()
-        elif self.driver_controller.goHome():
+        elif self.driver_controller.returnToHomeLocation():
             self.drivetrain.drive_to_pose(
                 Positions.auton_line_2(is_red())
             )

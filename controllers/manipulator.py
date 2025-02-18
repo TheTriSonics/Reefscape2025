@@ -11,59 +11,22 @@ from components.arm import ArmComponent
 from components.elevator import ElevatorComponent
 from components.wrist import WristComponent
 
+from controllers.intake import IntakeControl
+
+from utilities.game import ManipLocations, ManipLocation
+
 
 class GamePieces(enum.Enum):
     CORAL = enum.auto()
     ALGAE = enum.auto()
 
 
-class Location:
-    """
-    This Location class provides a handy wrapper to the positions of the
-    components we need to move to.
-    """
-    wrist_pos: float
-    arm_pos: float
-    elevator_pos: float
-
-    def __init__(self, elevator, arm, wrist):
-        self.elevator_pos = elevator
-        self.arm_pos = arm
-        self.wrist_pos = wrist
-
-    def __repr__(self):
-        """ 
-        This is what's used to turn the object into a string; handy if you
-        want to print it out for debugging, or put it on a smart dashboard
-        """
-        return f'Location(elevator={self.elevator_pos}, arm={self.arm_pos}, wrist={self.wrist_pos})'
-    
-
-class Locations:
-    """
-    And we can define what is basicaly another enumeration, but with a Location
-    object for a datatype, not an integer.
-    """
-    # Order of params is elevator, arm, wrist, just as in the Location's
-    # __init__ method
-    HOME = Location(0, -80, 135) 
-    CORAL_REEF_1 = Location(0, -60, 75)
-    CORAL_REEF_2 = Location(0, -20, -12)
-    CORAL_REEF_3 = Location(0, 35, -52)
-    CORAL_REEF_4 = Location(12, 50, -130) 
-    ALGAE_REEF_1 = Location(5, -10, 20)
-    ALGAE_REEF_2 = Location(5, -10, 20)
-
-    PROCESSOR = Location(10, -60, 100)
-    BARGE = Location(50, 50, 90)
-
-
 class Manipulator(StateMachine):
     wrist: WristComponent
     arm: ArmComponent
     elevator: ElevatorComponent
-    intake: IntakeComponent
     photoeye: PhotoEyeComponent
+    intake_control: IntakeControl
 
     operator_advance = tunable(False)
     # JJB: Not sure if this intentional on MagicBot's part, but if we make
@@ -75,19 +38,19 @@ class Manipulator(StateMachine):
 
     # Create some default targets for the robot. The operator can change these
     # over in robot.py with their controller.
-    coral_scoring_target = Locations.CORAL_REEF_4
-    algae_scoring_target = Locations.BARGE
-    algae_intake_target = Locations.ALGAE_REEF_1
+    coral_scoring_target = ManipLocations.CORAL_REEF_4
+    algae_scoring_target = ManipLocations.BARGE
+    algae_intake_target = ManipLocations.ALGAE_REEF_1
     
     # This is where the system will try and drive itself to at any given time
     # You do have to call drive_to_setpoints to actually make it move
-    _target_location: Location = Locations.HOME
+    _target_location: ManipLocation = ManipLocations.HOME
 
     # This gets called by the MagicBot framework when the system is enabled
     def on_enable(self):
         print('Manipulator enabled')
         # Wherever we're at when enabled we'll just assume we should stay at
-        self._target_location = Location(
+        self._target_location = ManipLocation(
             self.wrist.get_position(),
             self.arm.get_position(),
             self.elevator.get_position()
@@ -111,43 +74,39 @@ class Manipulator(StateMachine):
 
     def go_home(self):
         # Set the necessary targets for each component
-        self.request_location(Locations.HOME)
-        self.intake.intake_off()
+        self.request_location(ManipLocations.HOME)
+        self.intake_control.engage(self.intake_control.idling)
         self.next_state_now(self.idling)
     
     def set_coral_level1(self):
-        self.coral_scoring_target = Locations.CORAL_REEF_1
-        self.intake.at_height = 1
+        self.coral_scoring_target = ManipLocations.CORAL_REEF_1
 
     def set_coral_level2(self):
-        self.coral_scoring_target = Locations.CORAL_REEF_2
-        self.intake.at_height = 2
+        self.coral_scoring_target = ManipLocations.CORAL_REEF_2
 
     def set_coral_level3(self):
-        self.coral_scoring_target = Locations.CORAL_REEF_3
-        self.intake.at_height = 3
+        self.coral_scoring_target = ManipLocations.CORAL_REEF_3
 
     def set_coral_level4(self):
-        self.coral_scoring_target = Locations.CORAL_REEF_4
-        self.intake.at_height = 4
+        self.coral_scoring_target = ManipLocations.CORAL_REEF_4
     
     def set_algae_level1(self):
-        self.algae_intake_target = Locations.ALGAE_REEF_1
+        self.algae_intake_target = ManipLocations.ALGAE_REEF_1
 
     def set_algae_level2(self):
-        self.algae_intake_target = Locations.ALGAE_REEF_2
+        self.algae_intake_target = ManipLocations.ALGAE_REEF_2
     
     def set_algae_processor(self):
-        self.algae_scoring_target = Locations.PROCESSOR
+        self.algae_scoring_target = ManipLocations.PROCESSOR
 
     def set_algae_barge(self):
-        self.algae_scoring_target = Locations.BARGE
+        self.algae_scoring_target = ManipLocations.BARGE
 
     # That's the end of the operator interface portion
 
     # Now some methods that the states within the system will use as helpers
     
-    def request_location(self, location: Location):
+    def request_location(self, location: ManipLocation):
         self._target_location = location
         self.wrist.target_pos = self._target_location.wrist_pos
         self.arm.target_pos = self._target_location.arm_pos
@@ -196,9 +155,9 @@ class Manipulator(StateMachine):
     
     @state(must_finish=True)
     def coral_intake(self, state_tm, initial_call):
-        self.intake.coral_in()
+        if initial_call:
+            self.intake_control.go_coral_intake()
         if self.photoeye.coral_held:
-            self.intake.intake_off()
             self.next_state(self.coral_in_system)
 
     @state(must_finish=True)
@@ -242,19 +201,10 @@ class Manipulator(StateMachine):
     def coral_score(self, state_tm, initial_call):
         # Let's score a coral!
         if initial_call:
-            self.intake.score_coral()
-        # For now I'm just putting in a timer to simulate the time it takes
-        # to score a coral. This should be replaced with a sensor but keep
-        # the timer as a backup. I'm staring to like this pattern of using
-        # the state_tm value instead of the @timed_state decorator's duration
-        # parameter and the next_state.
+            self.intake_control.go_coral_score()
 
-        if state_tm > 1.0 and self.photoeye.coral_held is False:
-            self.intake.intake_off()
-
-        if self.operator_advance and self.photoeye.coral_held is False:
-            self.operator_advance = False
-            self.intake.intake_off()
+        scored = self.intake_control.current_state == self.intake_control.idling.name
+        if self.operator_advance and scored:
             self.next_state(self.coral_scored)
 
     # NOTE: This step might not really be needed, we could return back
@@ -264,8 +214,8 @@ class Manipulator(StateMachine):
         if initial_call:
             # What do we do after we score a coral?
             # Send ourself back into 'home' mode
-            self.intake.intake_off()
-            self.request_location(Locations.HOME)
+            # Do we need to turn off the intake here?
+            self.request_location(ManipLocations.HOME)
         # Now ask the system to start moving. When it arrives at the HOME
         # location it'll again wait for the operator to advance
 
@@ -276,7 +226,7 @@ class Manipulator(StateMachine):
 
     @state(must_finish=True)
     def algae_intake(self, state_tm, initial_call):
-        self.intake.coral_in()
+        # TODO: Hit intake controller up
         if self.operator_advance and state_tm > 0.5:
             self.operator_advance = False
             # TODO: Finish out algae

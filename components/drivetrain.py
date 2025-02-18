@@ -247,6 +247,10 @@ class DrivetrainComponent:
     send_modules = magicbot.tunable(True)
     swerve_lock = magicbot.tunable(False)
 
+    snapping_to_heading = magicbot.tunable(False)
+    snap_heading_ro = magicbot.tunable(0.0)
+
+
     # TODO: Read from positions.py once autonomous is finished
 
     def __init__(self) -> None:
@@ -259,7 +263,6 @@ class DrivetrainComponent:
             0.5, 0, 0, TrapezoidProfileRadians.Constraints(100, 100)
         )
         self.heading_controller.enableContinuousInput(-math.pi, math.pi)
-        self.snapping_to_heading = False
         self.heading_controller.setTolerance(self.HEADING_TOLERANCE)
         self.snap_heading: float | None = None
 
@@ -427,6 +430,7 @@ class DrivetrainComponent:
             self.snap_to_heading(self.get_heading().radians())
         self.chassis_speeds = ChassisSpeeds(vx, vy, omega)
 
+    # Note that haeding should be in radians
     def snap_to_heading(self, heading: float) -> None:
         """set a heading target for the heading controller"""
         self.snapping_to_heading = True
@@ -440,8 +444,9 @@ class DrivetrainComponent:
         self.snap_heading = None
 
     def execute(self) -> None:
+        self.snap_heading_ro = -999 if self.snap_heading is None else self.snap_heading
         if self.snapping_to_heading:
-            self.chassis_speeds.omega = self.heading_controller.calculate(
+            self.chassis_speeds.omega = self.choreo_heading_controller.calculate(
                 self.get_rotation().radians()
             )
         else:

@@ -38,7 +38,7 @@ class ReefscapeDriverBase(XboxController):
         return False
 
     # Here are things I would not expect on a regular XBox controller
-    def goHome(self) -> bool:
+    def returnToHomeLocation(self) -> bool:
         return False
 
     def getCoralMode(self) -> bool:
@@ -48,6 +48,12 @@ class ReefscapeDriverBase(XboxController):
         return False
 
     def getManipulatorAdvance(self) -> bool:
+        return False
+    
+    def getSnap(self) -> bool:
+        return False
+
+    def goHome(self) -> bool:
         return False
 
 

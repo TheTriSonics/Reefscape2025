@@ -178,8 +178,6 @@ class PhysicsEngine:
         # Ok now let's do photoeyes.
         pe: PhotoEyeComponent = self.robot.photoeye
         intake: IntakeComponent = self.robot.intake
-        if pe.coral_chute and self.pe_coral_chute_triggerd_at < 0:
-            self.pe_coral_chute_triggerd_at = now
 
         robot_pose = self.robot.drivetrain.get_pose()
         ps_id, ps_dist = Waypoints.closest_ps_tag_id(robot_pose)
@@ -216,18 +214,6 @@ class PhysicsEngine:
         ):
             pe.coral_held = False
             self.intake_coral_out_at = -1.0
-
-        diff = now - self.pe_coral_chute_triggerd_at
-        if pe.coral_chute and self.pe_coral_chute_triggerd_at + 0.5 < now:
-            # Untrigger the chute after a half a second.
-            self.pe_coral_chute_triggerd_at = -1.0
-            pe.coral_chute = False
-        
-        if (pe.coral_chute and
-            self.pe_coral_chute_triggerd_at + 0.25 < now and
-            self.intake_coral_out_at + 0.25 < now):
-            pe.coral_held = True
-
 
     def update_sim(self, now: float, tm_diff: float) -> None:
         # Enable the Phoenix6 simulated devices

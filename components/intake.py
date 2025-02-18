@@ -14,10 +14,12 @@ from enum import Enum
 from ids import TalonId
 
 from components.photoeye import PhotoEyeComponent
+from components.drivetrain import DrivetrainComponent
 from components import (
     ElevatorComponent, WristComponent, ArmComponent, DrivetrainComponent
 )
 from utilities import Waypoints, is_sim
+from utilities.game import ManipLocations, ManipLocation
 
 pn = wpilib.SmartDashboard.putNumber
 
@@ -26,6 +28,7 @@ class IntakeDirection(Enum):
     NONE = 0
     CORAL_IN = 1
     CORAL_SCORE = 2
+    ALGAE_SCORE = 3
 
 
 class IntakeComponent:
@@ -42,7 +45,6 @@ class IntakeComponent:
 
     has_coral = tunable(False)
 
-    at_height = tunable(4)
     coral_intake_at = tunable(-1.0)
     coral_score_at = tunable(-1.0)
 
@@ -55,7 +57,6 @@ class IntakeComponent:
                             .publish())
         self._coral_pose = None
 
-
     def update_sim(self):
         # A method we can call from execute() to move along statuses until
         # we have the real hardware. We could do this in physics.py but
@@ -63,6 +64,13 @@ class IntakeComponent:
         # can be tested while actually driving it.
 
         now = wpilib.Timer.getFPGATimestamp()
+        robot_pose = self.drivetrain.get_pose()
+        ps_tag_id, tag_dist = Waypoints.closest_ps_tag_id(robot_pose)
+        ps_tag_pose = Waypoints.get_tag_pose(ps_tag_id)
+        # Now get distance between them
+        ps_dist = robot_pose.translation().distance(ps_tag_pose.translation())
+        pn = wpilib.SmartDashboard.putNumber
+        pn('ps_dist', ps_dist)
 
         if self.direction == IntakeDirection.NONE:
             self.coral_intake_at = -1
@@ -83,7 +91,10 @@ class IntakeComponent:
             self.photoeye.coral_held = False
             self.coral_score_at = -1
     
-        if self.coral_intake_at + 0.5 > now:
+        pn('coral_score', self.coral_score_at)
+        pn('coral_intake_at', self.coral_intake_at)
+        pn('now', now)
+        if self.coral_intake_at > 0 and self.coral_intake_at + 0.5 < now and ps_dist < 0.8:
             # We've been moving for 0.5 seconds so assume we have some coral
             self.photoeye.coral_held = True
             self.coral_intake_at = -1
@@ -109,6 +120,9 @@ class IntakeComponent:
 
     def score_coral(self):
         self.direction = IntakeDirection.CORAL_SCORE
+
+    def score_algae(self):
+        self.direction = IntakeDirection.ALGAE_SCORE
 
     def intake_off(self):
         self.direction = IntakeDirection.NONE
@@ -149,15 +163,31 @@ class IntakeComponent:
             Rotation3d(0, 0, current_rotation.radians())
         )
 
+    def get_current_coral_scoring_height(self) -> int:
+        curr_loc = ManipLocation(
+            self.elevator.get_position(),
+            self.arm.get_position(),
+            self.wrist.get_position(),
+        )
+        if curr_loc == ManipLocations.CORAL_REEF_4:
+            return 4
+        if curr_loc == ManipLocations.CORAL_REEF_3:
+            return 3
+        if curr_loc == ManipLocations.CORAL_REEF_2:
+            return 2 
+        if curr_loc == ManipLocations.CORAL_REEF_1:
+            return 1 
+        return -1
+
     def calc_coral_pose(self, reef_tag_id=None, force_left=False, force_right=False, height=None) -> Pose3d:
         xoff, yoff, zoff = 0.0, 0.0, 0.0
         roll, pitch, yaw = 0.0, 0.0, 0.0
 
         robot_pose = self.drivetrain.get_pose()
-        height = height or self.at_height
+        height = self.get_current_coral_scoring_height()
         if reef_tag_id is None:
             reef_tag_id, dist = Waypoints.closest_reef_tag_id(robot_pose)
-            if dist > 1.0:
+            if dist > 1.0 or height not in [1, 2, 3, 4]:
                 # Just drop it on the floor!
                 robot_3d_pose = Pose3d(
                     Translation3d(robot_pose.X(), robot_pose.Y(), 0.2),
@@ -254,13 +284,10 @@ class IntakeComponent:
             motor_power = 0.2
         if self.force_coral_score:
             motor_power = -0.2
-        
-        if self.photoeye.coral_chute:
-            self.direction = IntakeDirection.CORAL_IN
 
-        if self.direction == IntakeDirection.CORAL_IN:
+        if self.direction in [IntakeDirection.CORAL_IN, IntakeDirection.ALGAE_SCORE]:
             motor_power = 0.2
-        elif self.direction == IntakeDirection.CORAL_SCORE:
+        elif self.direction in [IntakeDirection.CORAL_SCORE]:
             motor_power = -0.2
         
         if is_sim():

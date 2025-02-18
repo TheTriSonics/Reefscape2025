@@ -10,7 +10,7 @@ class ReefscapeDriver(ReefscapeDriverBase):
     def has_extended_mode(self) -> bool:
         return False
 
-    def goHome(self) -> bool:
+    def returnToHomeLocation(self) -> bool:
         return False
 
     def getRightX(self) -> float:
