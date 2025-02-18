@@ -43,7 +43,6 @@ class Manipulator(StateMachine):
     algae_intake_target = ManipLocations.ALGAE_REEF_1
     
     # This is where the system will try and drive itself to at any given time
-    # You do have to call drive_to_setpoints to actually make it move
     _target_location: ManipLocation = ManipLocations.HOME
 
     # This gets called by the MagicBot framework when the system is enabled
@@ -138,13 +137,13 @@ class Manipulator(StateMachine):
     def idling(self, initial_call):
         # TODO: Put a photo eye condition here to jump to intake if
         # the eye is triggered
-        if self.operator_advance:
-            if self.photoeye.coral_held:
-                self.next_state(self.coral_in_system)
-            elif self.photoeye.algae_held:
-                # Do something with that
-                pass
-            else:
+        if self.photoeye.coral_held:
+            self.next_state(self.coral_in_system)
+        elif self.photoeye.algae_held:
+            # Do something with that
+            pass
+        else:
+            if self.operator_advance:
                 if self.game_piece_mode == GamePieces.CORAL:
                     self.next_state(self.coral_intake)
                 elif self.game_piece_mode == GamePieces.ALGAE:
