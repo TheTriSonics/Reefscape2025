@@ -25,7 +25,7 @@ class LEDComponent:
     
     def __init__(self):
         self._lights = AddressableLED(0)  # PWM port, might be different with CAN
-        self._led_length = 4
+        self._led_length = 100
         self._rainbow_mode = False
         self._lights.setLength(self._led_length)
 
@@ -36,34 +36,6 @@ class LEDComponent:
         for l in self._led_data:
             l.setRGB(0, 0, 0)
         self._lights.start()
-
-    def set_intake_color(self, r, g, b):
-        self._led_data[3].setRGB(r, g, b)
-
-    def get_intake_color(self):
-        color = self._led_data[3]
-        return color.r, color.g, color.b
-
-    def set_pe_color(self, r, g, b):
-        self._led_data[2].setRGB(r, g, b)
-
-    def get_pe_color(self):
-        color = self._led_data[2]
-        return color.r, color.g, color.b
-
-    def set_manip_level_color(self, r, g, b):
-        self._led_data[1].setRGB(r, g, b)
-
-    def get_manip_level_color(self):
-        color = self._led_data[1]
-        return color.r, color.g, color.b
-
-    def set_manip_state_color(self, r, g, b):
-        self._led_data[0].setRGB(r, g, b)
-
-    def get_manip_state_color(self):
-        color = self._led_data[0]
-        return color.r, color.g, color.b
 
     def _rainbow(self) -> None:
         # For every pixel
@@ -96,47 +68,21 @@ class LEDComponent:
     white = (255, 255, 255)
     black = (0, 0, 0)
 
+    def setColor(self, r, g, b) -> None:
+        for l in self._led_data:
+            l.setRGB(r, g, b)
+
     def execute(self) -> None:
         if not DriverStation.isDSAttached():
             self.rainbow()
-        else:
-            if self.intake.direction == IntakeDirection.CORAL_IN:
-                self.set_intake_color(*self.green)
-            elif self.intake.direction == IntakeDirection.CORAL_SCORE:
-                self.set_intake_color(*self.magenta)
-            else:
-                self.set_intake_color(*self.cyan)
+        if self._rainbow_mode:
+            self._rainbow()
 
-            if self.photoeye.coral_held:
-                self.set_pe_color(*self.white)  # Holding coral
-            elif self.photoeye.algae_held:
-                self.set_pe_color(*self.cyan)  # Holding algae
-            elif (self.photoeye.coral_held is False and
-                  self.photoeye.algae_held is False):
-                self.set_pe_color(*self.red)  # We're empty
-            else:
-                self.set_pe_color(*self.black)  # Unknown state
-            lvl = self.manipulator.coral_scoring_target
-            match lvl:
-                case Locations.CORAL_REEF_1:
-                    self.set_manip_level_color(*self.red)
-                case Locations.CORAL_REEF_2:
-                    self.set_manip_level_color(*self.yellow)
-                case Locations.CORAL_REEF_3:
-                    self.set_manip_level_color(*self.green)
-                case Locations.CORAL_REEF_4:
-                    self.set_manip_level_color(*self.blue)
-                case _:
-                    self.set_manip_level_color(*self.white)
+        manip = self.manipulator
 
-            ms = self.manipulator.current_state
-            if ms == self.manipulator.idling.name:
-                self.set_manip_state_color(*self.blue)
-            elif ms == self.manipulator.coral_intake.name:
-                self.set_manip_state_color(*self.yellow)
-            elif ms == self.manipulator.coral_score.name:
-                self.set_manip_state_color(*self.magenta)
-            else:
-                self.set_manip_state_color(*self.white)
-            
+        if (self.intake.direction != IntakeDirection.NONE or
+            manip.current_state == manip.coral_prepare_score.name):
+            self.setColor(*self.yellow)
+        elif (self.photoeye.coral_held):
+            self.setColor(*self.green)
         self._lights.setData(self._led_data)

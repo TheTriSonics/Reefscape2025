@@ -90,6 +90,8 @@ class MyRobot(magicbot.MagicRobot):
     def teleopInit(self) -> None:
         if self.isSimulation():
             wpilib.DriverStation.silenceJoystickConnectionWarning(True)
+
+        self.leds.rainbow()
         
         # Determine which Joystick to use for the driver.
         js_name = wpilib.DriverStation.getJoystickName(0)
