@@ -1,5 +1,6 @@
 """Descriptions of the field and match state."""
 
+import enum
 import math
 
 import robotpy_apriltag
@@ -59,6 +60,11 @@ def is_sim() -> bool:
 def is_disabled() -> bool:
     mode = wpilib.SmartDashboard.getString('/robot/mode', '')
     return mode in ['disabled', '']
+
+
+class GamePieces(enum.Enum):
+    CORAL = enum.auto()
+    ALGAE = enum.auto()
 
 
 class ManipLocation:

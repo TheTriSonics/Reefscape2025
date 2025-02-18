@@ -5,7 +5,6 @@ This is a state machine that will control the manipulator.
 import enum
 from magicbot import StateMachine, state, tunable, feedback, will_reset_to
 
-from components.intake import IntakeComponent
 from components.photoeye import PhotoEyeComponent
 from components.arm import ArmComponent
 from components.elevator import ElevatorComponent
@@ -13,12 +12,7 @@ from components.wrist import WristComponent
 
 from controllers.intake import IntakeControl
 
-from utilities.game import ManipLocations, ManipLocation
-
-
-class GamePieces(enum.Enum):
-    CORAL = enum.auto()
-    ALGAE = enum.auto()
+from utilities.game import ManipLocations, ManipLocation, GamePieces
 
 
 class Manipulator(StateMachine):
@@ -29,15 +23,10 @@ class Manipulator(StateMachine):
     intake_control: IntakeControl
 
     operator_advance = will_reset_to(False)
-    # JJB: Not sure if this intentional on MagicBot's part, but if we make
-    # a tunable with this name the actual state value comes back with no
-    # code required on our part! It's like magic!
-    current_state = tunable('home')
     
-    game_piece_mode: GamePieces = GamePieces.CORAL
-
     # Create some default targets for the robot. The operator can change these
     # over in robot.py with their controller.
+    game_piece_mode: GamePieces = GamePieces.CORAL
     coral_scoring_target = ManipLocations.CORAL_REEF_4
     algae_scoring_target = ManipLocations.BARGE
     algae_intake_target = ManipLocations.ALGAE_REEF_1
@@ -74,8 +63,9 @@ class Manipulator(StateMachine):
     def go_home(self):
         # Set the necessary targets for each component
         self.request_location(ManipLocations.HOME)
-        self.intake_control.engage(self.intake_control.idling)
+        self.intake_control.go_idle()
         self.next_state_now(self.idling)
+        self.engage()
     
     def set_coral_level1(self):
         self.coral_scoring_target = ManipLocations.CORAL_REEF_1

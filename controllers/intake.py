@@ -10,9 +10,9 @@ class IntakeControl(StateMachine):
     def __init__(self):
         pass
 
-    @state(first=True, must_finish=True)
-    def idling(self):
-        self.intake.intake_off()
+    def go_idle(self):
+        self.next_state(self.idling)
+        self.engage()
 
     def go_coral_score(self):
         self.next_state(self.coral_score)
@@ -22,6 +22,10 @@ class IntakeControl(StateMachine):
         print('intake controller engaging coral_intake')
         self.next_state(self.coral_intake)
         self.engage()
+
+    @state(first=True, must_finish=True)
+    def idling(self):
+        self.intake.intake_off()
 
     @state(must_finish=True)
     def coral_score(self, initial_call, state_tm):
