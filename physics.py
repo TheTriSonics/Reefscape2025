@@ -174,42 +174,7 @@ class PhysicsEngine:
             self.robot.vision.camera_center_offset,
         )
 
-
-    def update_sim(self, now: float, tm_diff: float) -> None:
-        # Enable the Phoenix6 simulated devices
-        # TODO: delete when phoenix6 integrates with wpilib
-        if wpilib.DriverStation.isEnabled():
-            phoenix6.unmanaged.feed_enable(0.1)
-
-        for wheel in self.wheels:
-            wheel.update(tm_diff)
-        for steer in self.steer:
-            steer.update(tm_diff)
-
-        for module in self.robot.drivetrain.modules:
-            # Set the cancoder to be what the module wants it to be.
-            desired_ang = module.state.angle.radians()
-            raw = desired_ang / math.tau
-            module.encoder.sim_state.set_raw_position(
-                raw - module.mag_offset
-            )
-
-        for m in self.manip_motors:
-            m.update(tm_diff)
-
-        speeds = self.kinematics.toChassisSpeeds((
-            self.swerve_modules[0].get(),
-            self.swerve_modules[1].get(),
-            self.swerve_modules[2].get(),
-            self.swerve_modules[3].get(),
-        ))
-
-        self.current_yaw += math.degrees(speeds.omega * tm_diff)
-        self.gyro.set_raw_yaw(self.current_yaw)
-
-        self.physics_controller.drive(speeds, tm_diff)
-        self.vision_sim.update(self.robot.drivetrain.get_pose())
-
+    def update_pe_intake_sim(self, now: float, tm_diff: float) -> None:
         # Ok now let's do photoeyes.
         pe: PhotoEyeComponent = self.robot.photoeye
         intake: IntakeComponent = self.robot.intake
@@ -262,4 +227,41 @@ class PhysicsEngine:
             self.pe_coral_chute_triggerd_at + 0.25 < now and
             self.intake_coral_out_at + 0.25 < now):
             pe.coral_held = True
+
+
+    def update_sim(self, now: float, tm_diff: float) -> None:
+        # Enable the Phoenix6 simulated devices
+        # TODO: delete when phoenix6 integrates with wpilib
+        if wpilib.DriverStation.isEnabled():
+            phoenix6.unmanaged.feed_enable(0.1)
+
+        for wheel in self.wheels:
+            wheel.update(tm_diff)
+        for steer in self.steer:
+            steer.update(tm_diff)
+
+        for module in self.robot.drivetrain.modules:
+            # Set the cancoder to be what the module wants it to be.
+            desired_ang = module.state.angle.radians()
+            raw = desired_ang / math.tau
+            module.encoder.sim_state.set_raw_position(
+                raw - module.mag_offset
+            )
+
+        for m in self.manip_motors:
+            m.update(tm_diff)
+
+        speeds = self.kinematics.toChassisSpeeds((
+            self.swerve_modules[0].get(),
+            self.swerve_modules[1].get(),
+            self.swerve_modules[2].get(),
+            self.swerve_modules[3].get(),
+        ))
+
+        self.current_yaw += math.degrees(speeds.omega * tm_diff)
+        self.gyro.set_raw_yaw(self.current_yaw)
+
+        self.physics_controller.drive(speeds, tm_diff)
+        self.vision_sim.update(self.robot.drivetrain.get_pose())
+        # self.update_pe_intake_sim()
 

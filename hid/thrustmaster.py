@@ -60,4 +60,4 @@ class ReefscapeDriver(ReefscapeDriverBase):
         return self.getRawAxis(2) < 0.25
 
     def getManipulatorAdvance(self) -> bool:
-        return self.getRawButton(9)
+        return self.getRawButtonPressed(9)

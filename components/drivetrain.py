@@ -33,7 +33,7 @@ from utilities import is_red, is_sim
 
 from ids import CancoderId, TalonId
 
-from .gyro import GyroComponent
+from components.gyro import GyroComponent
 
 from generated.tuner_constants import TunerConstants
 

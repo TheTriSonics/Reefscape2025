@@ -197,8 +197,7 @@ class Manipulator(StateMachine):
     @state(must_finish=True)
     def coral_intake(self, state_tm, initial_call):
         self.intake.coral_in()
-        photo_eye_closed = self.photoeye.coral_held
-        if photo_eye_closed:
+        if self.photoeye.coral_held:
             self.intake.intake_off()
             self.next_state(self.coral_in_system)
 
@@ -242,14 +241,15 @@ class Manipulator(StateMachine):
     @state(must_finish=True)
     def coral_score(self, state_tm, initial_call):
         # Let's score a coral!
-        self.intake.score_coral()
+        if initial_call:
+            self.intake.score_coral()
         # For now I'm just putting in a timer to simulate the time it takes
         # to score a coral. This should be replaced with a sensor but keep
         # the timer as a backup. I'm staring to like this pattern of using
         # the state_tm value instead of the @timed_state decorator's duration
         # parameter and the next_state.
 
-        if state_tm > 3.0 and self.photoeye.coral_held is False:
+        if state_tm > 1.0 and self.photoeye.coral_held is False:
             self.intake.intake_off()
 
         if self.operator_advance and self.photoeye.coral_held is False:

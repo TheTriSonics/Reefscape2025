@@ -40,31 +40,54 @@ class IntakeComponent:
     force_coral_score = tunable(False)
     force_coral_intake = tunable(False)
 
-    auto_coral_intake = tunable(True)
-
     has_coral = tunable(False)
 
-    x_off = tunable(0.0)
-    y_off = tunable(0.0)
-    z_off = tunable(1.6)
-
-    roll = tunable(0.0)
-    pitch = tunable(90.0)
-    yaw = tunable(0.0)
-
     at_height = tunable(4)
+    coral_intake_at = tunable(-1.0)
+    coral_score_at = tunable(-1.0)
 
     motor_request = DutyCycleOut(0, override_brake_dur_neutral=True)
     direction = IntakeDirection.NONE
-
 
     def __init__(self):
         self.coral_pub = (ntcore.NetworkTableInstance.getDefault()
                             .getStructArrayTopic('corals', Pose3d)
                             .publish())
-
         self._coral_pose = None
 
+
+    def update_sim(self):
+        # A method we can call from execute() to move along statuses until
+        # we have the real hardware. We could do this in physics.py but
+        # to make it run on the physical robot we can put it here so the logic
+        # can be tested while actually driving it.
+
+        now = wpilib.Timer.getFPGATimestamp()
+
+        if self.direction == IntakeDirection.NONE:
+            self.coral_intake_at = -1
+            self.coral_score_at = -1
+        elif self.direction == IntakeDirection.CORAL_IN:
+            self.coral_score_at = -1
+        elif self.direction == IntakeDirection.CORAL_SCORE:
+            self.coral_intake_at = -1
+        
+        if self.coral_intake_at < 0 and self.direction == IntakeDirection.CORAL_IN:
+            self.coral_intake_at = now
+        if self.coral_score_at < 0 and self.direction == IntakeDirection.CORAL_SCORE:
+            self.coral_score_at = now
+
+        if self.coral_score_at + 0.5 > now:
+            # We've been moving for 0.5 seconds so clear out any held coral
+            # or algae
+            self.photoeye.coral_held = False
+            self.coral_score_at = -1
+    
+        if self.coral_intake_at + 0.5 > now:
+            # We've been moving for 0.5 seconds so assume we have some coral
+            self.photoeye.coral_held = True
+            self.coral_intake_at = -1
+        
     def setup(self):
         self.coral_static: list[Pose3d] = [
         ]
@@ -219,23 +242,12 @@ class IntakeComponent:
         
         if coral_pose:
             self.coral_pub.set(self.coral_static + [coral_pose])
-        elif False:
-            # This block is for showing a temporary coral pose; tunables
-            # can be used to adjust where it goes via x_off, y_off, z_off,
-            # roll, pitch, and yaw
-            tag_id = Waypoints.get_tag_id_from_letter('A', True)
-            tag_pose = Waypoints.shift_reef_left(get_tag_pose(tag_id))
-            x = tag_pose.X() + self.x_off
-            y = tag_pose.Y() + self.y_off
-            z = self.z_off
-
-            tpose = Pose3d(Translation3d(x, y, z), Rotation3d.fromDegrees(self.roll, self.pitch, self.yaw))
-            self.coral_pub.set(self.coral_static + [tpose])
         else:
             self.coral_pub.set(self.coral_static)
 
     def execute(self):
         self.do_3d_repr()
+        self.update_sim()
 
         motor_power = 0.0
         if self.force_coral_intake:

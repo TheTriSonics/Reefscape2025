@@ -7,18 +7,16 @@ import wpilib.event
 from wpimath.geometry import Pose2d, Rotation2d, Transform2d, Translation2d
 from magicbot import tunable
 
-from components import (
-    DrivetrainComponent,
-    GyroComponent,
-    VisionComponent,
-    BatteryMonitorComponent,
-    LEDComponent,
-    WristComponent,
-    ArmComponent,
-    ElevatorComponent,
-    IntakeComponent,
-    PhotoEyeComponent,
-)
+from components.drivetrain import DrivetrainComponent
+from components.gyro import GyroComponent
+from components.vision import VisionComponent
+from components.battery_monitor import BatteryMonitorComponent
+from components.leds import LEDComponent
+from components.wrist import WristComponent
+from components.arm import ArmComponent
+from components.elevator import ElevatorComponent
+from components.intake import IntakeComponent
+from components.photoeye import PhotoEyeComponent
 
 from components.leds_sim import LEDSim
 from components.manipulator_sim import ManipulatorSim

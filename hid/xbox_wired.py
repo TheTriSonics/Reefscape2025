@@ -36,4 +36,4 @@ class ReefscapeOperator(ReefscapeOperatorBase):
         return self.getAButton()
 
     def getManipulatorAdvance(self) -> bool:
-        return self.getYButton()
+        return self.getYButtonPressed()

@@ -1,3 +1,5 @@
+import wpilib
+
 from magicbot import tunable
 
 
@@ -10,5 +12,11 @@ class PhotoEyeComponent:
 
     def execute(self):
         # Read sensors and set tunables
+        # TODO
+
+        # For now we'll have the intake system take care of changing the
+        # tunables
+
+
         pass
 

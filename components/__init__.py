@@ -5,6 +5,6 @@ from .battery_monitor import BatteryMonitorComponent
 from .drivetrain import DrivetrainComponent
 from .gyro import GyroComponent
 from .vision import VisionComponent
-from .leds import LEDComponent
 from .photoeye import PhotoEyeComponent
 from .intake import IntakeComponent
+from .leds import LEDComponent
