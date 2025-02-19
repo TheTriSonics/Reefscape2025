@@ -151,7 +151,7 @@ class AutonSample(AutonomousStateMachine):
         ):
             self.manipulator.next_state_now(self.manipulator.coral_prepare_score)
             self.manipulator.engage()
-        timeout = state_tm > traj.get_total_time() * 20.0
+        timeout = state_tm > traj.get_total_time()
         if ((self.at_pose(end_pose))
             or timeout):
             self.next_state(self.place_second_coral)
