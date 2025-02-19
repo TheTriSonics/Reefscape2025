@@ -81,6 +81,8 @@ class MyRobot(magicbot.MagicRobot):
     driver_reef_snap_distance = tunable(-1.0)
     driver_reef_radians_snap = tunable(0.0)
 
+    strafe_distance = tunable(-1.0)
+
     START_POS_TOLERANCE = 1
 
     def createObjects(self) -> None:
@@ -101,9 +103,15 @@ class MyRobot(magicbot.MagicRobot):
                                                 .getStructTopic("ReefCenterPose", Pose2d)
                                                 .publish()
         )
-        self.strafe_poss = (
+        self.strafe_positions = (
             ntcore.NetworkTableInstance.getDefault()
             .getStructArrayTopic("/components/drivetrain/strafes", Pose2d)
+            .publish()
+        )
+
+        self.strafe_next = (
+            ntcore.NetworkTableInstance.getDefault()
+            .getStructTopic("/components/drivetrain/strafe_next", Pose2d)
             .publish()
         )
 
@@ -206,6 +214,9 @@ class MyRobot(magicbot.MagicRobot):
             -rescale_js(self.driver_controller.getRightX(), 0.1, exponential=2) * max_spin_rate
         )
 
+        if self.driver_controller.getStrafe() is False:
+            self.strafe_distance = -1.0
+
         if self.driver_controller.getDriveLocal():
             max_speed = self.lower_max_speed
             max_spin_rate = self.lower_max_spin_rate
@@ -225,12 +236,15 @@ class MyRobot(magicbot.MagicRobot):
             self.reef_center_pose_pub.set(rc)
             # Get the distance between robot pose and rc
             dist = robot_pose.translation().distance(rc.translation())
+            if self.strafe_distance < 0:
+                self.strafe_distance = dist
+
             strafe_poses = []
-            for i in range(0, 360+45, 45):
-                x, y, rad = get_point_on_circle(rc.translation().X(), rc.translation().Y(), dist, i)
+            for i in range(0, 360+45, 10):
+                x, y, rad = get_point_on_circle(rc.translation().X(), rc.translation().Y(), self.strafe_distance, i)
                 pose = Pose2d(Translation2d(x, y), Rotation2d(rad))
                 strafe_poses.append(pose)
-            self.strafe_poss.set(strafe_poses)
+            self.strafe_positions.set(strafe_poses)
             # Now get my current angle on the circle
             dx = robot_pose.X() - rc.X()
             dy = robot_pose.Y() - rc.Y()
@@ -238,13 +252,20 @@ class MyRobot(magicbot.MagicRobot):
             angle_radians = math.atan2(dy, dx)
             angle_degrees = math.degrees(angle_radians)
             # Rotation will now control the angle on the circle
-            angle_degrees += drive_z
+            deg_change = -drive_z * 4
+            max_deg_change = 25
+            if deg_change < -max_deg_change:
+                deg_change = -max_deg_change
+            elif deg_change > max_deg_change:
+                deg_change = max_deg_change 
+
+            angle_degrees -= deg_change
+            # Now check if it is less than -2 or 2 and cap it within that range
             x, y, rad = get_point_on_circle(
-                robot_pose.X(), robot_pose.Y(), dist, angle_degrees 
+                rc.X(), rc.Y(), self.strafe_distance, angle_degrees 
             )
+            self.strafe_next.set(Pose2d(Translation2d(x, y), Rotation2d(rad)))
             self.drivetrain.drive_to_position(x, y, rad)
-
-
         else:
             if is_red():
                 drive_x = -drive_x
@@ -252,8 +273,9 @@ class MyRobot(magicbot.MagicRobot):
             self.drivetrain.drive_field(drive_x, drive_y, drive_z)
         # Give rotational access to the driver unless they're snapping to
         # a heading
-        if drive_z != 0 and self.driver_controller.getSnap() is False:
-            self.drivetrain.stop_snapping()
+        if self.driver_controller.getStrafe() is False:  # noqa: SIM102
+            if drive_z != 0 and self.driver_controller.getSnap() is False:
+                self.drivetrain.stop_snapping()
 
     def lock_reef(self, shift_left=False, shift_right=False):
         pose = self.drivetrain.get_pose()
