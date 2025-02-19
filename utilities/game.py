@@ -125,10 +125,10 @@ class ManipLocations:
     CORAL_REEF_2 = ManipLocation(0, -20, -12)
     CORAL_REEF_3 = ManipLocation(0, 35, -52)
     CORAL_REEF_4 = ManipLocation(12, 50, -130) 
-    ALGAE_REEF_1 = ManipLocation(5, -10, 20)
-    ALGAE_REEF_2 = ManipLocation(5, -10, 20)
+    ALGAE_REEF_1 = ManipLocation(0, -30, -90)
+    ALGAE_REEF_2 = ManipLocation(9, -30, -90)
 
     #changed from processor to processor_5 and barge to barge_6
-    PROCESSOR_5 = ManipLocation(10, -60, 100)
-    BARGE_6 = ManipLocation(50, 50, 90)
+    PROCESSOR_5 = ManipLocation(0, -60, 200)
+    BARGE_6 = ManipLocation(20, 45, 160)
 
