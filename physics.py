@@ -88,7 +88,7 @@ class PhysicsEngine:
         ] = robot.drivetrain.modules
         
         self.apriltag_layout = robotpy_apriltag.AprilTagFieldLayout.loadField(
-            robotpy_apriltag.AprilTagField.k2025Reefscape
+            robotpy_apriltag.AprilTagField.k2025ReefscapeWelded
         )
 
         # Motors

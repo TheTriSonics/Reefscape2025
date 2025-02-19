@@ -19,7 +19,7 @@ from components import (
     ElevatorComponent, WristComponent, ArmComponent, DrivetrainComponent
 )
 from utilities import Waypoints, is_sim
-from utilities.game import ManipLocations, ManipLocation
+from utilities.game import ManipLocations, ManipLocation, is_red
 
 pn = wpilib.SmartDashboard.putNumber
 
@@ -64,7 +64,10 @@ class IntakeComponent:
 
     def __init__(self):
         self.coral_pub = (ntcore.NetworkTableInstance.getDefault()
-                            .getStructArrayTopic('corals', Pose3d)
+                            .getStructArrayTopic('/components/intake/coral_locs', Pose3d)
+                            .publish())
+        self.algae_pub = (ntcore.NetworkTableInstance.getDefault()
+                            .getStructArrayTopic('/components/intake/algae_locs', Pose3d)
                             .publish())
         self._coral_pose = None
 
@@ -142,18 +145,25 @@ class IntakeComponent:
             self.coral_intake_at = -1
     
     def setup(self):
+        tfl = Waypoints.get_tag_id_from_letter
         self.coral_static: list[Pose3d] = [
         ]
-        old_data = """
-            self.calc_coral_pose(6, force_right=True, height=4),
-            self.calc_coral_pose(6, force_right=True, height=3),
-            self.calc_coral_pose(6, force_right=True, height=2),
-            self.calc_coral_pose(6, force_right=True, height=1),
-            self.calc_coral_pose(6, force_left=True, height=4),
-            self.calc_coral_pose(6, force_left=True, height=3),
-            self.calc_coral_pose(6, force_left=True, height=2),
-            self.calc_coral_pose(6, force_left=True, height=1),
-            """
+        self.algae_static: list[Pose3d] = [
+            self.calc_algae_pose(tfl('A', True), height=1),
+            self.calc_algae_pose(tfl('B', True), height=2),
+            self.calc_algae_pose(tfl('C', True), height=1),
+            self.calc_algae_pose(tfl('D', True), height=2),
+            self.calc_algae_pose(tfl('E', True), height=1),
+            self.calc_algae_pose(tfl('F', True), height=2),
+
+            self.calc_algae_pose(tfl('A', False), height=1),
+            self.calc_algae_pose(tfl('B', False), height=2),
+            self.calc_algae_pose(tfl('C', False), height=1),
+            self.calc_algae_pose(tfl('D', False), height=2),
+            self.calc_algae_pose(tfl('E', False), height=1),
+            self.calc_algae_pose(tfl('F', False), height=2),
+        ]
+        self.algae_pub.set(self.algae_static)
 
     def coral_in(self):
         # TODO: This might not always mean forward, but for now
@@ -253,6 +263,19 @@ class IntakeComponent:
             return 2
         return -1
 
+    def calc_algae_pose(self, reef_tag_id=None, height=1) -> Pose3d:
+        zoffset = 0.7 if height == 1 else 1.1
+
+        base_pose = Waypoints.get_tag_pose(reef_tag_id)
+        tag_3d_pose = Pose3d(
+            Translation3d(base_pose.X(), base_pose.Y(), 0.2),
+            Rotation3d(0, 0, base_pose.rotation().radians()),
+        )
+        coral_pose = tag_3d_pose.transformBy(
+            Transform3d(Translation3d(-0.1, 0, zoffset),
+                        Rotation3d.fromDegrees(0, 0, 0))
+        )
+        return coral_pose
 
     def calc_coral_pose(self, reef_tag_id=None, force_left=False, force_right=False, height=None) -> Pose3d:
         xoff, yoff, zoff = 0.0, 0.0, 0.0

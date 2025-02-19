@@ -4,7 +4,7 @@ from wpimath.geometry import Pose2d, Transform2d, Translation2d, Rotation2d
 from robotpy_apriltag import AprilTagFieldLayout, AprilTagField
 from generated.tuner_constants import TunerConstants
 
-apriltags = AprilTagFieldLayout.loadField(AprilTagField.k2025Reefscape)
+apriltags = AprilTagFieldLayout.loadField(AprilTagField.k2025ReefscapeWelded)
 
 bumper_width = 0.30
 robot_y_offset = TunerConstants._front_left_y_pos + bumper_width

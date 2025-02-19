@@ -43,7 +43,7 @@ class VisionComponent():
             Rotation3d.fromDegrees(0, 0, 0),
         )
 
-        field = AprilTagFieldLayout.loadField(AprilTagField.k2025Reefscape)
+        field = AprilTagFieldLayout.loadField(AprilTagField.k2025ReefscapeWelded)
         wpilib.SmartDashboard.putNumber('field length (m)', field.getFieldLength())
         wpilib.SmartDashboard.putNumber('field width (m)', field.getFieldWidth())
 
