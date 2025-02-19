@@ -28,7 +28,7 @@ class Manipulator(StateMachine):
     # over in robot.py with their controller.
     game_piece_mode: GamePieces = GamePieces.CORAL
     coral_scoring_target = ManipLocations.CORAL_REEF_4
-    algae_scoring_target = ManipLocations.BARGE
+    algae_scoring_target = ManipLocations.BARGE_6
     algae_intake_target = ManipLocations.ALGAE_REEF_1
     
     # This is where the system will try and drive itself to at any given time
@@ -86,10 +86,10 @@ class Manipulator(StateMachine):
         self.algae_intake_target = ManipLocations.ALGAE_REEF_2
     
     def set_algae_processor(self):
-        self.algae_scoring_target = ManipLocations.PROCESSOR
+        self.algae_scoring_target = ManipLocations.PROCESSOR_5
 
     def set_algae_barge(self):
-        self.algae_scoring_target = ManipLocations.BARGE
+        self.algae_scoring_target = ManipLocations.BARGE_6
 
     # That's the end of the operator interface portion
 
