@@ -12,7 +12,7 @@ from components.wrist import WristComponent
 
 from controllers.intake import IntakeControl
 
-from utilities.game import ManipLocations, ManipLocation, GamePieces
+from utilities.game import ManipLocations, ManipLocation, GamePieces, is_auton
 
 
 class Manipulator(StateMachine):
@@ -66,6 +66,10 @@ class Manipulator(StateMachine):
         self.intake_control.go_idle()
         self.next_state_now(self.idling)
         self.engage()
+
+    def go_coral_score(self):
+        self.next_state_now(self.coral_score)
+        self.engage()
     
     def set_coral_level1(self):
         self.coral_scoring_target = ManipLocations.CORAL_REEF_1
@@ -96,20 +100,11 @@ class Manipulator(StateMachine):
     # Now some methods that the states within the system will use as helpers
     
     def request_location(self, location: ManipLocation):
-        self._target_location = location
+        from copy import copy
+        self._target_location = copy(location)
         self.wrist.target_pos = self._target_location.wrist_pos
         self.arm.target_pos = self._target_location.arm_pos
         self.elevator.target_pos = self._target_location.elevator_pos
-
-    @feedback
-    def at_position_wrist(self) -> bool:
-        return self.wrist.at_goal()
-    @feedback
-    def at_position_arm(self) -> bool:
-        return self.arm.at_goal()
-    @feedback
-    def at_position_elevator(self) -> bool:
-        return self.elevator.at_goal()
 
     # Check to see if the system is at the target position, or close enough
     # with some deadbanding. We'll leave the 'close enough' up to the
@@ -117,7 +112,11 @@ class Manipulator(StateMachine):
     # are responsible for getting to the target.
     @feedback
     def at_position(self) -> bool:
-        return self.at_position_wrist() and self.at_position_arm() and self.at_position_elevator()
+        epos = self.elevator.get_position()
+        apos = self.arm.get_position()
+        wpos = self.wrist.get_position()
+        curr_location = ManipLocation(epos, apos, wpos)
+        return self._target_location == curr_location
     
     # That's the end of the helper methods and from here down we have the
     # various states of the state machine itself.
@@ -163,8 +162,9 @@ class Manipulator(StateMachine):
         # Here we can check if we're at the position or if we've been
         # waiting too long and we should just move on, like maybe we just can't
         # quite get to the right position, but we've got to try something
-        if self.operator_advance and (self.at_position()):
-            self.next_state(self.coral_score)
+        at_pos = self.at_position()
+        if (self.operator_advance or is_auton()) and (at_pos):
+            self.next_state_now(self.coral_score)
 
     # JJB: I'm not thrilled with the names of these states, coral_score and
     # coral_scored are too similar, but they make sense.
@@ -183,18 +183,8 @@ class Manipulator(StateMachine):
     # to the home position when the scoring state knows the coral has ejected
     @state(must_finish=True)
     def coral_scored(self, initial_call, state_tm):
-        if initial_call:
-            # What do we do after we score a coral?
-            # Send ourself back into 'home' mode
-            # Do we need to turn off the intake here?
-            self.request_location(ManipLocations.HOME)
-        # Now ask the system to start moving. When it arrives at the HOME
-        # location it'll again wait for the operator to advance
-
-        # Wait for the lifts to get back to home before we move on
-        # to the idling state where we wait on user input to begin intake
-        if self.at_position():
-            self.next_state(self.idling)
+        if state_tm > 0.5 and (self.operator_advance or is_auton()):
+            self.go_home()
 
     @state(must_finish=True)
     def algae_intake(self, state_tm, initial_call):

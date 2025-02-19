@@ -8,6 +8,7 @@ from phoenix6.controls import (
 from phoenix6.configs import TalonFXConfiguration
 from enum import Enum
 from ids import TalonId
+from utilities.game import ManipLocations, ManipLocation
 
 pn = wpilib.SmartDashboard.putNumber
 
@@ -42,8 +43,9 @@ class ElevatorComponent:
     @feedback
     def at_goal(self):
         current_pos = self.get_position()
-        diff = abs(self.target_pos - current_pos)
-        return diff < 0.5
+        target_loc = ManipLocation(self.target_pos, 0, 0)
+        current_loc = ManipLocation(current_pos, 0, 0)
+        return current_loc == target_loc
 
     def execute(self):
         if abs(self.fake_pos - self.target_pos) < 0.1:

@@ -19,7 +19,6 @@ class IntakeControl(StateMachine):
         self.engage()
 
     def go_coral_intake(self):
-        print('intake controller engaging coral_intake')
         self.next_state(self.coral_intake)
         self.engage()
 

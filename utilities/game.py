@@ -57,6 +57,11 @@ def is_sim() -> bool:
     return wpilib.RobotBase.isSimulation()
 
 
+def is_auton() -> bool:
+    mode = wpilib.SmartDashboard.getString('/robot/mode', '')
+    return mode in ['auto']
+
+
 def is_disabled() -> bool:
     mode = wpilib.SmartDashboard.getString('/robot/mode', '')
     return mode in ['disabled', '']
@@ -81,11 +86,23 @@ class ManipLocation:
         self.arm_pos = arm
         self.wrist_pos = wrist
 
+    def within_tolerance(self, other, tol=0.5):
+        ediff = abs(self.elevator_pos - other.elevator_pos)
+        adiff = abs(self.arm_pos - other.arm_pos)
+        wdiff = abs(self.wrist_pos - other.wrist_pos)
+        max_diff = max(ediff, adiff, wdiff)
+        # if tol != 0.5:
+        #     print('max diff', max_diff)
+        return max_diff < tol
+
     def __eq__(self, other):
-        return (
-            abs(self.elevator_pos - other.elevator_pos) < 0.1
-            and abs(self.arm_pos - other.arm_pos) < 0.1
-            and abs(self.wrist_pos - other.wrist_pos) < 0.1
+        return self.within_tolerance(other, tol=0.5)
+
+    def __sub__(self, other):
+        return ManipLocation(
+            self.elevator_pos - other.elevator_pos,
+            self.arm_pos - other.arm_pos,
+            self.wrist_pos - other.wrist_pos,
         )
 
     def __repr__(self):
