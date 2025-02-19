@@ -57,10 +57,10 @@ class ReefscapeDriver(ReefscapeDriverBase):
         return self.getRawButton(15)
 
     def getCoralMode(self) -> bool:
-        return self.getRawAxis(2) < -0.25
+        return self.getRawAxis(7) > 0.25
 
     def getAlgaeMode(self) -> bool:
-        return self.getRawAxis(2) < 0.25
+        return self.getRawAxis(7) < -0.25
 
     def getManipulatorAdvance(self) -> bool:
         return self.getRawButtonPressed(9)
