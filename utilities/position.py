@@ -24,7 +24,7 @@ def reverse_choreo(traj: ChoreoSwerveTrajectory) -> ChoreoSwerveTrajectory:
             orig_sample.fy,
         )
         new_samples.append(samp)
-    new_traj = ChoreoSwerveTrajectory('reversed', new_samples, [], [])
+    new_traj = ChoreoSwerveTrajectory(f'{traj.name} - reversed', new_samples, [], [])
     return new_traj
 
 

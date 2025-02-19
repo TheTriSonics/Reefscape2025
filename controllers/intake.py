@@ -8,6 +8,8 @@ class IntakeControl(StateMachine):
     photoeye: PhotoEyeComponent
 
     def __init__(self):
+        self.score_coral_off_at = -1
+        self.score_algae_off_at = -1
         pass
 
     def go_idle(self):

@@ -229,7 +229,14 @@ class MyRobot(magicbot.MagicRobot):
                 self.intimidator.go_drive_processor()
                 self.manipulator.set_algae_processor()
             else:
-                self.intimidator.go_drive_nearest_ps()
+                dpad = self.driver_controller.getPOV()
+                if dpad == -1:
+                    self.intimidator.go_drive_nearest_ps()
+                elif dpad == 90:
+                    self.intimidator.go_drive_ps(2 if is_red() else 12)
+                elif dpad == 270:
+                    self.intimidator.go_drive_ps(1 if is_red() else 11)
+                
         elif self.driver_controller.returnToHomeLocation():
             self.drivetrain.drive_to_pose(
                 Positions.auton_line_2(is_red())
