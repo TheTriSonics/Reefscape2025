@@ -185,13 +185,12 @@ class Manipulator(StateMachine):
         if state_tm > 0.5 and (self.operator_advance or is_auton()):
             self.go_home()
 
-
-
 # this is the algae stuff
     @state(must_finish=True)
     def algae_intake(self, state_tm, initial_call):
         if initial_call:
             self.intake_control.go_algae_intake()
+            self.request_location(self.algae_intake_target)
         if self.photoeye.algae_held:
             self.next_state(self.algae_in_system)
         

@@ -93,11 +93,20 @@ class IntakeComponent:
             self.coral_score_at = -1
         elif self.direction == IntakeDirection.CORAL_SCORE:
             self.coral_intake_at = -1
+        elif self.direction == IntakeDirection.ALGAE_IN:
+            self.coral_score_at = -1
+        elif self.direction == IntakeDirection.ALGAE_SCORE:
+            self.coral_intake_at = -1
         
         if self.coral_intake_at < 0 and self.direction == IntakeDirection.CORAL_IN:
             self.coral_intake_at = now
         if self.coral_score_at < 0 and self.direction == IntakeDirection.CORAL_SCORE:
             self.coral_score_at = now
+
+        if self.algae_intake_at < 0 and self.direction == IntakeDirection.ALGAE_IN:
+            self.algae_intake_at = now
+        if self.algae_score_at < 0 and self.direction == IntakeDirection.ALGAE_SCORE:
+            self.algae_score_at = now
 
         if self.coral_score_at + 0.5 > now:
             # We've been moving for 0.5 seconds so clear out any held coral
@@ -108,8 +117,29 @@ class IntakeComponent:
         pn('algae_score', self.algae_score_at)
         pn('algae_intake_at', self.algae_intake_at)
         pn('now', now)
-        if self.algae_intake_at > 0 and self.algae_intake_at + 0.5 < now and ps_dist < 0.8:
+        # TODO: Put in distance from an actual algae
+        near_algae = None
+        for a in self.algae_static:
+            # Get distance between robot and algae
+            dist = robot_pose.translation().distance(a.translation().toTranslation2d())
+            if dist < 0.75:
+                algae_z = a.translation().Z()
+                curr_loc = ManipLocation(
+                    self.elevator.get_position(),
+                    self.arm.get_position(),
+                    self.wrist.get_position(),
+                )
+                if curr_loc == ManipLocations.ALGAE_REEF_1 and algae_z < 1.0:  # noqa: SIM114
+                    near_algae = a
+                    break
+                elif curr_loc == ManipLocations.ALGAE_REEF_2 and algae_z > 1.0:
+                    near_algae = a
+                    break
+
+        if self.algae_intake_at > 0 and self.algae_intake_at + 0.5 < now and near_algae is not None:
             # We've been moving for 0.5 seconds so assume we have some algae
+            self.algae_static.remove(near_algae)
+            self.algae_pub.set(self.algae_static)
             self.photoeye.algae_held = True
             self.algae_intake_at = -1
         if self.direction == IntakeDirection.NONE:
@@ -149,6 +179,7 @@ class IntakeComponent:
         self.coral_static: list[Pose3d] = [
         ]
         self.algae_static: list[Pose3d] = [
+
             self.calc_algae_pose(tfl('A', True), height=1),
             self.calc_algae_pose(tfl('B', True), height=2),
             self.calc_algae_pose(tfl('C', True), height=1),
@@ -361,6 +392,7 @@ class IntakeComponent:
             self.has_coral = False
             self._coral_pose = None
         coral_pose = None
+        algae_pose = None
         if self.photoeye.coral_held:
             self.has_coral = True
             robot_pose = self.drivetrain.get_pose()
@@ -374,9 +406,27 @@ class IntakeComponent:
                             Rotation3d(0, coral_rotation, math.pi))
             )
             self._coral_pose = coral_pose
+        elif self.photoeye.algae_held:
+            self.has_algae = True
+            robot_pose = self.drivetrain.get_pose()
+            algae_pose = self.pose2d_to_pose3d(robot_pose)
+            # Now move it around baseed on what the robot's doing
+            z_offset = self.elevator.get_position() * 0.05
+            z_offset += math.sin(math.radians(self.arm.get_position())) * 0.5
+            algae_rotation = math.radians(self.wrist.get_position() + self.arm.get_position())
+            algae_pose = algae_pose.transformBy(
+                Transform3d(Translation3d(0, 0, z_offset),
+                            Rotation3d(0, algae_rotation, math.pi))
+            )
+            self._algae_pose = algae_pose
         else:
             self.has_coral = False
             self._coral_pose = None
+
+        if algae_pose:
+            self.algae_pub.set(self.algae_static + [algae_pose])
+        else:
+            self.algae_pub.set(self.algae_static)
         
         if coral_pose:
             self.coral_pub.set(self.coral_static + [coral_pose])
@@ -399,7 +449,7 @@ class IntakeComponent:
 
         if self.direction in [IntakeDirection.CORAL_IN, IntakeDirection.ALGAE_SCORE]:
             motor_power = 0.2
-        elif self.direction in [IntakeDirection.CORAL_SCORE, IntakeDirection.CORAL_SCORE]:
+        elif self.direction in [IntakeDirection.CORAL_SCORE, IntakeDirection.ALGAE_IN]:
             motor_power = -0.2
         
         if is_sim():

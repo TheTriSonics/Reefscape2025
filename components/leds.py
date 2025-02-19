@@ -7,6 +7,7 @@ from components.battery_monitor import BatteryMonitorComponent
 from components.intake import IntakeDirection, IntakeComponent
 from components.photoeye import PhotoEyeComponent
 from controllers.manipulator import Manipulator, ManipLocations
+from utilities.game import GamePieces
 
 
 def iterable(obj):
@@ -87,4 +88,8 @@ class LEDComponent:
         elif (self.photoeye.coral_held or
               (prep_score and manip.at_position())):
             self.setColor(*self.green)
+        elif (self.manipulator.game_piece_mode == GamePieces.CORAL):
+            self.setColor(*self.white)
+        elif (self.manipulator.game_piece_mode == GamePieces.ALGAE):
+            self.setColor(*self.cyan)
         self._lights.setData(self._led_data)
