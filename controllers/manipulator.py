@@ -28,7 +28,7 @@ class Manipulator(StateMachine):
     # over in robot.py with their controller.
     game_piece_mode: GamePieces = GamePieces.CORAL
     coral_scoring_target = ManipLocations.CORAL_REEF_4
-    algae_scoring_target = ManipLocations.BARGE
+    algae_scoring_target = ManipLocations.BARGE_6
     algae_intake_target = ManipLocations.ALGAE_REEF_1
     
     # This is where the system will try and drive itself to at any given time
@@ -90,10 +90,10 @@ class Manipulator(StateMachine):
         self.algae_intake_target = ManipLocations.ALGAE_REEF_2
     
     def set_algae_processor(self):
-        self.algae_scoring_target = ManipLocations.PROCESSOR
+        self.algae_scoring_target = ManipLocations.PROCESSOR_5
 
     def set_algae_barge(self):
-        self.algae_scoring_target = ManipLocations.BARGE
+        self.algae_scoring_target = ManipLocations.BARGE_6
 
     # That's the end of the operator interface portion
 
@@ -127,8 +127,7 @@ class Manipulator(StateMachine):
         if self.photoeye.coral_held:
             self.next_state(self.coral_in_system)
         elif self.photoeye.algae_held:
-            # Do something with that
-            pass
+            self.next_state(self.algae_in_system)
         else:
             if self.operator_advance:
                 if self.game_piece_mode == GamePieces.CORAL:
@@ -186,10 +185,64 @@ class Manipulator(StateMachine):
         if state_tm > 0.5 and (self.operator_advance or is_auton()):
             self.go_home()
 
+
+
+# this is the algae stuff
     @state(must_finish=True)
     def algae_intake(self, state_tm, initial_call):
-        # TODO: Hit intake controller up
-        if self.operator_advance and state_tm > 0.5:
-            # TODO: Finish out algae
-            # self.next_state(self.algae_in_system)
-            pass
+        if initial_call:
+            self.intake_control.go_algae_intake()
+        if self.photoeye.algae_held:
+            self.next_state(self.algae_in_system)
+        
+    @state(must_finish=True) 
+    def algae_in_system(self, state_tm, initial_call):
+        # Wait here until the operator wants to get into scoring position
+        if self.operator_advance:
+            self.next_state(self.algae_prepare_score)
+    
+    @state(must_finish=True)
+    def algae_prepare_score(self, initial_call, state_tm):
+        if initial_call:
+            self.request_location(self.algae_scoring_target)
+
+        # The operator could change the target value while we're in this state
+        # so check for that!
+        if self._target_location != self.algae_scoring_target:
+            self.request_location(self.algae_scoring_target)
+
+        # Here we can check if we're at the position or if we've been
+        # waiting too long and we should just move on, like maybe we just can't
+        # quite get to the right position, but we've got to try something
+        if self.operator_advance and (self.at_position()):
+            self.next_state(self.algae_score)
+
+    # JJB: I'm not thrilled with the names of these states, coral_score and
+    # coral_scored are too similar, but they make sense.
+    @state(must_finish=True)
+    def algae_score(self, state_tm, initial_call):
+        # Let's score a coral!
+        if initial_call:
+            self.intake_control.go_algae_score()
+
+        # Wait until the intake controller thinks it has scored the coral
+        scored = self.intake_control.current_state == self.intake_control.idling.name
+        if self.operator_advance and scored:
+            self.next_state(self.algae_scored)
+
+    # NOTE: This step might not really be needed, we could return back
+    # to the home position when the scoring state knows the coral has ejected
+    @state(must_finish=True)
+    def algae_scored(self, initial_call, state_tm):
+        if initial_call:
+            # What do we do after we score a coral?
+            # Send ourself back into 'home' mode
+            # Do we need to turn off the intake here?
+            self.request_location(ManipLocations.HOME)
+        # Now ask the system to start moving. When it arrives at the HOME
+        # location it'll again wait for the operator to advance
+
+        # Wait for the lifts to get back to home before we move on
+        # to the idling state where we wait on user input to begin intake
+        if self.at_position():
+            self.next_state(self.idling)

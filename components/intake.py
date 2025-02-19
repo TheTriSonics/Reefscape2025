@@ -29,6 +29,7 @@ class IntakeDirection(Enum):
     CORAL_IN = 1
     CORAL_SCORE = 2
     ALGAE_SCORE = 3
+    ALGAE_IN = 4
 
 
 class IntakeComponent:
@@ -49,6 +50,14 @@ class IntakeComponent:
 
     coral_intake_at = tunable(-1.0)
     coral_score_at = tunable(-1.0)
+
+    force_algae_score = tunable(False)
+    force_algae_intake = tunable(False)
+
+    has_algae = tunable(False)
+
+    algae_intake_at = tunable(-1.0)
+    algae_score_at = tunable(-1.0)
 
     motor_request = DutyCycleOut(0, override_brake_dur_neutral=True)
     direction = IntakeDirection.NONE
@@ -93,11 +102,45 @@ class IntakeComponent:
             self.photoeye.coral_held = False
             self.coral_score_at = -1
     
+        pn('algae_score', self.algae_score_at)
+        pn('algae_intake_at', self.algae_intake_at)
+        pn('now', now)
+        if self.algae_intake_at > 0 and self.algae_intake_at + 0.5 < now and ps_dist < 0.8:
+            # We've been moving for 0.5 seconds so assume we have some algae
+            self.photoeye.algae_held = True
+            self.algae_intake_at = -1
+        if self.direction == IntakeDirection.NONE:
+            self.algae_intake_at = -1
+            self.algae_score_at = -1
+        elif self.direction == IntakeDirection.ALGAE_IN:
+            self.algae_score_at = -1
+        elif self.direction == IntakeDirection.ALGAE_SCORE:
+            self.algae_intake_at = -1
+        
+        if self.algae_intake_at < 0 and self.direction == IntakeDirection.ALGAE_IN:
+            self.algae_intake_at = now
+        if self.algae_score_at < 0 and self.direction == IntakeDirection.ALGAE_SCORE:
+            self.algae_score_at = now
+
+        if self.algae_score_at + 0.5 > now:
+            # We've been moving for 0.5 seconds so clear out any held algae
+            # or algae
+            self.photoeye.algae_held = False
+            self.algae_score_at = -1
+    
+        pn('algae_score', self.algae_score_at)
+        pn('algae_intake_at', self.algae_intake_at)
+        pn('now', now)
+        if self.algae_intake_at > 0 and self.algae_intake_at + 0.5 < now and ps_dist < 0.8:
+            # We've been moving for 0.5 seconds so assume we have some algae
+            self.photoeye.algae_held = True
+            self.algae_intake_at = -1
+
         if self.coral_intake_at > 0 and self.coral_intake_at + 0.5 < now and ps_dist < 0.8:
             # We've been moving for 0.5 seconds so assume we have some coral
             self.photoeye.coral_held = True
             self.coral_intake_at = -1
-        
+    
     def setup(self):
         self.coral_static: list[Pose3d] = [
         ]
@@ -116,6 +159,12 @@ class IntakeComponent:
         # TODO: This might not always mean forward, but for now
         # we'll keep it simple
         self.direction = IntakeDirection.CORAL_IN
+
+    def algae_in(self):
+        # TODO: This might not always mean forward, but for now
+        # we'll keep it simple
+        self.direction = IntakeDirection.ALGAE_IN
+
 
     def score_coral(self):
         self.direction = IntakeDirection.CORAL_SCORE
@@ -179,6 +228,31 @@ class IntakeComponent:
             return 1 
         # print('Current location:', curr_loc)
         return -1
+    
+    def get_current_algae_scoring_height(self) -> int:
+        curr_loc = ManipLocation(
+            self.elevator.get_position(),
+            self.arm.get_position(),
+            self.wrist.get_position(),
+        )
+        if curr_loc == ManipLocations.PROCESSOR_5:
+            return 5
+        if curr_loc == ManipLocations.BARGE_6:
+            return 6
+        return -1
+    
+    def get_current_algae_intake_height(self) -> int:
+        curr_loc = ManipLocation(
+            self.elevator.get_position(),
+            self.arm.get_position(),
+            self.wrist.get_position(),
+        )
+        if curr_loc == ManipLocations.ALGAE_REEF_1:
+            return 1
+        if curr_loc == ManipLocations.ALGAE_REEF_2:
+            return 2
+        return -1
+
 
     def calc_coral_pose(self, reef_tag_id=None, force_left=False, force_right=False, height=None) -> Pose3d:
         xoff, yoff, zoff = 0.0, 0.0, 0.0
@@ -297,14 +371,18 @@ class IntakeComponent:
             motor_power = 0.2
         if self.force_coral_score:
             motor_power = -0.2
+        if self.force_algae_intake:
+            motor_power = 0.2
+        if self.force_algae_score:
+            motor_power = -0.2
 
         if self.direction in [IntakeDirection.CORAL_IN, IntakeDirection.ALGAE_SCORE]:
             motor_power = 0.2
-        elif self.direction in [IntakeDirection.CORAL_SCORE]:
+        elif self.direction in [IntakeDirection.CORAL_SCORE, IntakeDirection.CORAL_SCORE]:
             motor_power = -0.2
         
         if is_sim():
             motor_power *= 10 
 
         self.motor_request.output = motor_power
-        # self.motor.set_control(self.motor_request)
+        #self.motor.set_control(self.motor_request)
