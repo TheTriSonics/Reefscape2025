@@ -53,9 +53,9 @@ class ArmComponent:
         if abs(self.fake_pos - self.target_pos) < 0.25:
             self.fake_pos = self.target_pos
         elif self.fake_pos < self.target_pos:
-            self.fake_pos += 1
+            self.fake_pos += min(5, self.target_pos - self.fake_pos)
         elif self.fake_pos > self.target_pos:
-            self.fake_pos -= 1
+            self.fake_pos -= min(5, self.fake_pos - self.target_pos)
         if not self.at_goal():
             req = self.motor_request.with_position(self.target_pos)
             # self.motor.set_control(req)
