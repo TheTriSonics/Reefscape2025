@@ -270,7 +270,9 @@ class DrivetrainComponent:
         self.choreo_y_controller = PIDController(10, 0, 0)
         self.choreo_heading_controller = PIDController(15, 0, 0)
         self.choreo_heading_controller.enableContinuousInput(-math.pi, math.pi)
-        self.on_red_alliance = False
+        if is_sim():
+            self.choreo_x_controller.setPID(14, 1, 0)
+            self.choreo_y_controller.setPID(14, 1, 0)
 
         self.modules = (
             # Front Left

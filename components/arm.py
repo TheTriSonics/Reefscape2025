@@ -10,6 +10,7 @@ from phoenix6.controls import (
 from phoenix6.configs import TalonFXConfiguration
 from enum import Enum
 from ids import TalonId
+from utilities.game import ManipLocations, ManipLocation
 
 pn = wpilib.SmartDashboard.putNumber
 
@@ -44,16 +45,17 @@ class ArmComponent:
     @feedback
     def at_goal(self):
         current_pos = self.get_position()
-        diff = abs(self.target_pos - current_pos)
-        return diff < 0.5
+        target_loc = ManipLocation(0, self.target_pos, 0)
+        current_loc = ManipLocation(0, current_pos, 0)
+        return current_loc == target_loc
 
     def execute(self):
         if abs(self.fake_pos - self.target_pos) < 0.25:
             self.fake_pos = self.target_pos
         elif self.fake_pos < self.target_pos:
-            self.fake_pos += 1
+            self.fake_pos += min(5, self.target_pos - self.fake_pos)
         elif self.fake_pos > self.target_pos:
-            self.fake_pos -= 1
+            self.fake_pos -= min(5, self.fake_pos - self.target_pos)
         if not self.at_goal():
             req = self.motor_request.with_position(self.target_pos)
             # self.motor.set_control(req)

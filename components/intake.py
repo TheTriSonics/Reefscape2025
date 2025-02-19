@@ -44,6 +44,8 @@ class IntakeComponent:
     force_coral_score = tunable(False)
     force_coral_intake = tunable(False)
 
+    coral_pose_msg = tunable('')
+
     has_coral = tunable(False)
 
     coral_intake_at = tunable(-1.0)
@@ -133,7 +135,12 @@ class IntakeComponent:
             # We've been moving for 0.5 seconds so assume we have some algae
             self.photoeye.algae_held = True
             self.algae_intake_at = -1
-        
+
+        if self.coral_intake_at > 0 and self.coral_intake_at + 0.5 < now and ps_dist < 0.8:
+            # We've been moving for 0.5 seconds so assume we have some coral
+            self.photoeye.coral_held = True
+            self.coral_intake_at = -1
+    
     def setup(self):
         self.coral_static: list[Pose3d] = [
         ]
@@ -204,20 +211,22 @@ class IntakeComponent:
             Rotation3d(0, 0, current_rotation.radians())
         )
 
+    @feedback
     def get_current_coral_scoring_height(self) -> int:
         curr_loc = ManipLocation(
             self.elevator.get_position(),
             self.arm.get_position(),
             self.wrist.get_position(),
         )
-        if curr_loc == ManipLocations.CORAL_REEF_4:
+        if curr_loc.within_tolerance(ManipLocations.CORAL_REEF_4, 2):
             return 4
-        if curr_loc == ManipLocations.CORAL_REEF_3:
+        if curr_loc.within_tolerance(ManipLocations.CORAL_REEF_3, 2):
             return 3
-        if curr_loc == ManipLocations.CORAL_REEF_2:
+        if curr_loc.within_tolerance(ManipLocations.CORAL_REEF_2, 2):
             return 2 
-        if curr_loc == ManipLocations.CORAL_REEF_1:
+        if curr_loc.within_tolerance(ManipLocations.CORAL_REEF_1, 2):
             return 1 
+        # print('Current location:', curr_loc)
         return -1
     
     def get_current_algae_scoring_height(self) -> int:
@@ -250,7 +259,15 @@ class IntakeComponent:
         roll, pitch, yaw = 0.0, 0.0, 0.0
 
         robot_pose = self.drivetrain.get_pose()
+        print('-BEGIN---------------')
         height = self.get_current_coral_scoring_height()
+        print('-END---------------')
+        curr_loc = ManipLocation(
+            self.elevator.get_position(),
+            self.arm.get_position(),
+            self.wrist.get_position(),
+        )
+        self.coral_pose_msg = f'Scoring at height {height} for {curr_loc}'
         if reef_tag_id is None:
             reef_tag_id, dist = Waypoints.closest_reef_tag_id(robot_pose)
             if dist > 1.0 or height not in [1, 2, 3, 4]:
@@ -314,6 +331,10 @@ class IntakeComponent:
         # If we already think we have coral but the photo eye has gone false
         if self.has_coral is True and self.photoeye.coral_held is False:
             # Let's see if we can come up with a pose for the coral
+            # Okay, we can... but it seems like the manipulator has moved away
+            # from the pose it was at when it scored by the time we get here.
+            # and uhh... I think I just need to put a delay in my auton to fix
+            # this.
             coral_pose = self.calc_coral_pose()
             self.coral_static.append(coral_pose)
             self.has_coral = False

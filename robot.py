@@ -35,6 +35,18 @@ from hid.xbox_wireless import ReefscapeDriver as ReefscapeDriverWireless
 from hid.thrustmaster import ReefscapeDriver as ReefscapeDriverThrustmaster
 
 
+def get_point_on_circle(center_x, center_y, radius, angle_degrees):
+    # Convert angle from degrees to radians
+    angle_radians = math.radians(angle_degrees)
+    
+    # Calculate x and y coordinates using parametric equations of a circle
+    x = center_x + (radius * math.cos(angle_radians))
+    y = center_y + (radius * math.sin(angle_radians))
+    heading_radians = math.atan2(center_y - y, center_x - x)
+    
+    return (x, y, heading_radians)
+
+
 class MyRobot(magicbot.MagicRobot):
     # Controllers
     manipulator: Manipulator
@@ -88,6 +100,11 @@ class MyRobot(magicbot.MagicRobot):
         self.reef_center_pose_pub = (ntcore.NetworkTableInstance.getDefault()
                                                 .getStructTopic("ReefCenterPose", Pose2d)
                                                 .publish()
+        )
+        self.strafe_poss = (
+            ntcore.NetworkTableInstance.getDefault()
+            .getStructArrayTopic("/components/drivetrain/strafes", Pose2d)
+            .publish()
         )
 
     def autonomousInit(self):
@@ -202,6 +219,32 @@ class MyRobot(magicbot.MagicRobot):
             self.driver_reef_radians_snap = h
             self.drivetrain.snap_to_heading(h)
             # self.drivetrain.snap_to_heading(math.pi/2)
+        elif self.driver_controller.getStrafe():
+            rc = Waypoints.get_reef_center(is_red())
+            robot_pose = self.drivetrain.get_pose()
+            self.reef_center_pose_pub.set(rc)
+            # Get the distance between robot pose and rc
+            dist = robot_pose.translation().distance(rc.translation())
+            strafe_poses = []
+            for i in range(0, 360+45, 45):
+                x, y, rad = get_point_on_circle(rc.translation().X(), rc.translation().Y(), dist, i)
+                pose = Pose2d(Translation2d(x, y), Rotation2d(rad))
+                strafe_poses.append(pose)
+            self.strafe_poss.set(strafe_poses)
+            # Now get my current angle on the circle
+            dx = robot_pose.X() - rc.X()
+            dy = robot_pose.Y() - rc.Y()
+            # Calculate angle using atan2
+            angle_radians = math.atan2(dy, dx)
+            angle_degrees = math.degrees(angle_radians)
+            # Rotation will now control the angle on the circle
+            angle_degrees += drive_z
+            x, y, rad = get_point_on_circle(
+                robot_pose.X(), robot_pose.Y(), dist, angle_degrees 
+            )
+            self.drivetrain.drive_to_position(x, y, rad)
+
+
         else:
             if is_red():
                 drive_x = -drive_x

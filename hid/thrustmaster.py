@@ -67,3 +67,6 @@ class ReefscapeDriver(ReefscapeDriverBase):
 
     def getSnap(self) -> bool:
         return self.getRawButton(10)
+
+    def getStrafe(self) -> bool:
+        return self.getRawButton(2)

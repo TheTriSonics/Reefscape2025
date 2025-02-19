@@ -56,6 +56,9 @@ class ReefscapeDriverBase(XboxController):
     def goHome(self) -> bool:
         return False
 
+    def getStrafe(self) -> bool:
+        return False 
+
 
 class ReefscapeOperatorBase(XboxController):
 
