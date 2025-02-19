@@ -259,9 +259,7 @@ class IntakeComponent:
         roll, pitch, yaw = 0.0, 0.0, 0.0
 
         robot_pose = self.drivetrain.get_pose()
-        print('-BEGIN---------------')
         height = self.get_current_coral_scoring_height()
-        print('-END---------------')
         curr_loc = ManipLocation(
             self.elevator.get_position(),
             self.arm.get_position(),
