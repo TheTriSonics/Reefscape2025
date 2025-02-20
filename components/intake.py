@@ -174,12 +174,13 @@ class IntakeComponent:
             self.photoeye.coral_held = True
             self.coral_intake_at = -1
     
-    def setup(self):
+    def reset_game_pieces(self):
         tfl = Waypoints.get_tag_id_from_letter
         self.coral_static: list[Pose3d] = [
         ]
         self.algae_static: list[Pose3d] = [
 
+            # Red side
             self.calc_algae_pose(tfl('A', True), height=1),
             self.calc_algae_pose(tfl('B', True), height=2),
             self.calc_algae_pose(tfl('C', True), height=1),
@@ -187,6 +188,7 @@ class IntakeComponent:
             self.calc_algae_pose(tfl('E', True), height=1),
             self.calc_algae_pose(tfl('F', True), height=2),
 
+            # Blue side
             self.calc_algae_pose(tfl('A', False), height=1),
             self.calc_algae_pose(tfl('B', False), height=2),
             self.calc_algae_pose(tfl('C', False), height=1),
@@ -195,6 +197,9 @@ class IntakeComponent:
             self.calc_algae_pose(tfl('F', False), height=2),
         ]
         self.algae_pub.set(self.algae_static)
+
+    def setup(self):
+        self.reset_game_pieces()
 
     def coral_in(self):
         # TODO: This might not always mean forward, but for now

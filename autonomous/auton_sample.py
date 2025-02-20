@@ -32,7 +32,7 @@ class AutonSample(AutonomousStateMachine):
     photoeye: PhotoEyeComponent
 
     MODE_NAME = 'Sample - Place Infinite'
-    DEFAULT = True
+    DEFAULT = False
 
     pose_set = False
     selected_alliance = None
@@ -42,7 +42,7 @@ class AutonSample(AutonomousStateMachine):
 
     def __init__(self):
         self.reef_f_ps_left = load_swerve_trajectory('ReefF_PSLeft')
-        self.reef_e_ps_left = load_swerve_trajectory('ReefE_PSLeft')
+        self.reef_e_ps_left = load_swerve_trajectory('ReefF_PSLeft')  # should be E but I deleted that file for a test
 
     def set_initial_pose(self) -> None:
         # No need to set the pose twice!

@@ -30,6 +30,7 @@ from wpimath.kinematics import (
 )
 from wpimath.trajectory import TrapezoidProfileRadians
 from utilities import is_red, is_sim
+from utilities.position import Positions
 
 from ids import CancoderId, TalonId
 
@@ -271,8 +272,8 @@ class DrivetrainComponent:
         self.choreo_heading_controller = PIDController(15, 0, 0)
         self.choreo_heading_controller.enableContinuousInput(-math.pi, math.pi)
         if is_sim():
-            self.choreo_x_controller.setPID(14, 1, 0)
-            self.choreo_y_controller.setPID(14, 1, 0)
+            self.choreo_x_controller.setPID(14, 2, 0)
+            self.choreo_y_controller.setPID(14, 2, 0)
 
         self.modules = (
             # Front Left
@@ -507,6 +508,7 @@ class DrivetrainComponent:
 
     def update_odometry(self) -> None:
         self.estimator.update(self.gyro.get_Rotation2d(), self.get_module_positions())
+        Positions.update_dynamic_positions(self.get_pose())
 
         self.field_obj.setPose(self.get_pose())
         self.publisher.set(self.get_pose())
