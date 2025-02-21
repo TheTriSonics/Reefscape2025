@@ -168,3 +168,54 @@ class AutonCoop(AutonBase):
     #     self.intimidator.go_drive_strafe_fixed(1.8)
     #     self.manipulator.set_algae_barge()
     #     self.manipulator.go_algae_prepare_score()
+
+
+class AutonStrafe(AutonBase):
+    drivetrain: DrivetrainComponent
+    gyro: GyroComponent
+    battery_monitor: BatteryMonitorComponent
+    manipulator: Manipulator
+    intimidator: Intimidator
+    intake_control: IntakeControl
+    photoeye: PhotoEyeComponent
+
+    MODE_NAME = 'Testing - Strafe'
+    DEFAULT = False
+
+    def __init__(self):
+        pass
+
+    def get_initial_pose(self):
+        return Positions.REEF_D
+
+    @state(must_finish=True, first=True)
+    def strafe(self, tm, state_tm, initial_call):
+        if initial_call:
+            self.intimidator.go_drive_strafe_fixed(2.0)
+
+class AutonStrafeToFace(AutonBase):
+    drivetrain: DrivetrainComponent
+    gyro: GyroComponent
+    battery_monitor: BatteryMonitorComponent
+    manipulator: Manipulator
+    intimidator: Intimidator
+    intake_control: IntakeControl
+    photoeye: PhotoEyeComponent
+
+    MODE_NAME = 'Testing - Strafe to Face'
+    DEFAULT = True
+
+    def __init__(self):
+        pass
+
+    def get_initial_pose(self):
+        return Positions.REEF_D
+
+    @state(must_finish=True, first=True)
+    def strafe(self, tm, state_tm, initial_call):
+        if initial_call:
+            self.intimidator.go_drive_strafe_reef_face('A')
+        if state_tm > 3.0:
+            self.intimidator.go_drive_strafe_reef_face('D')
+        if state_tm > 6.0:
+            self.intimidator.go_drive_strafe_reef_face('F')

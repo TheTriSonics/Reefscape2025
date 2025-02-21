@@ -32,7 +32,7 @@ class AutonJustin(AutonomousStateMachine):
     photoeye: PhotoEyeComponent
 
     MODE_NAME = 'Sample - Justin'
-    DEFAULT = True
+    DEFAULT = False
 
     def at_pose(self, pose: Pose2d, tolerance=0.03) -> bool:
         robot_pose = self.drivetrain.get_pose()

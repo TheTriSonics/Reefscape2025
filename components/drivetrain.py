@@ -403,10 +403,24 @@ class DrivetrainComponent:
     def halt(self):
         self.drive_local(0, 0, 0)
     
-    def drive_to_pose(self, pose: Pose2d) -> None:
-        self.drive_to_position(pose.X(), pose.Y(), pose.rotation().radians())
+    def drive_to_pose(self, pose: Pose2d, aggressive=False) -> None:
+        self.drive_to_position(pose.X(), pose.Y(), pose.rotation().radians(), aggressive)
 
-    def drive_to_position(self, x: float, y: float, heading: float) -> None:
+    def drive_to_position(self, x: float, y: float, heading: float, aggressive=False) -> None:
+        if aggressive:
+            if is_sim():
+                self.choreo_x_controller.setPID(32, 2, 0)
+                self.choreo_y_controller.setPID(32, 2, 0)
+                self.choreo_heading_controller.setPID(15, 0, 0)
+        else:
+            self.choreo_x_controller.setPID(10, 0, 0)
+            self.choreo_y_controller.setPID(10, 0, 0)
+            self.choreo_heading_controller.setPID(15, 0, 0)
+            if is_sim():
+                self.choreo_x_controller.setPID(14, 2, 0)
+                self.choreo_y_controller.setPID(14, 2, 0)
+                self.choreo_heading_controller.setPID(15, 0, 0)
+
         robot_pose = self.get_pose()
         xvel = self.choreo_x_controller.calculate(robot_pose.X(), x)
         yvel = self.choreo_y_controller.calculate(robot_pose.Y(), y)

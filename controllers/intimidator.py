@@ -5,6 +5,7 @@ This is a state machine that will control the manipulator.
 import enum
 import math
 import ntcore
+import wpilib
 from pathlib import Path
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d, Transform2d
 from magicbot import StateMachine, state, tunable, feedback, will_reset_to
@@ -30,12 +31,34 @@ def get_point_on_circle(center_x, center_y, radius, angle_degrees):
     return (x, y, heading_radians)
 
 
+def calculate_target(robot_x, robot_y, future_x, future_y):
+    # Calculate the vector from robot to future pose
+    vector_x = future_x - robot_x
+    vector_y = future_y - robot_y
+    
+    # Calculate the length of this vector
+    vector_length = (vector_x**2 + vector_y**2)**0.5
+    if vector_length == 0:
+        return future_x, future_y
+    
+    # Normalize the vector (make it unit length)
+    unit_vector_x = vector_x / vector_length
+    unit_vector_y = vector_y / vector_length
+    
+    # Calculate target point by extending 2 units from future pose
+    target_x = future_x + (2 * unit_vector_x)
+    target_y = future_y + (2 * unit_vector_y)
+    
+    return target_x, target_y
+
+
 class Intimidator(StateMachine):
     drivetrain: DrivetrainComponent
 
     stick_x, stick_y, stick_rotation = 0, 0, 0
 
     strafe_distance = tunable(-1.0)
+    strafe_to_face = tunable('A')
 
     max_start_dist_error = tunable(2.0)
     max_end_dist_error = tunable(2.0)
@@ -179,6 +202,17 @@ class Intimidator(StateMachine):
         self.next_state_now(self.drive_strafe_fixed)
         self.engage()
 
+    def go_drive_strafe_reef_face(self, face_name: str):
+        if face_name not in ['A', 'B', 'C', 'D', 'E', 'F']:
+            raise ValueError('Invalid face name, must be A-F, capital.')
+        if self.strafe_to_face != face_name:
+            self.strafe_to_face = face_name 
+            self.next_state_now(self.drive_strafe_reef_face)
+        if self.current_state != self.drive_strafe_reef_face.name:
+            self.strafe_to_face = face_name 
+            self.next_state_now(self.drive_strafe_reef_face)
+        self.engage()
+
     def go_drive_swoop(self, target_pose: Pose2d) -> None:
         if self.target_pose != target_pose:
             self.target_pose = target_pose
@@ -262,7 +296,7 @@ class Intimidator(StateMachine):
         rc = Waypoints.get_reef_center(is_red())
         self.reef_center_pose_pub.set(rc)
         strafe_poses = []
-        for i in range(0, 360+45, 10):
+        for i in range(0, 370, 10):
             x, y, rad = get_point_on_circle(rc.translation().X(), rc.translation().Y(), self.strafe_distance, i)
             pose = Pose2d(Translation2d(x, y), Rotation2d(rad))
             strafe_poses.append(pose)
@@ -272,22 +306,24 @@ class Intimidator(StateMachine):
         dy = robot_pose.Y() - rc.Y()
         # Calculate angle using atan2
         angle_radians = math.atan2(dy, dx)
-        angle_degrees = math.degrees(angle_radians)
         # Rotation will now control the angle on the circle
-        deg_change = -self.stick_rotation * 4
-        max_deg_change = 25
-        if deg_change < -max_deg_change:
-            deg_change = -max_deg_change
-        elif deg_change > max_deg_change:
-            deg_change = max_deg_change 
 
-        angle_degrees -= deg_change
+        # These units are all sorts of wrong, but seems to drive right - Justin
+        circum = 2 * math.pi * self.strafe_distance
+        speed = self.stick_rotation * 5
+        rad_per_sec = 2 * math.pi / (circum / speed) if speed != 0 else 0
+        pn = wpilib.SmartDashboard.putNumber
+        rad_per_sec = min(rad_per_sec, 18)
+        pn('rad_per_sec', rad_per_sec)
+        angle_radians += rad_per_sec * 0.02
+        angle_degrees = math.degrees(angle_radians)
         # Now check if it is less than -2 or 2 and cap it within that range
         x, y, rad = get_point_on_circle(
             rc.X(), rc.Y(), self.strafe_distance, angle_degrees 
         )
+
         self.strafe_next_pub.set(Pose2d(Translation2d(x, y), Rotation2d(rad)))
-        self.drivetrain.drive_to_position(x, y, rad)
+        self.drivetrain.drive_to_position(x, y, rad, aggressive=True)
 
     @state(must_finish=True)
     def drive_strafe_fixed(self, initial_call):
@@ -296,23 +332,96 @@ class Intimidator(StateMachine):
         self.reef_center_pose_pub.set(rc)
         if initial_call:
             strafe_poses = []
-            for i in range(0, 360+45, 10):
+            for i in range(0, 360, 10):
                 x, y, rad = get_point_on_circle(rc.translation().X(), rc.translation().Y(), self.strafe_distance, i)
                 pose = Pose2d(Translation2d(x, y), Rotation2d(rad))
                 strafe_poses.append(pose)
             self.strafe_positions_pub.set(strafe_poses)
+        # These units are all sorts of wrong, but seems to drive right - Justin
+        circum = 2 * math.pi * self.strafe_distance
+        speed = 40  # m/s
+        time = circum / speed
+        rad_per_sec = 2 * math.pi / time
         # Now get my current angle on the circle
         dx = robot_pose.X() - rc.X()
         dy = robot_pose.Y() - rc.Y()
-        # Calculate angle using atan2
-        angle_radians = math.atan2(dy, dx)
+        # Calculate angle using atan2 and add in where we are on the circle
+        # in one more robot cycle at the above 'speed' in m/s
+        angle_radians = math.atan2(dy, dx) + (rad_per_sec * 0.02)
         angle_degrees = math.degrees(angle_radians)
-        # Rotation will now control the angle on the circle
-        max_deg_change = 25
-        angle_degrees += max_deg_change
-        # Now check if it is less than -2 or 2 and cap it within that range
         x, y, rad = get_point_on_circle(
             rc.X(), rc.Y(), self.strafe_distance, angle_degrees 
         )
         self.strafe_next_pub.set(Pose2d(Translation2d(x, y), Rotation2d(rad)))
-        self.drivetrain.drive_to_position(x, y, rad)
+        self.drivetrain.drive_to_position(x, y, rad, aggressive=True)
+
+    @state(must_finish=True)
+    def drive_strafe_reef_face(self, initial_call):
+        if initial_call:
+            robot_pose = self.drivetrain.get_pose()
+            rc = Waypoints.get_reef_center(is_red())
+            # Get the distance between robot pose and rc
+            dist = robot_pose.translation().distance(rc.translation())
+            # Cap the distance between 1.5 and 3.3
+            self.strafe_distance = min(max([dist, 1.5]), 3.3)
+
+        robot_pose = self.drivetrain.get_pose()
+        rc = Waypoints.get_reef_center(is_red())
+        self.reef_center_pose_pub.set(rc)
+        if initial_call:
+            strafe_poses = []
+            for i in range(0, 360, 10):
+                x, y, rad = get_point_on_circle(rc.translation().X(), rc.translation().Y(), self.strafe_distance, i)
+                pose = Pose2d(Translation2d(x, y), Rotation2d(rad))
+                strafe_poses.append(pose)
+            self.strafe_positions_pub.set(strafe_poses)
+        # These units are all sorts of wrong, but seems to drive right - Justin
+        circum = 2 * math.pi * self.strafe_distance
+        speed = 40  # m/s
+        time = circum / speed
+        rad_per_sec = 2 * math.pi / time
+        # Now get my current angle on the circle
+        dx = robot_pose.X() - rc.X()
+        dy = robot_pose.Y() - rc.Y()
+        # Calculate angle using atan2 and add in where we are on the circle
+        # in one more robot cycle at the above 'speed' in m/s
+        angle_radians = math.atan2(dy, dx)
+        pn = wpilib.SmartDashboard.putNumber
+        target_radians = 0
+        match self.strafe_to_face:
+            case 'D':
+                target_radians = 0
+            case 'E':
+                target_radians = math.pi / 3
+            case 'F':
+                target_radians = 2 * math.pi / 3
+            case 'A':
+                target_radians = math.pi
+            case 'B':
+                target_radians = 4 * math.pi / 3
+            case 'C':
+                target_radians = 5 * math.pi / 3
+        pn('angle_radians', angle_radians)
+        pn('target_radians', target_radians)
+        # Determine if the shortest distance to the target is clockwise or counter-clockwise
+        is_ccw = (target_radians - angle_radians) % (2 * math.pi) > math.pi
+        if is_ccw:
+            rad_per_sec = -rad_per_sec
+        angle_radians += rad_per_sec * 0.02
+        aggro = True
+        if math.degrees(abs(angle_radians - target_radians)) < 10:
+            angle_radians = target_radians
+            agro = False
+        angle_degrees = math.degrees(angle_radians)
+        # Once we're within X degrees of the face call it good.
+        if math.degrees(abs(target_radians - angle_radians)) < 0.5:
+            self.next_state(self.completed)
+        x, y, rad = get_point_on_circle(
+            rc.X(), rc.Y(), self.strafe_distance, angle_degrees 
+        )
+        self.strafe_next_pub.set(Pose2d(Translation2d(x, y), Rotation2d(rad)))
+        self.drivetrain.drive_to_position(x, y, rad, aggressive=aggro)
+
+    @state(must_finish=True)
+    def completed(self, initial_call):
+        pass
