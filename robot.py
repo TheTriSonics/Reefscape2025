@@ -15,7 +15,7 @@ from components.leds import LEDComponent
 from components.wrist import WristComponent
 from components.arm import ArmComponent
 from components.elevator import ElevatorComponent
-from components.intake import IntakeComponent
+from components.intake import IntakeComponent, IntakeDirection
 from components.photoeye import PhotoEyeComponent
 
 from components.leds_sim import LEDSim
@@ -136,6 +136,7 @@ class MyRobot(magicbot.MagicRobot):
         self.controller_choice = 'Stock Xbox controller'
         self.driver_controller = ReefscapeDriver(0)
         self.operator_controller = ReefscapeOperator(1)
+        self.debug_controller = wpilib.XboxController(2)
         if js_name == 'Xbox Wireless Controller':
             self.controller_choice = 'Using Xbox wireless controller config'
             self.driver_controller = ReefscapeDriverWireless(0)
@@ -309,7 +310,38 @@ class MyRobot(magicbot.MagicRobot):
         self.final_pose_pub.set(final_pose)
         self.drivetrain.drive_to_pose(final_pose)
 
+    def handle_debug_controller(self) -> None:
+        dpad = self.debug_controller.getPOV()
+        if self.debug_controller.getAButton():
+            # Work with elevator
+            if dpad == 0:  # UP
+                self.elevator.target_pos += 1
+            elif dpad == 180:
+                self.elevator.target_pos -= 1
+        elif self.debug_controller.getBButton():
+            # work with the arm
+            if dpad == 0:
+                self.arm.target_pos += 1
+            elif dpad == 180:
+                self.arm.target_pos -= 1
+        elif self.debug_controller.getXButton():
+            # Work with the wrist
+            if dpad == 0:
+                self.wrist.target_pos += 1
+            elif dpad == 180:
+                self.wrist.target_pos -= 1
+        if self.debug_controller.getRightBumper():
+            self.intake.force_coral_score = True
+        else:
+            self.intake.force_coral_score = False
+
+        if self.debug_controller.getLeftBumper():
+            self.intake.force_coral_intake = True
+        else:
+            self.intake.force_coral_intake = False
+
     def teleopPeriodic(self) -> None:
+        self.handle_debug_controller()
         self.handle_manipulator()
 
         if self.driver_controller.getReefAlgae():
