@@ -45,6 +45,7 @@ class Waypoints:
                 return 'E'
             case 11:
                 return 'F'
+            # Now blue
             case 21:
                 return 'A'
             case 22:
@@ -231,4 +232,24 @@ class Waypoints:
     @classmethod
     def shift_reef_right(cls, pose: Pose2d) -> Pose2d:
         offset = Transform2d(Translation2d(0, -0.165), Rotation2d(0))
+        return pose.transformBy(offset)
+
+    @classmethod
+    def shift_barge_left(cls, pose: Pose2d) -> Pose2d:
+        offset = Transform2d(Translation2d(0, 1.165), Rotation2d(0))
+        return pose.transformBy(offset)
+
+    @classmethod
+    def shift_barge_right(cls, pose: Pose2d) -> Pose2d:
+        offset = Transform2d(Translation2d(0, -1.165), Rotation2d(0))
+        return pose.transformBy(offset)
+
+    @classmethod
+    def shift_auton_left(cls, pose: Pose2d) -> Pose2d:
+        offset = Transform2d(Translation2d(0, 1.165), Rotation2d(0))
+        return pose.transformBy(offset)
+
+    @classmethod
+    def shift_auton_right(cls, pose: Pose2d) -> Pose2d:
+        offset = Transform2d(Translation2d(0, -1.165), Rotation2d(0))
         return pose.transformBy(offset)

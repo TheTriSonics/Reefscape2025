@@ -105,9 +105,13 @@ class MyRobot(magicbot.MagicRobot):
         )
 
     def autonomousInit(self):
+        Positions.update_alliance_positions()
+        self.intake.reset_game_pieces()
         return
 
     def autonomousPeriodic(self):
+        mt = self.timer.getMatchTime()
+        print(mt)
         pass
 
     def teleopInit(self) -> None:
@@ -115,6 +119,8 @@ class MyRobot(magicbot.MagicRobot):
             wpilib.DriverStation.silenceJoystickConnectionWarning(True)
 
         self.leds.rainbow()
+        Positions.update_alliance_positions()
+        self.intake.reset_game_pieces()
         
         # Determine which Joystick to use for the driver.
         js_name = wpilib.DriverStation.getJoystickName(0)
@@ -274,12 +280,21 @@ class MyRobot(magicbot.MagicRobot):
 
         self.drivetrain.update_odometry()
 
+    def disabledInit(self):
+        mode = self._automodes.chooser.getSelected()
+        if mode and hasattr(mode, 'pose_set'):
+            mode.pose_set = False
+        return super().disabledInit()
+
     def disabledPeriodic(self) -> None:
+        Positions.update_alliance_positions()
         self.vision.execute()
         self.battery_monitor.execute()
         self.leds.execute()
         self.drivetrain.update_odometry()
         # mode = self._automodes.active_mode
+        if Positions.PROCESSOR.X() == 0:
+            return  # Skip trying to set pose, we don't have position data yet.
         mode = self._automodes.chooser.getSelected()
         if mode and hasattr(mode, 'set_initial_pose'):
             mode.set_initial_pose()

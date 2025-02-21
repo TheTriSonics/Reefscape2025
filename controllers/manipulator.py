@@ -67,6 +67,26 @@ class Manipulator(StateMachine):
         self.next_state_now(self.idling)
         self.engage()
 
+    def go_algae_score(self):
+        self.next_state_now(self.algae_score)
+        self.engage()
+
+    def go_algae_prepare_intake(self):
+        # Protect against re-triggering it
+        if self.current_state != self.algae_prepare_intake.name:
+            self.next_state(self.algae_prepare_intake)
+        self.engage()
+    
+    def go_algae_prepare_score(self):
+        if self.current_state != self.algae_prepare_score.name:
+            self.next_state(self.algae_prepare_score)
+        self.engage()
+
+    def go_coral_prepare_score(self):
+        if self.current_state != self.coral_prepare_score.name:
+            self.next_state(self.coral_prepare_score)
+        self.engage()
+
     def go_coral_score(self):
         self.next_state_now(self.coral_score)
         self.engage()
@@ -215,6 +235,22 @@ class Manipulator(StateMachine):
         # quite get to the right position, but we've got to try something
         if self.operator_advance and (self.at_position()):
             self.next_state(self.algae_score)
+
+    @state(must_finish=True)
+    def algae_prepare_intake(self, initial_call, state_tm):
+        if initial_call:
+            self.request_location(self.algae_intake_target)
+
+        # The operator could change the target value while we're in this state
+        # so check for that!
+        if self._target_location != self.algae_intake_target:
+            self.request_location(self.algae_intake_target)
+
+        # Here we can check if we're at the position or if we've been
+        # waiting too long and we should just move on, like maybe we just can't
+        # quite get to the right position, but we've got to try something
+        if self.operator_advance and (self.at_position()):
+            self.next_state(self.algae_intake)
 
     # JJB: I'm not thrilled with the names of these states, coral_score and
     # coral_scored are too similar, but they make sense.

@@ -1,3 +1,4 @@
+import wpilib
 from magicbot import StateMachine, state
 from components.intake import IntakeComponent
 from components.photoeye import PhotoEyeComponent
@@ -17,7 +18,8 @@ class IntakeControl(StateMachine):
         self.engage()
 
     def go_coral_score(self):
-        self.next_state(self.coral_score)
+        if self.current_state != self.coral_score.name:
+            self.next_state(self.coral_score)
         self.engage()
 
     def go_algae_score(self):
@@ -44,6 +46,10 @@ class IntakeControl(StateMachine):
 
         if self.photoeye.coral_held is True:
             self.score_coral_off_at = state_tm + 1.0
+
+        pn = wpilib.SmartDashboard.putNumber
+        pn('score_coral_off_at', self.score_coral_off_at)
+        pn('state_tm', state_tm)
 
         if self.photoeye.coral_held is False and self.score_coral_off_at < state_tm:
             self.next_state(self.idling)

@@ -37,6 +37,10 @@ class Intimidator(StateMachine):
 
     strafe_distance = tunable(-1.0)
 
+    max_start_dist_error = tunable(2.0)
+    max_end_dist_error = tunable(2.0)
+    dist_to_direct_drive = tunable(1.0)
+
     def __init__(self):
         self.trajectory: ChoreoSwerveTrajectory | None = None
         self.target_pose: Pose2d
@@ -170,6 +174,11 @@ class Intimidator(StateMachine):
             self.next_state_now(self.drive_strafe)
             self.engage()
 
+    def go_drive_strafe_fixed(self, distance):
+        self.strafe_distance = distance
+        self.next_state_now(self.drive_strafe_fixed)
+        self.engage()
+
     def go_drive_swoop(self, target_pose: Pose2d) -> None:
         if self.target_pose != target_pose:
             self.target_pose = target_pose
@@ -195,10 +204,12 @@ class Intimidator(StateMachine):
                 # Find distance between end_pose and self.target_pose
                 ediff = end_pose.relativeTo(self.target_pose).translation().norm()
                 sdiff = start_pose.relativeTo(curr_pose).translation().norm() 
-                if sdiff > 1.0 or ediff > 1.0:
+                if sdiff > self.max_start_dist_error or ediff > self.max_end_dist_error:
                     continue  # Skip this; not worth considering
-                scores[traj.name] = ediff + sdiff
+                scores[traj.name] = ediff + sdiff + traj.get_total_time()
 
+            import json
+            print('Scores:', json.dumps(scores, indent=4, sort_keys=True))
             # Find the entry in scores that has the lowest distance
             if len(scores) > 0:
                 best_traj = min(scores, key=lambda k: float(scores[k]))
@@ -225,7 +236,10 @@ class Intimidator(StateMachine):
             # If there's no trajectory found we just drive right to the target
             # pose
             self.drivetrain.drive_to_pose(self.target_pose)
-        elif self.trajectory.get_total_time() < state_tm or dist_to_end_pose < 0.5:
+        elif (
+            self.trajectory.get_total_time() < state_tm
+            or dist_to_end_pose < self.dist_to_direct_drive
+        ):
             # The trajectory has expired, so, drive to the final pose
             self.drivetrain.drive_to_pose(self.target_pose)
         else:
@@ -268,6 +282,34 @@ class Intimidator(StateMachine):
             deg_change = max_deg_change 
 
         angle_degrees -= deg_change
+        # Now check if it is less than -2 or 2 and cap it within that range
+        x, y, rad = get_point_on_circle(
+            rc.X(), rc.Y(), self.strafe_distance, angle_degrees 
+        )
+        self.strafe_next_pub.set(Pose2d(Translation2d(x, y), Rotation2d(rad)))
+        self.drivetrain.drive_to_position(x, y, rad)
+
+    @state(must_finish=True)
+    def drive_strafe_fixed(self, initial_call):
+        robot_pose = self.drivetrain.get_pose()
+        rc = Waypoints.get_reef_center(is_red())
+        self.reef_center_pose_pub.set(rc)
+        if initial_call:
+            strafe_poses = []
+            for i in range(0, 360+45, 10):
+                x, y, rad = get_point_on_circle(rc.translation().X(), rc.translation().Y(), self.strafe_distance, i)
+                pose = Pose2d(Translation2d(x, y), Rotation2d(rad))
+                strafe_poses.append(pose)
+            self.strafe_positions_pub.set(strafe_poses)
+        # Now get my current angle on the circle
+        dx = robot_pose.X() - rc.X()
+        dy = robot_pose.Y() - rc.Y()
+        # Calculate angle using atan2
+        angle_radians = math.atan2(dy, dx)
+        angle_degrees = math.degrees(angle_radians)
+        # Rotation will now control the angle on the circle
+        max_deg_change = 25
+        angle_degrees += max_deg_change
         # Now check if it is less than -2 or 2 and cap it within that range
         x, y, rad = get_point_on_circle(
             rc.X(), rc.Y(), self.strafe_distance, angle_degrees 

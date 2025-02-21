@@ -37,9 +37,6 @@ class AutonCoop(AutonBase):
     MODE_NAME = 'Sample - Coopertition'
     DEFAULT = False
 
-    pose_set = False
-    selected_alliance = None
-
     def __init__(self):
         pass
 
@@ -54,20 +51,21 @@ class AutonCoop(AutonBase):
     # Clear name of the state objective
     @state(must_finish=True, first=True)
     def intake_first_algae(self, state_tm, initial_call):
+        target_pose = Positions.REEF_A
         # Now the general pattern. On the first call we might have to
         # kick some other state machines into motion
         if initial_call:
             # Do we need to drive? Get that going.
-            self.intimidator.go_drive_swoop(Positions.REEF_A)
+            self.intimidator.go_drive_swoop(target_pose)
             # Set up the manipulator for algae intake
             self.manipulator.algae_mode()
             self.manipulator.set_algae_level1()
         # As we get closer to our destination we might want to kick off
         # other events.
-        if self.at_pose(Positions.REEF_A, 0.10):
+        if self.at_pose(target_pose, 0.10):
             # Get the lift moving into the right position
             self.manipulator.go_algae_prepare_intake()
-        if self.at_pose(Positions.REEF_A, 0.08) and self.manipulator.at_position():
+        if self.at_pose(target_pose, 0.08) and self.manipulator.at_position():
             # Once at position switch on the algae intake.
             self.intake_control.go_algae_intake()
         # We might want to swap this for a conditont that asks the 
@@ -95,12 +93,12 @@ class AutonCoop(AutonBase):
         if initial_call:
             self.intimidator.go_drive_swoop(target_pose)
             self.manipulator.set_algae_level2()
-        if self.photoeye.algae_held is True:
-            self.next_state(self.score_second_algae)
         if self.at_pose(target_pose, tolerance=0.8):
             self.manipulator.go_algae_prepare_intake()
         if self.at_pose(target_pose, tolerance=0.1) and self.manipulator.at_position():
             self.intake_control.go_algae_intake()
+        if self.photoeye.algae_held is True:
+            self.next_state(self.score_second_algae)
 
     @state(must_finish=True)
     def score_second_algae(self, initial_call):
