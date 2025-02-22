@@ -39,10 +39,6 @@ class Positions:
     REEF_A_LEFT = Pose2d()
     REEF_A_RIGHT = Pose2d()
 
-    REEF_A = Pose2d()
-    REEF_A_LEFT = Pose2d()
-    REEF_A_RIGHT = Pose2d()
-
     REEF_B = Pose2d()
     REEF_B_LEFT = Pose2d()
     REEF_B_RIGHT = Pose2d()
