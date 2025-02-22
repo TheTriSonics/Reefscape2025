@@ -3,23 +3,17 @@ import ntcore
 import wpilib
 from wpimath.geometry import Pose3d, Translation3d, Rotation3d, Pose2d, Translation2d, Transform3d, Transform2d, Rotation2d
 from magicbot import feedback, tunable
-from phoenix6.hardware import TalonFX
 from phoenix6.controls import (
     DutyCycleOut,
-    MotionMagicVoltage,
-    DynamicMotionMagicVoltage,
 )
-from phoenix6.configs import TalonFXConfiguration
 from enum import Enum
-from ids import TalonId
 
 from components.photoeye import PhotoEyeComponent
-from components.drivetrain import DrivetrainComponent
 from components import (
     ElevatorComponent, WristComponent, ArmComponent, DrivetrainComponent
 )
 from utilities import Waypoints, is_sim
-from utilities.game import ManipLocations, ManipLocation, is_red
+from utilities.game import ManipLocations, ManipLocation
 
 pn = wpilib.SmartDashboard.putNumber
 
@@ -79,7 +73,7 @@ class IntakeComponent:
 
         now = wpilib.Timer.getFPGATimestamp()
         robot_pose = self.drivetrain.get_pose()
-        ps_tag_id, tag_dist = Waypoints.closest_ps_tag_id(robot_pose)
+        ps_tag_id, _ = Waypoints.closest_ps_tag_id(robot_pose)
         ps_tag_pose = Waypoints.get_tag_pose(ps_tag_id)
         # Now get distance between them
         ps_dist = robot_pose.translation().distance(ps_tag_pose.translation())
@@ -174,7 +168,6 @@ class IntakeComponent:
         # TODO: This might not always mean forward, but for now
         # we'll keep it simple
         self.direction = IntakeDirection.ALGAE_IN
-
 
     def score_coral(self):
         self.direction = IntakeDirection.CORAL_SCORE
@@ -407,4 +400,4 @@ class IntakeComponent:
             motor_power *= 10 
 
         self.motor_request.output = motor_power
-        #self.motor.set_control(self.motor_request)
+        # self.motor.set_control(self.motor_request)

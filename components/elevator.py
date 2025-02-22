@@ -1,14 +1,10 @@
 import wpilib
 from magicbot import feedback, tunable
-from phoenix6.hardware import TalonFX
 from phoenix6.controls import (
     MotionMagicVoltage,
-    Follower,
 )
 from phoenix6.configs import TalonFXConfiguration
-from enum import Enum
-from ids import TalonId
-from utilities.game import ManipLocations, ManipLocation
+from utilities.game import ManipLocation
 
 pn = wpilib.SmartDashboard.putNumber
 

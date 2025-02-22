@@ -180,7 +180,7 @@ class PhysicsEngine:
         intake: IntakeComponent = self.robot.intake
 
         robot_pose = self.robot.drivetrain.get_pose()
-        ps_id, ps_dist = Waypoints.closest_ps_tag_id(robot_pose)
+        _, ps_dist = Waypoints.closest_ps_tag_id(robot_pose)
 
         if (intake.direction == IntakeDirection.CORAL_IN
             and

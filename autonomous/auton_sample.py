@@ -2,7 +2,7 @@
 import math
 from wpilib import SmartDashboard
 from wpimath.geometry import Pose2d
-from magicbot import AutonomousStateMachine, state, feedback
+from magicbot import AutonomousStateMachine, state
 
 from utilities.game import is_red
 from utilities.position import Positions, reverse_choreo

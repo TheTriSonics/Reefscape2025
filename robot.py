@@ -15,7 +15,7 @@ from components.leds import LEDComponent
 from components.wrist import WristComponent
 from components.arm import ArmComponent
 from components.elevator import ElevatorComponent
-from components.intake import IntakeComponent, IntakeDirection
+from components.intake import IntakeComponent
 from components.photoeye import PhotoEyeComponent
 
 from components.leds_sim import LEDSim
@@ -242,7 +242,7 @@ class MyRobot(magicbot.MagicRobot):
                 self.strafe_distance = dist
 
             strafe_poses = []
-            for i in range(0, 360+45, 10):
+            for i in range(0, 360 + 10, 10):
                 x, y, rad = get_point_on_circle(rc.translation().X(), rc.translation().Y(), self.strafe_distance, i)
                 pose = Pose2d(Translation2d(x, y), Rotation2d(rad))
                 strafe_poses.append(pose)
@@ -281,7 +281,7 @@ class MyRobot(magicbot.MagicRobot):
 
     def lock_reef(self, shift_left=False, shift_right=False):
         pose = self.drivetrain.get_pose()
-        reef_tag_id, dist = Waypoints.closest_reef_tag_id(pose)
+        reef_tag_id, _ = Waypoints.closest_reef_tag_id(pose)
         final_pose = (
             Waypoints.get_tag_robot_away(reef_tag_id)
             .transformBy(Transform2d(Translation2d(0, 0), Rotation2d(math.pi)))
@@ -295,7 +295,7 @@ class MyRobot(magicbot.MagicRobot):
 
     def lock_ps(self):
         pose = self.drivetrain.get_pose()
-        tag_id, dist = Waypoints.closest_ps_tag_id(pose)
+        tag_id, _ = Waypoints.closest_ps_tag_id(pose)
         final_pose = (
             Waypoints.get_tag_robot_away(tag_id)
         )
@@ -304,7 +304,7 @@ class MyRobot(magicbot.MagicRobot):
 
     def lock_processor(self):
         pose = self.drivetrain.get_pose()
-        tag_id, dist = Waypoints.closest_processor_tag_id(pose)
+        tag_id, _ = Waypoints.closest_processor_tag_id(pose)
         final_pose = (
             Waypoints.get_tag_robot_away(tag_id)
         )

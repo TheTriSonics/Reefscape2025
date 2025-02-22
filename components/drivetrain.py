@@ -13,7 +13,7 @@ from phoenix6.configs import (
     CANcoderConfiguration,
     MagnetSensorConfigs,
 )
-from phoenix6.controls import PositionDutyCycle, VelocityVoltage, VoltageOut, DutyCycleOut
+from phoenix6.controls import VelocityVoltage, VoltageOut, DutyCycleOut
 from phoenix6.hardware import CANcoder, TalonFX
 from phoenix6.signals import InvertedValue, NeutralModeValue
 from wpimath.controller import (
@@ -115,7 +115,6 @@ class SwerveModule:
         steer_config.apply(steer_gear_ratio_config)
         steer_config.apply(steer_closed_loop_config)
 
-
         # Configure drive motor
         drive_config = self.drive.configurator
 
@@ -164,7 +163,7 @@ class SwerveModule:
         return self.drive.get_velocity().value
 
     def get_distance_traveled(self) -> float:
-        return self.drive.get_position().value * math.tau*TunerConstants._wheel_radius
+        return self.drive.get_position().value * math.tau * TunerConstants._wheel_radius
 
     def set(self, desired_state: SwerveModuleState):
         if self.module_locked:
@@ -249,7 +248,6 @@ class DrivetrainComponent:
 
     snapping_to_heading = magicbot.tunable(False)
     snap_heading_ro = magicbot.tunable(0.0)
-
 
     # TODO: Read from positions.py once autonomous is finished
 
@@ -396,7 +394,7 @@ class DrivetrainComponent:
     def get_robot_speeds(self) -> tuple[float, float]:
         vx = self.chassis_speeds.vx
         vy = self.chassis_speeds.vy
-        total_speed = math.sqrt(vx*vx + vy*vy)
+        total_speed = math.sqrt(vx * vx + vy * vy)
         return total_speed, self.chassis_speeds.omega
 
     def halt(self):
@@ -519,7 +517,6 @@ class DrivetrainComponent:
             m.sync_steer_encoder()
 
     def set_pose(self, pose: Pose2d) -> None:
-        print('set pose called -- force location')
         self.estimator.resetPosition(
             self.gyro.get_Rotation2d(), self.get_module_positions(), pose
         )
