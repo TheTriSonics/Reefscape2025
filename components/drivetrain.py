@@ -237,7 +237,7 @@ class DrivetrainComponent:
 
     # maxiumum speed for any wheel
     # TODO: Pull in from Tuner Contants
-    max_wheel_speed = 32
+    max_wheel_speed = 5
 
     control_loop_wait_time: float
 
@@ -261,7 +261,7 @@ class DrivetrainComponent:
                                                 .publish()
         )
         self.heading_controller = ProfiledPIDControllerRadians(
-            0.5, 0, 0, TrapezoidProfileRadians.Constraints(100, 100)
+            0.5 * 10, 0, 0, TrapezoidProfileRadians.Constraints(100, 100)
         )
         self.heading_controller.enableContinuousInput(-math.pi, math.pi)
         self.heading_controller.setTolerance(self.HEADING_TOLERANCE)
@@ -463,7 +463,7 @@ class DrivetrainComponent:
     def execute(self) -> None:
         self.snap_heading_ro = -999 if self.snap_heading is None else self.snap_heading
         if self.snapping_to_heading:
-            self.chassis_speeds.omega = self.choreo_heading_controller.calculate(
+            self.chassis_speeds.omega = self.heading_controller.calculate(
                 self.get_rotation().radians()
             )
         else:
