@@ -10,8 +10,13 @@ class IntakeControl(StateMachine):
 
     def __init__(self):
         self.score_coral_off_at = -1
+        self.intake_coral_off_at = -1
         self.score_algae_off_at = -1
+        self.intake_algae_off_at = -1
         pass
+
+    def is_idling(self) -> bool:
+        return self.current_state == self.idling.name
 
     def go_idle(self):
         self.next_state(self.idling)
@@ -68,11 +73,11 @@ class IntakeControl(StateMachine):
     def coral_intake(self, initial_call, state_tm):
         self.intake.coral_in()    
 
-        if self.photoeye.coral_held is False:
-            self.intake_coral_off_at = state_tm + 1.0
-
         if self.photoeye.coral_held is True and self.intake_coral_off_at < state_tm:
             self.next_state(self.idling)
+
+        if self.photoeye.coral_held is False:
+            self.intake_coral_off_at = state_tm + 1.0
     
     @state(must_finish=True)
     def algae_intake(self, initial_call, state_tm):
