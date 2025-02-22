@@ -203,7 +203,7 @@ class AutonStrafeToFace(AutonBase):
     photoeye: PhotoEyeComponent
 
     MODE_NAME = 'Testing - Strafe to Face'
-    DEFAULT = True
+    DEFAULT = False
 
     def __init__(self):
         pass
