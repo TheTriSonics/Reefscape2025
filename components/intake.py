@@ -349,6 +349,7 @@ class IntakeComponent:
         return coral_pose
 
     def do_3d_repr(self):
+        coral_pose: None | Pose3d = None
         # If we already think we have coral but the photo eye has gone false
         if self.has_coral is True and self.photoeye.coral_held is False:
             # Let's see if we can come up with a pose for the coral

@@ -331,17 +331,17 @@ wheels = [
 
 [[package]]
 name = "phoenix6"
-version = "25.2.2"
+version = "25.3.0.post1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "setuptools", marker = "platform_machine == 'aarch64' or platform_system != 'Darwin' or sys_platform != 'linux'" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ac/90/7f183676c7bc43ca5662febd33469bf52e3abeb6396370be7f2acd80de20/phoenix6-25.2.2-cp310-abi3-macosx_13_0_universal2.whl", hash = "sha256:a842c8fb488356672b17e5d57d05b2c97c0cd70b99291b659e6368aa42a4fb1b", size = 7728036 },
-    { url = "https://files.pythonhosted.org/packages/cd/57/5734d48120d2795ddabed3d86edd3d2bb6b34f5b69bc4edebb5f03cfa8a5/phoenix6-25.2.2-cp310-abi3-manylinux_2_35_aarch64.whl", hash = "sha256:e0f671122a3dbc8de3d4bca8da06a9fbec55bc9bb2259f65de6fc43f8a5a5807", size = 5907398 },
-    { url = "https://files.pythonhosted.org/packages/35/db/22a55d846585cad9997d1cc879e545e7b56ac53c6acde5af06385eb36d1e/phoenix6-25.2.2-cp310-abi3-manylinux_2_35_armv7l.whl", hash = "sha256:a8a180a402ae0c639400eb0331f62e466466f792399cde42f240802aea8aef00", size = 2049913 },
-    { url = "https://files.pythonhosted.org/packages/f0/48/9118e2e14f68ffc13f5695fc11940a5d471680431e538d7e183156aab64f/phoenix6-25.2.2-cp310-abi3-manylinux_2_35_x86_64.whl", hash = "sha256:385f082eb6c9f2c9bfb391906cacb28f869cbf7a8cc165a58fc19d43c26b8132", size = 6284883 },
-    { url = "https://files.pythonhosted.org/packages/f4/3c/ed780b049ccf0c5426c2fd42a6fed34566aeaec8220d3fe2c2884ffecad0/phoenix6-25.2.2-cp310-abi3-win_amd64.whl", hash = "sha256:9063b135783cbfdd77b7a258f250a11468cefbdcedec7e8d0c702a0b2d4d94e0", size = 4582051 },
+    { url = "https://files.pythonhosted.org/packages/5e/44/4ccdd7c12c9f7d80191c13e0f1633d18f22cac8f8afacc69c368b6b67463/phoenix6-25.3.0.post1-cp310-abi3-macosx_13_0_universal2.whl", hash = "sha256:78f61b6ccce4c0d6885214a06faa349efb8324f1a0c0fcf7bcf4c796ca94c2e3", size = 7882466 },
+    { url = "https://files.pythonhosted.org/packages/cf/36/cfb3bae9ade5c8d2689cffc308ad9e5e0de8cb02748b4fbb72166e566cdf/phoenix6-25.3.0.post1-cp310-abi3-manylinux_2_35_aarch64.whl", hash = "sha256:dabe8b58e122a0b0878d38789b043372f916a658afb704c118db71f8e718ad39", size = 6003105 },
+    { url = "https://files.pythonhosted.org/packages/52/7e/0a8c441a3e0ca54b356e33b085542829490886606b7ca46f1e8e5610590f/phoenix6-25.3.0.post1-cp310-abi3-manylinux_2_35_armv7l.whl", hash = "sha256:9160a57cc068ad15a3223dfe8c6e46e35befa0d2332a41a9c97a6522323b266a", size = 2063726 },
+    { url = "https://files.pythonhosted.org/packages/4c/0e/f4df0c3c7eb989a163e7d3d248b8fb719f08fb9ad09a9e65b7c9567aea6d/phoenix6-25.3.0.post1-cp310-abi3-manylinux_2_35_x86_64.whl", hash = "sha256:1e0034e8381a58ebc7aaa22eb280c8fb2ac357e7a5279c8652ab902d41f51e6c", size = 6384184 },
+    { url = "https://files.pythonhosted.org/packages/b9/c4/cf24807254f3f50c5861bce8b0e42cb03176970685f79598b980f36c3141/phoenix6-25.3.0.post1-cp310-abi3-win_amd64.whl", hash = "sha256:0581ad981578f38b355befc33d233059738117adf222064fd20fd14b58cffbde", size = 4655241 },
 ]
 
 [[package]]
@@ -542,7 +542,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "numpy", specifier = "~=2.1" },
-    { name = "phoenix6", specifier = "~=25.2.2" },
+    { name = "phoenix6", specifier = "~=25.3.0.post1" },
     { name = "photonlibpy", specifier = "==2025.1.1" },
     { name = "pip" },
     { name = "robotpy", extras = ["apriltag"], specifier = "==2025.3.1.1" },

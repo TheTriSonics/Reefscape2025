@@ -110,7 +110,7 @@ class PhysicsEngine:
             for module in robot.drivetrain.modules
         ]
 
-        self.manip_motors = []
+        self.manip_motors: list[Falcon500MotorSim] = []
 
         """
         if hasattr(robot, "intake"):

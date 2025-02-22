@@ -33,6 +33,7 @@ from hid.logi_flight import ReefscapeDriver as ReefscapeDriverFlight
 from hid.logi_gamepad import ReefscapeDriver as ReefscapeDriverLogiGamepad
 from hid.xbox_wireless import ReefscapeDriver as ReefscapeDriverWireless
 from hid.thrustmaster import ReefscapeDriver as ReefscapeDriverThrustmaster
+from hid.reefscape_driver_base import ReefscapeDriverBase
 
 
 def get_point_on_circle(center_x, center_y, radius, angle_degrees):
@@ -134,7 +135,7 @@ class MyRobot(magicbot.MagicRobot):
         # We'll default to a stock Xbox controller unless the name tells us
         # another one is better
         self.controller_choice = 'Stock Xbox controller'
-        self.driver_controller = ReefscapeDriver(0)
+        self.driver_controller: ReefscapeDriverBase = ReefscapeDriver(0)
         self.operator_controller = ReefscapeOperator(1)
         self.debug_controller = wpilib.XboxController(2)
         if js_name == 'Xbox Wireless Controller':

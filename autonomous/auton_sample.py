@@ -15,7 +15,7 @@ from components.drivetrain import DrivetrainComponent
 from components.gyro import GyroComponent
 from components.battery_monitor import BatteryMonitorComponent
 from components.photoeye import PhotoEyeComponent
-from choreo import load_swerve_trajectory  # type: ignore
+from choreo import load_swerve_trajectory
 from choreo.trajectory import SwerveTrajectory
 
 pb = SmartDashboard.putBoolean
@@ -95,7 +95,7 @@ class AutonSample(AutonomousStateMachine):
     def place_first_coral(self, state_tm, initial_call):
         if (self.manipulator.at_position() and
             self.photoeye.coral_held and
-            self.manipulator.current_state != self.manipulator.coral_score):
+            self.manipulator.current_state != self.manipulator.coral_score.name):
             self.manipulator.go_coral_score()
         # Wait until the photo eye is clear?
         if self.photoeye.coral_held is False:
@@ -147,7 +147,7 @@ class AutonSample(AutonomousStateMachine):
                 self.manipulator.set_coral_level1()
         if (
             diff < 1
-            and self.manipulator.current_state != self.manipulator.coral_prepare_score
+            and self.manipulator.current_state != self.manipulator.coral_prepare_score.name
         ):
             self.manipulator.next_state_now(self.manipulator.coral_prepare_score)
             self.manipulator.engage()

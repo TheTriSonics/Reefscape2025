@@ -86,6 +86,8 @@ class SwerveModule:
         mag_config = MagnetSensorConfigs()
         mag_config.with_magnet_offset(mag_offset)
         enc_config.with_magnet_sensor(mag_config)
+        # The ignore comment is for the Ruff linter to stop complaigning
+        # that there is a type-mismatch we can't fix on our side
         self.encoder.configurator.apply(enc_config)  # type: ignore
 
         # Configure steer motor
