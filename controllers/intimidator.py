@@ -17,6 +17,7 @@ from choreo.trajectory import SwerveTrajectory as ChoreoSwerveTrajectory
 from utilities.waypoints import Waypoints
 from utilities.position import reverse_choreo
 from utilities.game import ManipLocations, ManipLocation, GamePieces, is_auton, is_red
+from utilities.position import Positions
 
 
 def get_point_on_circle(center_x, center_y, radius, angle_degrees):
@@ -60,9 +61,9 @@ class Intimidator(StateMachine):
     strafe_distance = tunable(-1.0)
     strafe_to_face = tunable('A')
 
-    max_start_dist_error = tunable(2.0)
-    max_end_dist_error = tunable(2.0)
-    dist_to_direct_drive = tunable(1.0)
+    max_start_dist_error = tunable(1.0)
+    max_end_dist_error = tunable(1.0)
+    dist_to_direct_drive = tunable(0.5)
 
     def __init__(self):
         self.trajectory: ChoreoSwerveTrajectory | None = None
@@ -120,6 +121,10 @@ class Intimidator(StateMachine):
         self.target_pose = Pose2d()
         self.load_trajectories()
 
+    def at_position(self, tolerance=0.08) -> bool:
+        pose = self.drivetrain.get_pose()
+        return pose.relativeTo(self.target_pose).translation().norm() < tolerance
+
     def set_stick_values(self, x, y, rot):
         self.stick_x = x
         self.stick_y = y
@@ -157,27 +162,17 @@ class Intimidator(StateMachine):
         self.go_drive_swoop(final_pose)
 
     def go_drive_processor(self):
-        pose = self.drivetrain.get_pose()
-        tag_id, dist = Waypoints.closest_processor_tag_id(pose)
-        final_pose = Waypoints.get_tag_robot_away(tag_id).transformBy(
-            Transform2d(Translation2d(0, 0), Rotation2d(math.pi))
-        )
-        self.target_pose = final_pose
-        self.target_pose_pub.set(final_pose)
+        self.target_pose = Positions.PROCESSOR
+        self.target_pose_pub.set(self.target_pose)
         self.next_state_now(self.drive_to_pose)
         self.engage()
 
     def go_lock_reef(self, shift_left=False, shift_right=False):
-        pose = self.drivetrain.get_pose()
-        reef_tag_id, dist = Waypoints.closest_reef_tag_id(pose)
-        final_pose = (
-            Waypoints.get_tag_robot_away(reef_tag_id)
-            .transformBy(Transform2d(Translation2d(0, 0), Rotation2d(math.pi)))
-        )
+        final_pose = Positions.REEF_CLOSEST
         if shift_left:
-            final_pose = Waypoints.shift_reef_left(final_pose)
+            final_pose = Positions.REEF_CLOSEST_LEFT
         elif shift_right:
-            final_pose = Waypoints.shift_reef_right(final_pose)
+            final_pose = Positions.REEF_CLOSEST_RIGHT
         self.go_drive_swoop(final_pose)
 
     @state(must_finish=True)
@@ -275,7 +270,7 @@ class Intimidator(StateMachine):
             or dist_to_end_pose < self.dist_to_direct_drive
         ):
             # The trajectory has expired, so, drive to the final pose
-            self.drivetrain.drive_to_pose(self.target_pose)
+            self.drivetrain.drive_to_pose(self.target_pose, aggressive=True)
         else:
             sample = self.trajectory.sample_at(state_tm, is_red())
             assert sample

@@ -105,6 +105,7 @@ class MyRobot(magicbot.MagicRobot):
         )
 
     def autonomousInit(self):
+        self.photoeye.coral_held = True
         Positions.update_alliance_positions()
         self.intake.reset_game_pieces()
         return

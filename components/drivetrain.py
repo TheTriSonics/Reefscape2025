@@ -272,8 +272,8 @@ class DrivetrainComponent:
         self.choreo_heading_controller = PIDController(15, 0, 0)
         self.choreo_heading_controller.enableContinuousInput(-math.pi, math.pi)
         if is_sim():
-            self.choreo_x_controller.setPID(14, 2, 0)
-            self.choreo_y_controller.setPID(14, 2, 0)
+            self.choreo_x_controller.setPID(14*6, 2, 0)
+            self.choreo_y_controller.setPID(14*6, 2, 0)
 
         self.modules = (
             # Front Left
@@ -474,7 +474,7 @@ class DrivetrainComponent:
         desired_speeds = self.chassis_speeds
         desired_states = self.kinematics.toSwerveModuleStates(desired_speeds)
         desired_states = self.kinematics.desaturateWheelSpeeds(
-            desired_states, attainableMaxSpeed=self.max_wheel_speed
+            desired_states, attainableMaxSpeed=self.max_wheel_speed*6
         )
 
         for state, module in zip(desired_states, self.modules):
