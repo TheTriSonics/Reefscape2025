@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import typing
+import numpy as np
 
 import phoenix6
 import phoenix6.unmanaged
@@ -229,7 +230,8 @@ class PhysicsEngine:
         for module in self.robot.drivetrain.modules:
             # Set the cancoder to be what the module wants it to be.
             desired_ang = module.state.angle.radians()
-            raw = desired_ang / math.tau
+            sigma = (math.radians(0.5) / math.tau) / 2
+            raw = desired_ang / math.tau + np.random.normal(loc=0, scale=sigma)
             module.encoder.sim_state.set_raw_position(
                 raw - module.mag_offset
             )
@@ -245,7 +247,9 @@ class PhysicsEngine:
         ))
 
         self.current_yaw += math.degrees(speeds.omega * tm_diff)
-        self.gyro.set_raw_yaw(self.current_yaw)
+        sigma = (math.radians(0.5) / math.tau) / 2
+        yaw_jitter = np.random.normal(loc=0, scale=sigma)
+        self.gyro.set_raw_yaw(self.current_yaw + yaw_jitter)
 
         self.physics_controller.drive(speeds, tm_diff)
         self.vision_sim.update(self.robot.drivetrain.get_pose())
