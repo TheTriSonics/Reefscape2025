@@ -6,7 +6,7 @@ from magicbot import feedback
 
 class GyroComponent:
     def __init__(self):
-        self.pigeon = Pigeon2(CanId.PIGEON, "canivore")
+        self.pigeon = Pigeon2(CanId.PIGEON.id, CanId.PIGEON.bus)
 
     # TODO: Set this to heading=None
     # then use:

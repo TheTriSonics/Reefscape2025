@@ -13,7 +13,7 @@ from phoenix6.configs import (
     CANcoderConfiguration,
     MagnetSensorConfigs,
 )
-from phoenix6.controls import VelocityVoltage, VoltageOut, DutyCycleOut
+from phoenix6.controls import PositionDutyCycle, VelocityVoltage, VoltageOut, DutyCycleOut
 from phoenix6.hardware import CANcoder, TalonFX
 from phoenix6.signals import InvertedValue, NeutralModeValue
 from wpimath.controller import (
@@ -65,6 +65,7 @@ class SwerveModule:
         steer_id: int,
         encoder_id: int,
         *,
+        busname: str,
         mag_offset: float = 0.0,
         drive_reversed: bool = False,
         steer_reversed: bool = False
@@ -74,19 +75,20 @@ class SwerveModule:
         *_id: can ids of steer and drive motors and absolute encoder
         """
         self.name = name
+        self.busname = busname
         self.translation = Translation2d(x, y)
         self.state = SwerveModuleState(0, Rotation2d(0))
         self.mag_offset = mag_offset
 
         # Create Motor and encoder objects
-        self.steer = TalonFX(steer_id, "canivore")
-        self.drive = TalonFX(drive_id, "canivore")
-        self.encoder = CANcoder(encoder_id, "canivore")
+        self.steer = TalonFX(steer_id, self.busname)
+        self.drive = TalonFX(drive_id, self.busname)
+        self.encoder = CANcoder(encoder_id, self.busname) 
         enc_config = CANcoderConfiguration()
         mag_config = MagnetSensorConfigs()
         mag_config.with_magnet_offset(mag_offset)
         enc_config.with_magnet_sensor(mag_config)
-        self.encoder.configurator.apply(enc_config)
+        self.encoder.configurator.apply(enc_config)  # type: ignore
 
         # Configure steer motor
         steer_config = self.steer.configurator
@@ -114,6 +116,7 @@ class SwerveModule:
         steer_config.apply(steer_pid, 0.01)
         steer_config.apply(steer_gear_ratio_config)
         steer_config.apply(steer_closed_loop_config)
+
 
         # Configure drive motor
         drive_config = self.drive.configurator
@@ -163,7 +166,7 @@ class SwerveModule:
         return self.drive.get_velocity().value
 
     def get_distance_traveled(self) -> float:
-        return self.drive.get_position().value * math.tau * TunerConstants._wheel_radius
+        return self.drive.get_position().value * math.tau*TunerConstants._wheel_radius
 
     def set(self, desired_state: SwerveModuleState):
         if self.module_locked:
@@ -249,6 +252,7 @@ class DrivetrainComponent:
     snapping_to_heading = magicbot.tunable(False)
     snap_heading_ro = magicbot.tunable(0.0)
 
+
     # TODO: Read from positions.py once autonomous is finished
 
     def __init__(self) -> None:
@@ -268,9 +272,7 @@ class DrivetrainComponent:
         self.choreo_y_controller = PIDController(10, 0, 0)
         self.choreo_heading_controller = PIDController(15, 0, 0)
         self.choreo_heading_controller.enableContinuousInput(-math.pi, math.pi)
-        if is_sim():
-            self.choreo_x_controller.setPID(14, 1, 0)
-            self.choreo_y_controller.setPID(14, 1, 0)
+        self.on_red_alliance = False
 
         self.modules = (
             # Front Left
@@ -278,9 +280,10 @@ class DrivetrainComponent:
                 "Front Left",
                 self.WHEEL_BASE / 2,
                 self.TRACK_WIDTH / 2,
-                TalonId.DRIVE_FL,
-                TalonId.TURN_FL,
-                CancoderId.SWERVE_FL,
+                TalonId.DRIVE_FL.id,
+                TalonId.TURN_FL.id,
+                CancoderId.SWERVE_FL.id,
+                busname=TalonId.DRIVE_FL.bus,
                 mag_offset=TunerConstants._front_left_encoder_offset,
                 steer_reversed=True,
                 drive_reversed=False,
@@ -290,9 +293,10 @@ class DrivetrainComponent:
                 "Front Right",
                 self.WHEEL_BASE / 2,
                 -self.TRACK_WIDTH / 2,
-                TalonId.DRIVE_FR,
-                TalonId.TURN_FR,
-                CancoderId.SWERVE_FR,
+                TalonId.DRIVE_FR.id,
+                TalonId.TURN_FR.id,
+                CancoderId.SWERVE_FR.id,
+                busname=TalonId.DRIVE_FR.bus,
                 mag_offset=TunerConstants._front_right_encoder_offset,
                 steer_reversed=True,
                 drive_reversed=True,
@@ -302,9 +306,10 @@ class DrivetrainComponent:
                 "Back Left",
                 -self.WHEEL_BASE / 2,
                 self.TRACK_WIDTH / 2,
-                TalonId.DRIVE_BL,
-                TalonId.TURN_BL,
-                CancoderId.SWERVE_BL,
+                TalonId.DRIVE_BL.id,
+                TalonId.TURN_BL.id,
+                CancoderId.SWERVE_BL.id,
+                busname=TalonId.DRIVE_BL.bus,
                 mag_offset=TunerConstants._back_left_encoder_offset,
                 steer_reversed=True,
                 drive_reversed=False,
@@ -314,9 +319,10 @@ class DrivetrainComponent:
                 "Back Right",
                 -self.WHEEL_BASE / 2,
                 -self.TRACK_WIDTH / 2,
-                TalonId.DRIVE_BR,
-                TalonId.TURN_BR,
-                CancoderId.SWERVE_BR,
+                TalonId.DRIVE_BR.id,
+                TalonId.TURN_BR.id,
+                CancoderId.SWERVE_BR.id,
+                busname=TalonId.DRIVE_BR.bus,
                 mag_offset=TunerConstants._back_right_encoder_offset,
                 steer_reversed=True,
                 drive_reversed=True,
@@ -394,7 +400,7 @@ class DrivetrainComponent:
     def get_robot_speeds(self) -> tuple[float, float]:
         vx = self.chassis_speeds.vx
         vy = self.chassis_speeds.vy
-        total_speed = math.sqrt(vx * vx + vy * vy)
+        total_speed = math.sqrt(vx*vx + vy*vy)
         return total_speed, self.chassis_speeds.omega
 
     def halt(self):
@@ -517,6 +523,7 @@ class DrivetrainComponent:
             m.sync_steer_encoder()
 
     def set_pose(self, pose: Pose2d) -> None:
+        print('set pose called -- force location')
         self.estimator.resetPosition(
             self.gyro.get_Rotation2d(), self.get_module_positions(), pose
         )

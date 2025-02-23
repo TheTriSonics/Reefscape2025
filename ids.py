@@ -1,66 +1,45 @@
 import enum
+from dataclasses import dataclass
 
 
-@enum.unique
-class TalonId(enum.IntEnum):
+@dataclass
+class CANDevice:
+    id: int
+    bus: str
+
+drive = 'Drive'
+manipulator = 'Arm'
+
+class TalonId():
     """CAN ID for CTRE Talon motor controllers (e.g. Talon FX, Talon SRX)."""
 
-    DRIVE_FR = 12
-    DRIVE_FL = 11
-    DRIVE_BL = 14
-    DRIVE_BR = 13
+    DRIVE_FR = CANDevice(12, drive)
+    DRIVE_FL = CANDevice(11, drive)
+    DRIVE_BL = CANDevice(14, drive)
+    DRIVE_BR = CANDevice(13, drive)
 
-    TURN_FR = 22
-    TURN_FL = 21
-    TURN_BL = 24
-    TURN_BR = 23
+    TURN_FR = CANDevice(22, drive)
+    TURN_FL = CANDevice(21, drive)
+    TURN_BL = CANDevice(24, drive)
+    TURN_BR = CANDevice(23, drive)
 
-    MANIP_ELEVATOR_LEFT = 46
-    MANIP_ELEVATOR_RIGHT = 47
-    MANIP_ARM = 43
-    MANIP_WRIST = 44
-    MANIP_INTAKE = 45
-
-
-@enum.unique
-class CancoderId(enum.IntEnum):
-    """CAN ID for CTRE CANcoder."""
-
-    SWERVE_FR = 32
-    SWERVE_FL = 34
-    SWERVE_BL = 33
-    SWERVE_BR = 31
+    MANIP_ELEVATOR_LEFT = CANDevice(60, manipulator)
+    MANIP_ELEVATOR_RIGHT = CANDevice(61, manipulator)
+    MANIP_ARM = CANDevice(52, manipulator)
+    MANIP_WRIST = CANDevice(50, manipulator)
+    MANIP_INTAKE = CANDevice(51, manipulator)
 
 
-@enum.unique
-class CanId(enum.IntEnum):
+class CancoderId:
+    SWERVE_FR = CANDevice(32, drive)
+    SWERVE_FL = CANDevice(34, drive)
+    SWERVE_BL = CANDevice(33, drive)
+    SWERVE_BR = CANDevice(31, drive)
+
+
+class CanId:
     """CAN IDs for miscellaneous devices."""
-
-    PIGEON = 41
-
-
-@enum.unique
-class SparkId(enum.IntEnum):
-    """CAN ID for REV SPARK motor controllers (Spark Max, Spark Flex)."""
-
-    INTAKE_MOTOR_FEED = 51
-    AMP_FEED_MOTOR = 55
-
-    CLIMBER_MOTOR_LEFT = 57
-    CLIMBER_MOTOR_RIGHT = 58
-
-    SHOOTER_MOTOR_FEED_RIGHT = 46
-    SHOOTER_MOTOR_FEED_LEFT = 47
-
-    SHOOTER_MOTOR_TILT_LEFT = 44
-    SHOOTER_MOTOR_TILT_RIGHT = 45
-
-
-@enum.unique
-class DioChannel(enum.IntEnum):
-    """roboRIO Digital I/O channel number."""
-
-
-@enum.unique
-class PwmChannel(enum.IntEnum):
-    """roboRIO PWM output channel number."""
+    PIGEON = CANDevice(41, drive)
+    MANIP_ARM_ENCODER = CANDevice(33, manipulator)
+    MANIP_WRIST_ENCODER = CANDevice(34, manipulator)
+    CANDI = CANDevice(36, manipulator)
