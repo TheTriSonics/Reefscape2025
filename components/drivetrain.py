@@ -223,6 +223,8 @@ class DrivetrainComponent:
     # You have to use them in the setup() method
     gyro: GyroComponent
 
+    # TODO: Pull this from TunerConstants either here, or later on
+    # when we actually make the SwerveModules
     # meters between center of left and right wheels
     TRACK_WIDTH = 0.540
     # meters between center of front and back wheels

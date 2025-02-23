@@ -1,18 +1,19 @@
 
 import wpilib
 from magicbot import feedback, tunable
+from phoenix6.hardware import TalonFX
 from phoenix6.controls import (
     MotionMagicVoltage,
 )
 from phoenix6.configs import TalonFXConfiguration
 from utilities.game import ManipLocation
+from ids import TalonId
 
 pn = wpilib.SmartDashboard.putNumber
 
 
 class ArmComponent:
-    bus = 'canivore'
-    # motor = TalonFX(TalonId.MANIP_ARM, bus)
+    motor = TalonFX(TalonId.MANIP_ARM.id, TalonId.MANIP_ARM.bus)
     default_pos = -80.0
     target_pos = tunable(default_pos)
     motor_request = MotionMagicVoltage(0, override_brake_dur_neutral=True)

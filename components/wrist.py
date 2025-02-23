@@ -1,23 +1,34 @@
+import math
 import wpilib
+from phoenix6.hardware import TalonFX, CANcoder
 from magicbot import feedback, tunable
 from phoenix6.controls import (
     MotionMagicVoltage,
 )
 from phoenix6.configs import TalonFXConfiguration
+from phoenix6 import configs, signals
 from utilities.game import ManipLocation
+from ids import TalonId, CancoderId
 
 pn = wpilib.SmartDashboard.putNumber
 
 
 class WristComponent:
-    bus = 'canivore'
-    # motor = TalonFX(TalonId.MANIP_WRIST, bus)
+    motor = TalonFX(TalonId.MANIP_WRIST.id, TalonId.MANIP_WRIST.bus)
+    encoder = CANcoder(CancoderId.MANIP_WRIST.id, CancoderId.MANIP_WRIST.bus)
     default_pos = 135.0
     target_pos = tunable(default_pos)
     motor_request = MotionMagicVoltage(0, override_brake_dur_neutral=True)
-    fake_pos = tunable(default_pos)
     
     def __init__(self):
+        enc_config = configs.CANcoderConfiguration()
+
+        enc_config.magnet_sensor.absolute_sensor_discontinuity_point = 0.5
+        enc_config.magnet_sensor.sensor_direction = signals.SensorDirectionValue.COUNTER_CLOCKWISE_POSITIVE
+        enc_config.magnet_sensor.magnet_offset = 0.4
+        self.encoder.configurator.apply(enc_config) # type: ignore
+
+
         config = TalonFXConfiguration()
         config.slot0.k_s = 0.0
         config.slot0.k_v = 0.8
@@ -28,13 +39,17 @@ class WristComponent:
         config.motion_magic.motion_magic_cruise_velocity = 100
         config.motion_magic.motion_magic_acceleration = 1600
         config.motion_magic.motion_magic_jerk = 4000
-        # self.motor.set_position(self.default_pos)
-        # self.motor.configurator.apply(config)  # type: ignore
+        config.feedback.feedback_remote_sensor_id = self.encoder.device_id
+        config.feedback.feedback_sensor_source = signals.FeedbackSensorSourceValue.FUSED_CANCODER
+        config.feedback.sensor_to_mechanism_ratio = 1.0 # Maybe math.pi ?
+        config.feedback.rotor_to_sensor_ratio = 12.8
+        self.motor.set_position(self.default_pos)
+        self.encoder.set_position(self.default_pos / math.tau)
+        self.motor.configurator.apply(config)  # type: ignore
     
     @feedback
     def get_position(self) -> float:
-        # return self.motor.get_position().value
-        return self.fake_pos
+        return self.motor.get_position().value * math.tau
 
     @feedback
     def at_goal(self):
@@ -44,12 +59,6 @@ class WristComponent:
         return current_loc == target_loc
 
     def execute(self):
-        if abs(self.fake_pos - self.target_pos) < 0.25:
-            self.fake_pos = self.target_pos
-        elif self.fake_pos < self.target_pos:
-            self.fake_pos += min(5, self.target_pos - self.fake_pos)
-        elif self.fake_pos > self.target_pos:
-            self.fake_pos -= min(5, self.fake_pos - self.target_pos)
 
         if not self.at_goal():
             req = self.motor_request.with_position(self.target_pos)

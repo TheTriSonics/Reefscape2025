@@ -1,4 +1,5 @@
 from phoenix6 import CANBus, configs, hardware, signals, swerve, units
+from subsystems.command_swerve_drivetrain import CommandSwerveDrivetrain
 from wpimath.units import inchesToMeters
 
 
@@ -14,11 +15,11 @@ class TunerConstants:
     # output type specified by SwerveModuleConstants.SteerMotorClosedLoopOutput
     _steer_gains = (
         configs.Slot0Configs()
-        .with_k_p(0.3) # 40 works-ish
+        .with_k_p(100)
         .with_k_i(0)
-        .with_k_d(0) 
-        .with_k_s(0)
-        .with_k_v(0.0)
+        .with_k_d(0.5)
+        .with_k_s(0.1)
+        .with_k_v(3.1)
         .with_k_a(0)
         .with_static_feedforward_sign(signals.StaticFeedforwardSignValue.USE_CLOSED_LOOP_SIGN)
     )
@@ -26,7 +27,7 @@ class TunerConstants:
     # output type specified by SwerveModuleConstants.DriveMotorClosedLoopOutput
     _drive_gains = (
         configs.Slot0Configs()
-        .with_k_p(1)
+        .with_k_p(0.1)
         .with_k_i(0)
         .with_k_d(0)
         .with_k_s(0)
@@ -46,7 +47,7 @@ class TunerConstants:
     _steer_motor_type = swerve.SteerMotorArrangement.TALON_FX_INTEGRATED
 
     # The remote sensor feedback type to use for the steer motors;
-    # When not Pro-licensed, FusedCANcoder/SyncCANcoder automatically fall back to RemoteCANcoder
+    # When not Pro-licensed, Fused*/Sync* automatically fall back to Remote*
     _steer_feedback_type = swerve.SteerFeedbackType.FUSED_CANCODER
 
     # The stator current at which the wheels start to slip;
@@ -215,3 +216,22 @@ class TunerConstants:
         _back_right_steer_motor_inverted,
         _back_right_encoder_inverted,
     )
+
+    @classmethod
+    def create_drivetrain(clazz) -> CommandSwerveDrivetrain:
+        """
+        Creates a CommandSwerveDrivetrain instance.
+        This should only be called once in your robot program.
+        """
+        return CommandSwerveDrivetrain(
+            hardware.TalonFX,
+            hardware.TalonFX,
+            hardware.CANcoder,
+            clazz.drivetrain_constants,
+            [
+                clazz.front_left,
+                clazz.front_right,
+                clazz.back_left,
+                clazz.back_right,
+            ],
+        )

@@ -3,6 +3,7 @@ import ntcore
 import wpilib
 from wpimath.geometry import Pose3d, Translation3d, Rotation3d, Pose2d, Translation2d, Transform3d, Transform2d, Rotation2d
 from magicbot import feedback, tunable
+from phoenix6.hardware import TalonFX
 from phoenix6.controls import (
     DutyCycleOut,
 )
@@ -14,6 +15,7 @@ from components import (
 )
 from utilities import Waypoints, is_sim
 from utilities.game import ManipLocations, ManipLocation
+from ids import TalonId
 
 pn = wpilib.SmartDashboard.putNumber
 
@@ -32,8 +34,7 @@ class IntakeComponent:
     arm: ArmComponent
     photoeye: PhotoEyeComponent
     drivetrain: DrivetrainComponent
-    bus = 'canivore'
-    # motor = TalonFX(TalonId.MANIP_INTAKE, bus)
+    motor = TalonFX(TalonId.MANIP_INTAKE.id, TalonId.MANIP_INTAKE.bus)
 
     force_coral_score = tunable(False)
     force_coral_intake = tunable(False)

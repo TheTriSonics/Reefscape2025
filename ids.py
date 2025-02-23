@@ -35,10 +35,10 @@ class TalonId():
 
 
 class CancoderId:
-    SWERVE_BR = CANDevice(31, drive)
+    SWERVE_FL = CANDevice(31, drive)
     SWERVE_FR = CANDevice(32, drive)
-    SWERVE_BL = CANDevice(33, drive)
-    SWERVE_FL = CANDevice(34, drive)
+    SWERVE_BR = CANDevice(33, drive)
+    SWERVE_BL = CANDevice(34, drive)
 
     MANIP_ARM = CANDevice(31, manipulator)
     MANIP_WRIST = CANDevice(32, manipulator)
