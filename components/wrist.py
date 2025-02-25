@@ -41,15 +41,15 @@ class WristComponent:
         config.motion_magic.motion_magic_jerk = 4000
         config.feedback.feedback_remote_sensor_id = self.encoder.device_id
         config.feedback.feedback_sensor_source = signals.FeedbackSensorSourceValue.FUSED_CANCODER
-        config.feedback.sensor_to_mechanism_ratio = 1.0 # Maybe math.pi ?
-        config.feedback.rotor_to_sensor_ratio = 12.8
+        config.feedback.sensor_to_mechanism_ratio = 1
+        config.feedback.rotor_to_sensor_ratio = 1.0
         self.motor.set_position(self.default_pos)
-        self.encoder.set_position(self.default_pos / math.tau)
+        self.encoder.set_position(self.default_pos)
         self.motor.configurator.apply(config)  # type: ignore
     
     @feedback
     def get_position(self) -> float:
-        return self.motor.get_position().value * math.tau
+        return self.motor.get_position().value
 
     @feedback
     def at_goal(self):
@@ -62,4 +62,4 @@ class WristComponent:
 
         if not self.at_goal():
             req = self.motor_request.with_position(self.target_pos)
-            # self.motor.set_control(req)
+            self.motor.set_control(req)
