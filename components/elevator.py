@@ -1,22 +1,25 @@
 import wpilib
 from magicbot import feedback, tunable
+from phoenix6.hardware import TalonFX
 from phoenix6.controls import (
-    MotionMagicVoltage,
+    MotionMagicVoltage, Follower
 )
-from phoenix6.configs import TalonFXConfiguration
+from phoenix6.configs import TalonFXConfiguration, MotorOutputConfigs
 from utilities.game import ManipLocation
+from phoenix6.signals import InvertedValue, NeutralModeValue
+
+from ids import TalonId
 
 pn = wpilib.SmartDashboard.putNumber
 
 
 class ElevatorComponent:
-    bus = 'canivore'
-    # motor_left = TalonFX(TalonId.MANIP_ELEVATOR_LEFT, bus)
-    # motor_right = TalonFX(TalonId.MANIP_ELEVATOR_RIGHT, bus)
+    bus = TalonId.MANIP_ELEVATOR_LEFT.bus
+    motor_left = TalonFX(TalonId.MANIP_ELEVATOR_LEFT.id, bus)
+    motor_right = TalonFX(TalonId.MANIP_ELEVATOR_RIGHT.id, bus)
     default_pos = 0.0
     target_pos = tunable(default_pos)
     motor_request = MotionMagicVoltage(0, override_brake_dur_neutral=True)
-    fake_pos = tunable(default_pos)
     
     def __init__(self):
         config = TalonFXConfiguration()
@@ -29,12 +32,16 @@ class ElevatorComponent:
         config.motion_magic.motion_magic_cruise_velocity = 10
         config.motion_magic.motion_magic_acceleration = 400
         config.motion_magic.motion_magic_jerk = 4000
-        # self.motor_left.configurator.apply(config)  # type: ignore
+        output_config = MotorOutputConfigs()
+        output_config.inverted = InvertedValue.CLOCKWISE_POSITIVE
+        self.motor_left.configurator.apply(config)  # type: ignore
+        self.motor_left.configurator.apply(output_config)
+        self.motor_right.configurator.apply(config)  # type: ignore
+        self.motor_right.configurator.apply(output_config)
     
     @feedback
     def get_position(self) -> float:
-        # return self.motor_left.get_position().value
-        return self.fake_pos
+        return self.motor_left.get_position().value
 
     @feedback
     def at_goal(self):
@@ -44,19 +51,20 @@ class ElevatorComponent:
         return current_loc == target_loc
 
     def execute(self):
-        if abs(self.fake_pos - self.target_pos) < 0.1:
-            self.fake_pos = self.target_pos
-        elif self.fake_pos < self.target_pos:
-            self.fake_pos += 1
-        elif self.fake_pos > self.target_pos:
-            self.fake_pos -= 1
-
-        if not self.at_goal():
-            req = self.motor_request.with_position(self.target_pos)
-            # self.motor_left.set_control(req)
-            # Should this only be done once in setup()? 
-            # self.motor_right.set_control(
-            #     Follower(TalonId.MANIP_ELEVATOR_LEFT,
-            #              oppose_master_direction=True),
-            # )
+        if self.target_pos < 0:
+            # Driving the elevator below 0 would be bad. Very bad. So don't let
+            # anybody do that!
+            self.target_pos = 0
+        if self.target_pos > 50:
+            # There's a max height to this elevator and we don't want to try and
+            # exceed it. That would also be bad. Very bad.
+            self.target_pos = 50
+        
+        req = self.motor_request.with_position(self.target_pos)
+        self.motor_left.set_control(req)
+        # Should this only be done once in setup()? 
+        self.motor_right.set_control(
+            Follower(TalonId.MANIP_ELEVATOR_LEFT.id,
+                        oppose_master_direction=True),
+        )
 
