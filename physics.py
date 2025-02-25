@@ -168,11 +168,11 @@ class PhysicsEngine:
             self.camera_fl,
             self.robot.vision.camera_fl_offset,
         )
-        self.camera_center = PhotonCameraSim(robot.vision.camera_center, properties)
-        self.camera_center.setMaxSightRange(5.0)
+        self.camera_fr = PhotonCameraSim(robot.vision.camera_fr, properties)
+        self.camera_fr.setMaxSightRange(5.0)
         self.vision_sim.addCamera(
-            self.camera_center,
-            self.robot.vision.camera_center_offset,
+            self.camera_fr,
+            self.robot.vision.camera_fr_offset,
         )
 
     def update_pe_intake_sim(self, now: float, tm_diff: float) -> None:

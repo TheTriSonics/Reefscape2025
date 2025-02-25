@@ -23,35 +23,33 @@ class VisionComponent():
 
     def __init__(self) -> None:
         self.timer = Timer()
-        self.camera_center = PhotonCamera("ardu_cam-1")
-        self.camera_fl = PhotonCamera("ardu_cam-2")
+        self.camera_fr = PhotonCamera("fr")
+        self.camera_fl = PhotonCamera("fl")
 
-        self.camera_center_offset = Transform3d(
+        self.camera_fr_offset = Transform3d(
             Translation3d(
-                units.inchesToMeters(1.5),
-                units.inchesToMeters(0.5),
-                units.inchesToMeters(16),
+                units.inchesToMeters(11.0),
+                units.inchesToMeters(-10.125),
+                units.inchesToMeters(7.5),
             ),
-            Rotation3d.fromDegrees(0, 0, 0),
+            Rotation3d.fromDegrees(0, 27.5, 8.0),
         )
         self.camera_fl_offset = Transform3d(
             Translation3d(
-                units.inchesToMeters(16.75), # Forward/backward offset
-                units.inchesToMeters(10.25),
-                units.inchesToMeters(5.75),
+                units.inchesToMeters(11.0), # Forward/backward offset
+                units.inchesToMeters(10.125),
+                units.inchesToMeters(7.5),
             ),
-            Rotation3d.fromDegrees(0, 0, 0),
+            Rotation3d.fromDegrees(0, 27.5, -8.0),
         )
 
         field = AprilTagFieldLayout.loadField(AprilTagField.k2025ReefscapeWelded)
-        wpilib.SmartDashboard.putNumber('field length (m)', field.getFieldLength())
-        wpilib.SmartDashboard.putNumber('field width (m)', field.getFieldWidth())
 
-        self.pose_estimator_center = PhotonPoseEstimator(
+        self.pose_estimator_fr = PhotonPoseEstimator(
             field,
             PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-            self.camera_center,
-            self.camera_center_offset,
+            self.camera_fr,
+            self.camera_fr_offset,
         )
         self.pose_estimator_fl = PhotonPoseEstimator(
             field,
@@ -60,9 +58,9 @@ class VisionComponent():
             self.camera_fl_offset,
         )
 
-        self.publisher_center = (
+        self.publisher_fr = (
             ntcore.NetworkTableInstance.getDefault()
-            .getStructTopic("/components/vision/pose_center", Pose2d)
+            .getStructTopic("/components/vision/pose_fr", Pose2d)
             .publish()
         )
         self.publisher_fl = (
@@ -71,9 +69,9 @@ class VisionComponent():
             .publish()
         )
 
-        self.cameras = [self.camera_center, self.camera_fl]
-        self.pose_estimators = [self.pose_estimator_center, self.pose_estimator_fl]
-        self.publishers = [self.publisher_center, self.publisher_fl]
+        self.cameras = [self.camera_fr, self.camera_fl]
+        self.pose_estimators = [self.pose_estimator_fr, self.pose_estimator_fl]
+        self.publishers = [self.publisher_fr, self.publisher_fl]
 
     def execute(self) -> None:
         setDevs = self.drivetrain.estimator.setVisionMeasurementStdDevs

@@ -41,8 +41,11 @@ class WristComponent:
         config.motion_magic.motion_magic_jerk = 4000
         config.feedback.feedback_remote_sensor_id = self.encoder.device_id
         config.feedback.feedback_sensor_source = signals.FeedbackSensorSourceValue.FUSED_CANCODER
+        # The sensor is on the output shaft, so the sensor to mechanism ratio is 1
         config.feedback.sensor_to_mechanism_ratio = 1
-        config.feedback.rotor_to_sensor_ratio = 1.0
+        # The rotor to sensor should be the ratio of the gears connecting the motor
+        # to the wrist pivot.
+        config.feedback.rotor_to_sensor_ratio = 1.0 
         self.motor.set_position(self.default_pos)
         self.encoder.set_position(self.default_pos)
         self.motor.configurator.apply(config)  # type: ignore
