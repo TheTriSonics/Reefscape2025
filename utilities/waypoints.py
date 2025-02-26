@@ -3,12 +3,11 @@ from functools import cache
 from wpimath.geometry import Pose2d, Transform2d, Translation2d, Rotation2d
 from robotpy_apriltag import AprilTagFieldLayout, AprilTagField
 from generated.tuner_constants import TunerConstants
-from wpimath.units import inchesToMeters
 
 apriltags = AprilTagFieldLayout.loadField(AprilTagField.k2025ReefscapeWelded)
 
-# TODO: Set this to the real robot dimensions. We've got a bit extra here
-robot_y_offset = inchesToMeters(39.0 / 2.0)
+bumper_width = 0.30
+robot_y_offset = TunerConstants._front_left_y_pos + bumper_width
 
 reef_tags = [6, 7, 8, 9, 10, 11, 17, 18, 19, 20, 21, 22]
 ps_tags = [1, 2, 12, 13]
@@ -46,6 +45,7 @@ class Waypoints:
                 return 'E'
             case 11:
                 return 'F'
+            # Now blue
             case 21:
                 return 'A'
             case 22:
@@ -232,4 +232,24 @@ class Waypoints:
     @classmethod
     def shift_reef_right(cls, pose: Pose2d) -> Pose2d:
         offset = Transform2d(Translation2d(0, -0.165), Rotation2d(0))
+        return pose.transformBy(offset)
+
+    @classmethod
+    def shift_barge_left(cls, pose: Pose2d) -> Pose2d:
+        offset = Transform2d(Translation2d(0, 1.165), Rotation2d(0))
+        return pose.transformBy(offset)
+
+    @classmethod
+    def shift_barge_right(cls, pose: Pose2d) -> Pose2d:
+        offset = Transform2d(Translation2d(0, -1.165), Rotation2d(0))
+        return pose.transformBy(offset)
+
+    @classmethod
+    def shift_auton_left(cls, pose: Pose2d) -> Pose2d:
+        offset = Transform2d(Translation2d(0, 1.165), Rotation2d(0))
+        return pose.transformBy(offset)
+
+    @classmethod
+    def shift_auton_right(cls, pose: Pose2d) -> Pose2d:
+        offset = Transform2d(Translation2d(0, -1.165), Rotation2d(0))
         return pose.transformBy(offset)

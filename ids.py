@@ -1,4 +1,3 @@
-import enum
 from dataclasses import dataclass
 
 
@@ -7,11 +6,12 @@ class CANDevice:
     id: int
     bus: str
 
+
 drive = 'Drive'
 manipulator = 'Arm'
 
-class TalonId():
-    # Drive Bus
+
+class TalonId:
     DRIVE_FL = CANDevice(11, drive)
     DRIVE_FR = CANDevice(12, drive)
     DRIVE_BR = CANDevice(13, drive)
@@ -22,16 +22,15 @@ class TalonId():
     TURN_BR = CANDevice(23, drive)
     TURN_BL = CANDevice(24, drive)
 
+    MANIP_ARM = CANDevice(25, manipulator)
+    MANIP_WRIST = CANDevice(26, manipulator)
+    MANIP_INTAKE = CANDevice(27, manipulator)
+
     CLIMB_ONE = CANDevice(51, drive)
     CLIMB_TWO = CANDevice(52, drive)
 
     MANIP_ELEVATOR_LEFT = CANDevice(61, drive)
     MANIP_ELEVATOR_RIGHT = CANDevice(62, drive)
-
-    # Manipulator / Arm bus
-    MANIP_ARM = CANDevice(21, manipulator)
-    MANIP_WRIST = CANDevice(22, manipulator)
-    MANIP_INTAKE = CANDevice(23, manipulator)
 
 
 class CancoderId:
@@ -40,11 +39,11 @@ class CancoderId:
     SWERVE_BR = CANDevice(33, drive)
     SWERVE_BL = CANDevice(34, drive)
 
-    MANIP_ARM = CANDevice(31, manipulator)
-    MANIP_WRIST = CANDevice(32, manipulator)
+    MANIP_ARM = CANDevice(35, manipulator)
+    MANIP_WRIST = CANDevice(36, manipulator)
 
 
 class CanId:
     """CAN IDs for miscellaneous devices."""
     PIGEON = CANDevice(41, drive)
-    CANDI = CANDevice(41, manipulator)
+    CANDI = CANDevice(42, manipulator)
