@@ -126,13 +126,13 @@ class PhysicsEngine:
         )
         self.manip_motors.append(self.wrist_motor)
         
-        """
-        if hasattr(robot, "arm"):
-            self.arm_motor = Falcon500MotorSim(
-                robot.arm.motor, gearing=25, moi=0.00001
-            )
-            self.manip_motors.append(self.arm_motor)
-        """
+        self.arm_motor = Falcon500MotorSim(
+            robot.arm.motor, gearing=25, moi=0.00001
+        )
+        self.robot.arm.encoder.sim_state.set_raw_position(
+            self.robot.arm.target_pos / 360 - self.robot.arm.mag_offset
+        )
+        self.manip_motors.append(self.arm_motor)
     
         self.elevator_motor_left = Falcon500MotorSim(
             robot.elevator.motor_left, gearing=1, moi=0.00001
@@ -241,6 +241,11 @@ class PhysicsEngine:
         wpos = w.encoder.get_position().value
         wvel = self.wrist_motor.motor_sim.getAngularVelocity() / 105
         w.encoder.sim_state.set_raw_position(wpos - w.mag_offset + wvel)
+        
+        a = self.robot.arm
+        wpos = a.encoder.get_position().value
+        wvel = self.arm_motor.motor_sim.getAngularVelocity() / 255
+        a.encoder.sim_state.set_raw_position(wpos - a.mag_offset + wvel)
 
         speeds = self.kinematics.toChassisSpeeds((
             self.swerve_modules[0].get(),
