@@ -113,37 +113,33 @@ class PhysicsEngine:
 
         self.manip_motors: list[Falcon500MotorSim] = []
 
-        """
-        if hasattr(robot, "intake"):
-            self.intake_motor = Falcon500MotorSim(
-                robot.intake.motor, gearing=1, moi=0.001
-            )
-            self.manip_motors.append(self.intake_motor)
+        self.intake_motor = Falcon500MotorSim(
+            robot.intake.motor, gearing=1, moi=0.001
+        )
+        self.manip_motors.append(self.intake_motor)
 
-        if hasattr(robot, "wrist"):
-            self.wrist_motor = Falcon500MotorSim(
-                robot.wrist.motor, gearing=25, moi=0.00001
-            )
-            self.manip_motors.append(self.wrist_motor)
+        self.wrist_motor = Falcon500MotorSim(
+            robot.wrist.motor, gearing=105, moi=0.00001
+        )
+        self.manip_motors.append(self.wrist_motor)
         
+        """
         if hasattr(robot, "arm"):
             self.arm_motor = Falcon500MotorSim(
                 robot.arm.motor, gearing=25, moi=0.00001
             )
             self.manip_motors.append(self.arm_motor)
-    
-        if hasattr(robot, "elevator"):
-            self.elevator_motor_left = Falcon500MotorSim(
-                robot.elevator.motor_left, gearing=1, moi=0.00001
-            )
-            self.manip_motors.append(self.elevator_motor_left)
-
-            
-            self.elevator_motor_right = Falcon500MotorSim(
-                robot.elevator.motor_right, gearing=1, moi=0.00001
-            )
-            self.manip_motors.append(self.elevator_motor_right)
         """
+    
+        self.elevator_motor_left = Falcon500MotorSim(
+            robot.elevator.motor_left, gearing=1, moi=0.00001
+        )
+        self.manip_motors.append(self.elevator_motor_left)
+
+        self.elevator_motor_right = Falcon500MotorSim(
+            robot.elevator.motor_right, gearing=1, moi=0.00001
+        )
+        self.manip_motors.append(self.elevator_motor_right)
         
         self.current_yaw = 0.0
         self.gyro = robot.gyro.pigeon.sim_state  # Access the Pigeon 2's sim state
@@ -235,6 +231,10 @@ class PhysicsEngine:
             module.encoder.sim_state.set_raw_position(
                 raw - module.mag_offset
             )
+        # Immediately snaps the arm to where it should be
+        self.robot.wrist.encoder.sim_state.set_raw_position(
+            self.robot.wrist.target_pos / 360 - self.robot.wrist.mag_offset
+        )
 
         for m in self.manip_motors:
             m.update(tm_diff)
