@@ -8,6 +8,7 @@ from phoenix6.controls import (
 )
 from phoenix6.configs import TalonFXConfiguration, MotorOutputConfigs
 from phoenix6 import configs, signals
+from utilities import norm_deg
 from utilities.game import ManipLocation
 from ids import TalonId, CancoderId
 
@@ -17,6 +18,7 @@ pn = wpilib.SmartDashboard.putNumber
 class WristComponent:
     motor = TalonFX(TalonId.MANIP_WRIST.id, TalonId.MANIP_WRIST.bus)
     encoder = CANcoder(CancoderId.MANIP_WRIST.id, CancoderId.MANIP_WRIST.bus)
+    mag_offset = 0.4
     default_pos = 1.0
     target_pos = tunable(default_pos)
     motor_request = MotionMagicDutyCycle(0, override_brake_dur_neutral=True)
@@ -26,9 +28,8 @@ class WristComponent:
 
         enc_config.magnet_sensor.absolute_sensor_discontinuity_point = 0.5
         enc_config.magnet_sensor.sensor_direction = signals.SensorDirectionValue.COUNTER_CLOCKWISE_POSITIVE
-        enc_config.magnet_sensor.magnet_offset = 0.4
+        enc_config.magnet_sensor.magnet_offset = self.mag_offset
         self.encoder.configurator.apply(enc_config) # type: ignore
-
 
         config = TalonFXConfiguration()
         config.slot0.k_s = 0.0
@@ -53,23 +54,23 @@ class WristComponent:
     @feedback
     def get_position(self) -> float:
         ang = self.motor.get_position().value * 360
-        # normalize to 0-360
-        ang = ang % 360
-        return ang
+        return norm_deg(ang)
 
     @feedback
     def get_encoder_position(self) -> float:
-        return self.encoder.get_position().value * 360
+        ang = self.encoder.get_position().value * 360
+        return norm_deg(ang)
 
     @feedback
     def at_goal(self):
         current_pos = self.get_position()
-        _ = self.get_encoder_position()
         target_loc = ManipLocation(0, 0, self.target_pos)
         current_loc = ManipLocation(0, 0, current_pos)
         return current_loc == target_loc
 
     def execute(self):
+        if self.target_pos < -180 or self.target_pos > 180:
+            self.target_pos = norm_deg(self.target_pos)
         can_coder_target = self.target_pos / 360
         req = self.motor_request.with_position(can_coder_target)
         self.motor.set_control(req)
