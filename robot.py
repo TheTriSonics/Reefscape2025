@@ -180,6 +180,14 @@ class MyRobot(magicbot.MagicRobot):
         if self.operator_controller.getManipulatorAdvance():
             self.manipulator.request_advance()
 
+        # Hack in the right and left bumpers moving the elevator up and down
+        rtrig = self.operator_controller.getRightTriggerAxis()
+        if rtrig > 0.25:
+            self.elevator.target_pos += rtrig
+        ltrig = self.operator_controller.getLeftTriggerAxis()
+        if ltrig > 0.25:
+            self.elevator.target_pos -= ltrig
+
         # Some buttons to force the manipulator to certain heights. Not to be
         # used in the actual driving of the robot, but handy for debugging
         dpad = self.operator_controller.getPOV()
