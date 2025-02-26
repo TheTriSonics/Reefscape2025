@@ -12,9 +12,9 @@ class ManipulatorSim:
 
     def __init__(self):
         # Create a 2D mechanism for the Manipulator
-        self.mech2d = wpilib.Mechanism2d(25, 30)
+        self.mech2d = wpilib.Mechanism2d(1, 3)
         # Create the base structure
-        self.base = self.mech2d.getRoot("base", 12.5, 0)
+        self.base = self.mech2d.getRoot("base", 0.5, 0)
         # Create elevator tower
         self.elevator_tower = self.base.appendLigament(
             "elevator_tower", 
