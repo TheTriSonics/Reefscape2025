@@ -322,23 +322,12 @@ class MyRobot(magicbot.MagicRobot):
     def handle_debug_controller(self) -> None:
         dpad = self.debug_controller.getPOV()
         if self.debug_controller.getAButton():
-            # Work with elevator
-            if dpad == 0:  # UP
-                self.elevator.target_pos += 1
-            elif dpad == 180:
-                self.elevator.target_pos -= 1
+            self.elevator.target_pos = 0
         elif self.debug_controller.getBButton():
-            # work with the arm
-            if dpad == 0:
-                self.arm.target_pos += 1
-            elif dpad == 180:
-                self.arm.target_pos -= 1
-        elif self.debug_controller.getXButton():
-            # Work with the wrist
-            if dpad == 0:
-                self.wrist.target_pos += 1
-            elif dpad == 180:
-                self.wrist.target_pos -= 1
+            self.elevator.target_pos = 20
+        elif self.debug_controller.getYButton():
+            self.elevator.target_pos = 40
+
         if self.debug_controller.getRightBumper():
             self.intake.force_coral_score = True
         else:
