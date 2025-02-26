@@ -22,6 +22,7 @@ from wpimath.controller import (
 )
 from wpimath.estimator import SwerveDrive4PoseEstimator
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
+from wpimath.units import inchesToMeters
 from wpimath.kinematics import (
     ChassisSpeeds,
     SwerveDrive4Kinematics,
@@ -223,16 +224,9 @@ class DrivetrainComponent:
     # You have to use them in the setup() method
     gyro: GyroComponent
 
-    # TODO: Pull this from TunerConstants either here, or later on
-    # when we actually make the SwerveModules
-    # meters between center of left and right wheels
-    TRACK_WIDTH = 0.540
-    # meters between center of front and back wheels
-    WHEEL_BASE = 0.540
-
     # size including bumpers
-    LENGTH = 0.600 + 2 * 0.09
-    WIDTH = LENGTH
+    LENGTH = inchesToMeters(35)
+    WIDTH = inchesToMeters(37)
 
     DRIVE_CURRENT_THRESHOLD = 35
 
@@ -270,8 +264,11 @@ class DrivetrainComponent:
         self.heading_controller.setTolerance(self.HEADING_TOLERANCE)
         self.snap_heading: float | None = None
 
-        self.choreo_x_controller = PIDController(10, 0, 0)
-        self.choreo_y_controller = PIDController(10, 0, 0)
+        # Leaving the old values here, using some more docile ones for driver practice temporarily
+        # self.choreo_x_controller = PIDController(10, 0, 0)
+        # self.choreo_y_controller = PIDController(10, 0, 0)
+        self.choreo_x_controller = PIDController(6, 0, 0)
+        self.choreo_y_controller = PIDController(6, 0, 0)
         self.choreo_heading_controller = PIDController(15, 0, 0)
         self.choreo_heading_controller.enableContinuousInput(-math.pi, math.pi)
         self.on_red_alliance = False
@@ -280,8 +277,8 @@ class DrivetrainComponent:
             # Front Left
             SwerveModule(
                 "Front Left",
-                self.WHEEL_BASE / 2,
-                self.TRACK_WIDTH / 2,
+                TunerConstants._front_left_x_pos,
+                TunerConstants._front_left_y_pos,
                 TalonId.DRIVE_FL.id,
                 TalonId.TURN_FL.id,
                 CancoderId.SWERVE_FL.id,
@@ -293,8 +290,8 @@ class DrivetrainComponent:
             # Front Right
             SwerveModule(
                 "Front Right",
-                self.WHEEL_BASE / 2,
-                -self.TRACK_WIDTH / 2,
+                TunerConstants._front_right_x_pos,
+                TunerConstants._front_right_y_pos,
                 TalonId.DRIVE_FR.id,
                 TalonId.TURN_FR.id,
                 CancoderId.SWERVE_FR.id,
@@ -306,8 +303,8 @@ class DrivetrainComponent:
             # Back Left
             SwerveModule(
                 "Back Left",
-                -self.WHEEL_BASE / 2,
-                self.TRACK_WIDTH / 2,
+                TunerConstants._back_left_x_pos,
+                TunerConstants._back_left_y_pos,
                 TalonId.DRIVE_BL.id,
                 TalonId.TURN_BL.id,
                 CancoderId.SWERVE_BL.id,
@@ -319,8 +316,8 @@ class DrivetrainComponent:
             # Back Right
             SwerveModule(
                 "Back Right",
-                -self.WHEEL_BASE / 2,
-                -self.TRACK_WIDTH / 2,
+                TunerConstants._back_right_x_pos,
+                TunerConstants._back_right_y_pos,
                 TalonId.DRIVE_BR.id,
                 TalonId.TURN_BR.id,
                 CancoderId.SWERVE_BR.id,
