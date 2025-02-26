@@ -29,16 +29,17 @@ class ArmComponent:
         enc_config.magnet_sensor.sensor_direction = signals.SensorDirectionValue.COUNTER_CLOCKWISE_POSITIVE
         enc_config.magnet_sensor.magnet_offset = self.mag_offset
         self.encoder.configurator.apply(enc_config) # type: ignore
+
         config = TalonFXConfiguration()
         config.slot0.k_s = 0.0
         config.slot0.k_v = 0.8
         config.slot0.k_a = 0.01
-        config.slot0.k_p = 15.0
+        config.slot0.k_p = 10.0
         config.slot0.k_i = 0.0
         config.slot0.k_d = 0.0
-        config.motion_magic.motion_magic_cruise_velocity = 10
-        config.motion_magic.motion_magic_acceleration = 160
-        config.motion_magic.motion_magic_jerk = 400
+        config.motion_magic.motion_magic_cruise_velocity = 1
+        config.motion_magic.motion_magic_acceleration = 50
+        config.motion_magic.motion_magic_jerk = 250
         config.feedback.feedback_remote_sensor_id = self.encoder.device_id
         config.feedback.feedback_sensor_source = signals.FeedbackSensorSourceValue.FUSED_CANCODER
         config.feedback.sensor_to_mechanism_ratio = 1
@@ -58,7 +59,6 @@ class ArmComponent:
     def get_encoder_position(self) -> float:
         ang = self.encoder.get_position().value * 360
         return norm_deg(ang)
-
 
     @feedback
     def at_goal(self):

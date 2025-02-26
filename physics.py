@@ -127,7 +127,7 @@ class PhysicsEngine:
         self.manip_motors.append(self.wrist_motor)
         
         self.arm_motor = Falcon500MotorSim(
-            robot.arm.motor, gearing=25, moi=0.00001
+            robot.arm.motor, gearing=105, moi=0.00001
         )
         self.robot.arm.encoder.sim_state.set_raw_position(
             self.robot.arm.target_pos / 360 - self.robot.arm.mag_offset
@@ -238,14 +238,14 @@ class PhysicsEngine:
             m.update(tm_diff)
 
         w = self.robot.wrist
-        wpos = w.encoder.get_position().value
-        wvel = self.wrist_motor.motor_sim.getAngularVelocity() / 105
-        w.encoder.sim_state.set_raw_position(wpos - w.mag_offset + wvel)
+        curr_pos = w.encoder.get_position().value
+        vel = self.wrist_motor.motor_sim.getAngularVelocity() / 105
+        w.encoder.sim_state.set_raw_position(curr_pos - w.mag_offset + vel)
         
         a = self.robot.arm
-        wpos = a.encoder.get_position().value
-        wvel = self.arm_motor.motor_sim.getAngularVelocity() / 255
-        a.encoder.sim_state.set_raw_position(wpos - a.mag_offset + wvel)
+        curr_pos = a.encoder.get_position().value
+        vel = self.arm_motor.motor_sim.getAngularVelocity() / 105
+        a.encoder.sim_state.set_raw_position(curr_pos - a.mag_offset + vel)
 
         speeds = self.kinematics.toChassisSpeeds((
             self.swerve_modules[0].get(),

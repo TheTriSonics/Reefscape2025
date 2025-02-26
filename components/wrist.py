@@ -1,15 +1,13 @@
-import math
 import wpilib
-from phoenix6.hardware import TalonFX, CANcoder
 from magicbot import feedback, tunable
+from phoenix6 import configs, signals
+from phoenix6.hardware import TalonFX, CANcoder
 from phoenix6.controls import (
-    MotionMagicVoltage,
     MotionMagicDutyCycle
 )
 from phoenix6.configs import TalonFXConfiguration, MotorOutputConfigs
-from phoenix6 import configs, signals
-from utilities import norm_deg
 from utilities.game import ManipLocation
+from utilities import norm_deg
 from ids import TalonId, CancoderId
 
 pn = wpilib.SmartDashboard.putNumber
