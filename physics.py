@@ -121,6 +121,9 @@ class PhysicsEngine:
         self.wrist_motor = Falcon500MotorSim(
             robot.wrist.motor, gearing=105, moi=0.00001
         )
+        self.robot.wrist.encoder.sim_state.set_raw_position(
+            self.robot.wrist.target_pos / 360 - self.robot.wrist.mag_offset
+        )
         self.manip_motors.append(self.wrist_motor)
         
         """
@@ -231,13 +234,13 @@ class PhysicsEngine:
             module.encoder.sim_state.set_raw_position(
                 raw - module.mag_offset
             )
-        # Immediately snaps the arm to where it should be
-        self.robot.wrist.encoder.sim_state.set_raw_position(
-            self.robot.wrist.target_pos / 360 - self.robot.wrist.mag_offset
-        )
-
         for m in self.manip_motors:
             m.update(tm_diff)
+
+        w = self.robot.wrist
+        wpos = w.encoder.get_position().value
+        wvel = self.wrist_motor.motor_sim.getAngularVelocity() / 105
+        w.encoder.sim_state.set_raw_position(wpos - w.mag_offset + wvel)
 
         speeds = self.kinematics.toChassisSpeeds((
             self.swerve_modules[0].get(),
