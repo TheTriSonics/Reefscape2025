@@ -272,6 +272,9 @@ class DrivetrainComponent:
         self.choreo_heading_controller = PIDController(15, 0, 0)
         self.choreo_heading_controller.enableContinuousInput(-math.pi, math.pi)
         self.on_red_alliance = False
+        if is_sim():
+            self.choreo_x_controller.setPID(14, 0, 0)
+            self.choreo_y_controller.setPID(14, 0, 0)
 
         self.modules = (
             # Front Left
@@ -405,10 +408,17 @@ class DrivetrainComponent:
     def halt(self):
         self.drive_local(0, 0, 0)
     
-    def drive_to_pose(self, pose: Pose2d) -> None:
-        self.drive_to_position(pose.X(), pose.Y(), pose.rotation().radians())
+    def drive_to_pose(self, pose: Pose2d, aggressive=False) -> None:
+        self.drive_to_position(
+            pose.X(), pose.Y(), pose.rotation().radians(), aggressive=False
+        )
 
-    def drive_to_position(self, x: float, y: float, heading: float) -> None:
+    def drive_to_position(
+        self, x: float, y: float, heading: float, aggressive=False
+    ) -> None:
+        if aggressive:
+            # Do something like turn up the P gains?
+            pass
         robot_pose = self.get_pose()
         xvel = self.choreo_x_controller.calculate(robot_pose.X(), x)
         yvel = self.choreo_y_controller.calculate(robot_pose.Y(), y)

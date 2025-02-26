@@ -32,7 +32,7 @@ class AutonSample(AutonomousStateMachine):
     photoeye: PhotoEyeComponent
 
     MODE_NAME = 'Sample - Place Infinite'
-    DEFAULT = True
+    DEFAULT = False
 
     pose_set = False
     selected_alliance = None

@@ -11,7 +11,7 @@ from wpimath.geometry import Pose2d, Rotation2d, Translation2d, Transform2d
 from magicbot import StateMachine, state, tunable, feedback, will_reset_to
 
 from components.drivetrain import DrivetrainComponent
-from choreo import load_swerve_trajectory  # type: ignore
+from choreo import load_swerve_trajectory
 from choreo.trajectory import SwerveTrajectory as ChoreoSwerveTrajectory
 
 from utilities.waypoints import Waypoints
@@ -241,7 +241,9 @@ class Intimidator(StateMachine):
                 best_traj = min(scores, key=lambda k: float(scores[k]))
                 print('Best trajectory:', best_traj)
                 # Find trajectory in self.trajectories that has a name that matches best_traj
-                traj = next((traj for traj in self.trajectories if traj.name == best_traj), None)
+                traj = next(
+                    traj for traj in self.trajectories if traj.name == best_traj
+                )
                 assert traj
                 self.trajectory = traj
                 # Now let's publish the poses of the trajectory
@@ -380,7 +382,7 @@ class Intimidator(StateMachine):
         # in one more robot cycle at the above 'speed' in m/s
         angle_radians = math.atan2(dy, dx)
         pn = wpilib.SmartDashboard.putNumber
-        target_radians = 0
+        target_radians = 0.0
         match self.strafe_to_face:
             case 'D':
                 target_radians = 0

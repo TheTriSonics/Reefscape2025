@@ -61,7 +61,7 @@ class MyRobot(magicbot.MagicRobot):
     intake: IntakeComponent
     intake_control: IntakeControl
 
-    max_speed = magicbot.tunable(5)  # m/s
+    max_speed = magicbot.tunable(5.0)  # m/s
     lower_max_speed = magicbot.tunable(2.5)  # m/s
     max_spin_rate = magicbot.tunable(math.tau)
     lower_max_spin_rate = magicbot.tunable(math.pi)  # m/s
@@ -107,12 +107,9 @@ class MyRobot(magicbot.MagicRobot):
 
     def autonomousInit(self):
         Positions.update_alliance_positions()
-        self.intake.reset_game_pieces()
         return
 
     def autonomousPeriodic(self):
-        mt = self.timer.getMatchTime()
-        print(mt)
         pass
 
     def teleopInit(self) -> None:
@@ -121,7 +118,6 @@ class MyRobot(magicbot.MagicRobot):
 
         self.leds.rainbow()
         Positions.update_alliance_positions()
-        self.intake.reset_game_pieces()
         
         # Determine which Joystick to use for the driver.
         js_name = wpilib.DriverStation.getJoystickName(0)
@@ -132,6 +128,7 @@ class MyRobot(magicbot.MagicRobot):
         self.controller_choice = 'Stock Xbox controller'
         self.driver_controller: ReefscapeDriverBase = ReefscapeDriver(0)
         self.operator_controller = ReefscapeOperator(1)
+        self.debug_controller = wpilib.XboxController(2)
         if js_name == 'Xbox Wireless Controller':
             self.controller_choice = 'Using Xbox wireless controller config'
             self.driver_controller = ReefscapeDriverWireless(0)
@@ -187,6 +184,14 @@ class MyRobot(magicbot.MagicRobot):
             self.manipulator.go_home()
         if self.operator_controller.getManipulatorAdvance():
             self.manipulator.request_advance()
+
+        # Hack in the right and left bumpers moving the elevator up and down
+        rtrig = self.operator_controller.getRightTriggerAxis()
+        if rtrig > 0.25:
+            self.elevator.target_pos += rtrig
+        ltrig = self.operator_controller.getLeftTriggerAxis()
+        if ltrig > 0.25:
+            self.elevator.target_pos -= ltrig
 
         # Some buttons to force the manipulator to certain heights. Not to be
         # used in the actual driving of the robot, but handy for debugging
