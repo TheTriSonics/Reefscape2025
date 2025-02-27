@@ -26,7 +26,7 @@ class ElevatorComponent:
         config.slot0.k_s = 0.0
         config.slot0.k_v = 0.0
         config.slot0.k_a = 0.0
-        config.slot0.k_p = 0.5
+        config.slot0.k_p = 0.25
         config.slot0.k_i = 0.0
         config.slot0.k_d = 0.0
         config.motion_magic.motion_magic_cruise_velocity = 25

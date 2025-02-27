@@ -273,6 +273,7 @@ class DrivetrainComponent:
         self.choreo_heading_controller.enableContinuousInput(-math.pi, math.pi)
         self.on_red_alliance = False
         if is_sim():
+            # Go faster
             self.choreo_x_controller.setPID(14, 0, 0)
             self.choreo_y_controller.setPID(14, 0, 0)
 

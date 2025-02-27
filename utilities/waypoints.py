@@ -220,7 +220,7 @@ class Waypoints:
     def get_tag_robot_away(cls, tag_id, face_at=False) -> Pose2d:
         pose = cls.get_tag_pose(tag_id)
         rot = 0 if face_at is False else math.pi
-        robot_offset = Transform2d(Translation2d(robot_y_offset, 0), Rotation2d(rot))
+        robot_offset = Transform2d(Translation2d(robot_y_offset + 0.2, 0), Rotation2d(rot))
         robot_pose = pose.transformBy(robot_offset)
         return robot_pose
 

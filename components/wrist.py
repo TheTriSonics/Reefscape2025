@@ -16,7 +16,7 @@ pn = wpilib.SmartDashboard.putNumber
 class WristComponent:
     motor = TalonFX(TalonId.MANIP_WRIST.id, TalonId.MANIP_WRIST.bus)
     encoder = CANcoder(CancoderId.MANIP_WRIST.id, CancoderId.MANIP_WRIST.bus)
-    mag_offset = 0.4
+    mag_offset = 0.39990234375
     default_pos = 1.0
     target_pos = tunable(default_pos)
     motor_request = MotionMagicDutyCycle(0, override_brake_dur_neutral=True)

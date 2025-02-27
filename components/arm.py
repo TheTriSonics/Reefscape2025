@@ -17,7 +17,7 @@ pn = wpilib.SmartDashboard.putNumber
 class ArmComponent:
     motor = TalonFX(TalonId.MANIP_ARM.id, TalonId.MANIP_ARM.bus)
     encoder = CANcoder(CancoderId.MANIP_ARM.id, CancoderId.MANIP_ARM.bus)
-    mag_offset = 0.4
+    mag_offset = 0.343017578125
     default_pos = -80.0
     target_pos = tunable(default_pos)
     motor_request = MotionMagicDutyCycle(0, override_brake_dur_neutral=True)
@@ -72,4 +72,4 @@ class ArmComponent:
             self.target_pos = norm_deg(self.target_pos)
         can_coder_target = self.target_pos / 360
         req = self.motor_request.with_position(can_coder_target)
-        self.motor.set_control(req)
+        # self.motor.set_control(req)
