@@ -233,8 +233,7 @@ class DrivetrainComponent:
     HEADING_TOLERANCE = math.radians(1)
 
     # maxiumum speed for any wheel
-    # TODO: Pull in from Tuner Contants
-    max_wheel_speed = 32
+    max_wheel_speed = TunerConstants.speed_at_12_volts
 
     control_loop_wait_time: float
 
@@ -265,15 +264,17 @@ class DrivetrainComponent:
         self.snap_heading: float | None = None
 
         # Leaving the old values here, using some more docile ones for driver practice temporarily
-        self.choreo_x_controller = PIDController(10, 0, 0)
-        self.choreo_y_controller = PIDController(10, 0, 0)
+        self.default_xy_pid = (10, 0, 0)
+        self.aggressive_xy_pid = (16, 1, 0)
+        if is_sim():
+            self.default_xy_pid = (14, 2, 0)
+            self.aggressive_xy_pid = (30, 2, 0)
+
+        self.choreo_x_controller = PIDController(*self.default_xy_pid)
+        self.choreo_y_controller = PIDController(*self.default_xy_pid)
         self.choreo_heading_controller = PIDController(15, 0, 0)
         self.choreo_heading_controller.enableContinuousInput(-math.pi, math.pi)
         self.on_red_alliance = False
-        if is_sim():
-            # Go faster
-            self.choreo_x_controller.setPID(14, 0, 0)
-            self.choreo_y_controller.setPID(14, 0, 0)
 
         self.modules = (
             # Front Left
@@ -416,8 +417,9 @@ class DrivetrainComponent:
         self, x: float, y: float, heading: float, aggressive=False
     ) -> None:
         if aggressive:
-            # Do something like turn up the P gains?
-            pass
+            self.choreo_x_controller.setPID(*self.aggressive_xy_pid)
+        else:
+            self.choreo_x_controller.setPID(*self.default_xy_pid)
         robot_pose = self.get_pose()
         xvel = self.choreo_x_controller.calculate(robot_pose.X(), x)
         yvel = self.choreo_y_controller.calculate(robot_pose.Y(), y)

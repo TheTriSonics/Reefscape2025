@@ -61,11 +61,10 @@ class MyRobot(magicbot.MagicRobot):
     intake: IntakeComponent
     intake_control: IntakeControl
 
-    max_speed = magicbot.tunable(5.0)  # m/s
-    lower_max_speed = magicbot.tunable(2.5)  # m/s
-    max_spin_rate = magicbot.tunable(math.tau)
+    max_speed = magicbot.tunable(25.0)  # m/s
+    lower_max_speed = magicbot.tunable(6)  # m/s
+    max_spin_rate = magicbot.tunable(2 * math.tau)
     lower_max_spin_rate = magicbot.tunable(math.pi)  # m/s
-    inclination_angle = tunable(0.0)
     controller_choice = tunable('')
     controller_name = tunable('')
 
@@ -227,6 +226,12 @@ class MyRobot(magicbot.MagicRobot):
         max_spin_rate = self.max_spin_rate
 
         self.drivetrain.max_wheel_speed = max_speed
+        rtrig = self.driver_controller.getRawAxis(5)
+        ltrig = self.driver_controller.getRawAxis(2)
+        pn = wpilib.SmartDashboard.putNumber
+        pn('rtrig', rtrig)
+        pn('ltrig', ltrig)
+
         drive_x = -rescale_js(self.driver_controller.getLeftY(), 0.05, 2.5) * max_speed
         drive_y = -rescale_js(self.driver_controller.getLeftX(), 0.05, 2.5) * max_speed
         drive_z = (
@@ -255,7 +260,17 @@ class MyRobot(magicbot.MagicRobot):
             self.intimidator.go_drive_local()
         elif self.driver_controller.getStrafe():
             self.intimidator.go_drive_strafe()
+        elif rtrig > -0.75:
+            # Scale this between 0-1 instead of -1 to 1
+            rscaled = (rtrig + 1) / 2
+            self.intimidator.set_stick_values(0, 0, rscaled*10)
+            self.intimidator.go_drive_strafe()
+        elif ltrig > -0.75:
+            lscaled = (ltrig + 1) / 2
+            self.intimidator.set_stick_values(0, 0, -lscaled*10)
+            self.intimidator.go_drive_strafe()
         else:
+            self.intimidator.set_stick_values(drive_x, drive_y, drive_z)
             self.intimidator.go_drive_field()
 
     def teleopPeriodic(self) -> None:
