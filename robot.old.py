@@ -22,12 +22,10 @@ from components.leds_sim import LEDSim
 from components.manipulator_sim import ManipulatorSim
 
 from controllers.manipulator import Manipulator
-from controllers.intimidator import Intimidator
 from controllers.intake import IntakeControl
 
 from utilities.scalers import rescale_js
 from utilities.position import Positions
-from utilities.game import GamePieces
 from utilities import Waypoints, is_red
 
 from hid.xbox_wired import ReefscapeDriver, ReefscapeOperator
@@ -38,10 +36,21 @@ from hid.thrustmaster import ReefscapeDriver as ReefscapeDriverThrustmaster
 from hid.reefscape_driver_base import ReefscapeDriverBase
 
 
+def get_point_on_circle(center_x, center_y, radius, angle_degrees):
+    # Convert angle from degrees to radians
+    angle_radians = math.radians(angle_degrees)
+    
+    # Calculate x and y coordinates using parametric equations of a circle
+    x = center_x + (radius * math.cos(angle_radians))
+    y = center_y + (radius * math.sin(angle_radians))
+    heading_radians = math.atan2(center_y - y, center_x - x)
+    
+    return (x, y, heading_radians)
+
+
 class MyRobot(magicbot.MagicRobot):
     # Controllers
     manipulator: Manipulator
-    intimidator: Intimidator
     manipulator_sim: ManipulatorSim
     leds_sim: LEDSim
 
@@ -61,16 +70,19 @@ class MyRobot(magicbot.MagicRobot):
     intake: IntakeComponent
     intake_control: IntakeControl
 
-    max_speed = magicbot.tunable(25.0)  # m/s
-    lower_max_speed = magicbot.tunable(6)  # m/s
-    max_spin_rate = magicbot.tunable(2 * math.tau)
-    lower_max_spin_rate = magicbot.tunable(math.pi)  # m/s
+    max_speed = magicbot.tunable(32)  # m/s
+    lower_max_speed = magicbot.tunable(3)  # m/s
+    max_spin_rate = magicbot.tunable(12)  # m/s
+    lower_max_spin_rate = magicbot.tunable(4)  # m/s
+    inclination_angle = tunable(0.0)
     controller_choice = tunable('')
     controller_name = tunable('')
 
     # This is a debugging/test thing, not production code
     driver_reef_snap_distance = tunable(-1.0)
     driver_reef_radians_snap = tunable(0.0)
+
+    strafe_distance = tunable(-1.0)
 
     START_POS_TOLERANCE = 1
 
@@ -105,12 +117,9 @@ class MyRobot(magicbot.MagicRobot):
         )
 
     def autonomousInit(self):
-        Positions.update_alliance_positions()
         return
 
     def autonomousPeriodic(self):
-        pose = self.drivetrain.get_pose()
-        Positions.update_dynamic_positions(pose)
         pass
 
     def teleopInit(self) -> None:
@@ -118,7 +127,6 @@ class MyRobot(magicbot.MagicRobot):
             wpilib.DriverStation.silenceJoystickConnectionWarning(True)
 
         self.leds.rainbow()
-        Positions.update_alliance_positions()
         
         # Determine which Joystick to use for the driver.
         js_name = wpilib.DriverStation.getJoystickName(0)
@@ -136,48 +144,34 @@ class MyRobot(magicbot.MagicRobot):
         elif js_name == 'Logitech Logitech Extreme 3D':
             self.controller_choice = 'Going with a flight stick, eh, Mav?'
             self.driver_controller = ReefscapeDriverFlight(0)
-        elif js_name.startswith('Logitech Gamepad') or js_name.startswith('Generic'):
+        elif js_name.startswith('Logitech Gamepad'):
             self.controller_choice = 'Logitech Gamepad'
             self.driver_controller = ReefscapeDriverLogiGamepad(0)
         elif js_name.startswith('Thrustmaster') or js_name.startswith('T.Flight Hotas'):
             self.controller_choice = 'Talk to me, Goose!'
             self.driver_controller = ReefscapeDriverThrustmaster(0)
         # self.drivetrain.set_pose(Positions.auton_line_2(is_red()))
-        self.photoeye.coral_held = False
-        self.photoeye.algae_held = True
         tag = Waypoints.get_tag_id_from_letter('C', True)
         pose = Waypoints.get_tag_robot_away(tag, face_at=True)
         pose = Waypoints.shift_reef_right(pose)
         self.drivetrain.set_pose(pose)
         self.manipulator.engage()
-        self.intimidator.engage()
 
     def handle_manipulator(self) -> None:
         from controllers.manipulator import ManipLocations
+        # Let's set some heights with the driver controller
+        if self.driver_controller.getHeightPlacement1():
+            self.manipulator.set_coral_level1()
+        if self.driver_controller.getHeightPlacement2():
+            self.manipulator.set_coral_level2()
+        if self.driver_controller.getHeightPlacement3():
+            self.manipulator.set_coral_level3()
+        if self.driver_controller.getHeightPlacement4():
+            self.manipulator.set_coral_level4()
         if self.driver_controller.getManipulatorAdvance():
             self.manipulator.request_advance()
-        if self.driver_controller.getCoralMode():
-            self.manipulator.coral_mode()
-        if self.driver_controller.getAlgaeMode():
-            self.manipulator.algae_mode()
         if self.driver_controller.goHome():
             self.manipulator.go_home()
-
-        # Let's set some heights with the driver controller
-        if self.manipulator.game_piece_mode == GamePieces.CORAL:
-            if self.driver_controller.getHeightPlacement1():
-                self.manipulator.set_coral_level1()
-            if self.driver_controller.getHeightPlacement2():
-                self.manipulator.set_coral_level2()
-            if self.driver_controller.getHeightPlacement3():
-                self.manipulator.set_coral_level3()
-            if self.driver_controller.getHeightPlacement4():
-                self.manipulator.set_coral_level4()
-        elif self.manipulator.game_piece_mode == GamePieces.ALGAE:
-            if self.driver_controller.getHeightPlacement1():
-                self.manipulator.set_algae_level1()
-            if self.driver_controller.getHeightPlacement2():
-                self.manipulator.set_algae_level2()
 
         # Now let's do the operator controller, which is how the real robot
         # will likely work
@@ -193,11 +187,6 @@ class MyRobot(magicbot.MagicRobot):
         ltrig = self.operator_controller.getLeftTriggerAxis()
         if ltrig > 0.25:
             self.elevator.target_pos -= ltrig
-        
-        # TODO: Implement deadbanding if not the whole resize_js() method that
-        # we use on the driver's stick inputs.
-        arm_movement = -self.operator_controller.getLeftY()
-        self.arm.target_pos += arm_movement
 
         # Some buttons to force the manipulator to certain heights. Not to be
         # used in the actual driving of the robot, but handy for debugging
@@ -227,59 +216,149 @@ class MyRobot(magicbot.MagicRobot):
         max_speed = self.max_speed
         max_spin_rate = self.max_spin_rate
 
-        self.drivetrain.max_wheel_speed = max_speed
-        rtrig = self.driver_controller.getRawAxis(5)
-        ltrig = self.driver_controller.getRawAxis(2)
-        pn = wpilib.SmartDashboard.putNumber
-        pn('rtrig', rtrig)
-        pn('ltrig', ltrig)
-
+        if self.driver_controller.getFieldReset():  # the window button
+            self.gyro.reset_heading()
         drive_x = -rescale_js(self.driver_controller.getLeftY(), 0.05, 2.5) * max_speed
         drive_y = -rescale_js(self.driver_controller.getLeftX(), 0.05, 2.5) * max_speed
         drive_z = (
             -rescale_js(self.driver_controller.getRightX(), 0.1, exponential=2) * max_spin_rate
         )
-        self.intimidator.set_stick_values(drive_x, drive_y, drive_z)
 
-        if self.driver_controller.getFieldReset():  # the window button
-            self.gyro.reset_heading()
+        if self.driver_controller.getStrafe() is False:
+            self.strafe_distance = -1.0
 
-        if self.driver_controller.getReefAlgae():
-            self.intimidator.go_lock_reef()
-        elif self.driver_controller.getReefLeft():
-            self.intimidator.go_lock_reef(shift_left=True)
-        elif self.driver_controller.getReefRight():
-            self.intimidator.go_lock_reef(shift_right=True)
-        elif self.driver_controller.getToWallTarget():
-            self.intimidator.go_drive_swoop(Positions.PS_CLOSEST)
-        elif self.driver_controller.returnToHomeLocation():
-            self.drivetrain.drive_to_pose(
-                Positions.AUTON_LINE_CENTER
-            )
-        elif self.driver_controller.getDriveLocal():
+        if self.driver_controller.getDriveLocal():
             max_speed = self.lower_max_speed
             max_spin_rate = self.lower_max_spin_rate
-            self.intimidator.go_drive_local()
+            self.drivetrain.drive_local(drive_x, drive_y, drive_z)
+        elif self.driver_controller.getSnap() and self.driver_reef_snap_distance < 0:
+            # Set a new 'snap to' distance
+            robot_pose = self.drivetrain.get_pose()
+            rc = Waypoints.get_reef_center(is_red())
+            self.reef_center_pose_pub.set(rc)
+            h = Waypoints.get_radians_to_reef_center(robot_pose, is_red())
+            self.driver_reef_radians_snap = h
+            self.drivetrain.snap_to_heading(h)
+            # self.drivetrain.snap_to_heading(math.pi/2)
         elif self.driver_controller.getStrafe():
-            self.intimidator.go_drive_strafe()
-        elif rtrig > -0.75:
-            # Scale this between 0-1 instead of -1 to 1
-            rscaled = (rtrig + 1) / 2
-            self.intimidator.set_stick_values(0, 0, rscaled*10)
-            self.intimidator.go_drive_strafe()
-        elif ltrig > -0.75:
-            lscaled = (ltrig + 1) / 2
-            self.intimidator.set_stick_values(0, 0, -lscaled*10)
-            self.intimidator.go_drive_strafe()
+            rc = Waypoints.get_reef_center(is_red())
+            robot_pose = self.drivetrain.get_pose()
+            self.reef_center_pose_pub.set(rc)
+            # Get the distance between robot pose and rc
+            dist = robot_pose.translation().distance(rc.translation())
+            if self.strafe_distance < 0:
+                self.strafe_distance = dist
+
+            strafe_poses = []
+            for i in range(0, 360 + 10, 10):
+                x, y, rad = get_point_on_circle(rc.translation().X(), rc.translation().Y(), self.strafe_distance, i)
+                pose = Pose2d(Translation2d(x, y), Rotation2d(rad))
+                strafe_poses.append(pose)
+            self.strafe_positions.set(strafe_poses)
+            # Now get my current angle on the circle
+            dx = robot_pose.X() - rc.X()
+            dy = robot_pose.Y() - rc.Y()
+            # Calculate angle using atan2
+            angle_radians = math.atan2(dy, dx)
+            angle_degrees = math.degrees(angle_radians)
+            # Rotation will now control the angle on the circle
+            deg_change = -drive_z * 4
+            max_deg_change = 25
+            if deg_change < -max_deg_change:
+                deg_change = -max_deg_change
+            elif deg_change > max_deg_change:
+                deg_change = max_deg_change 
+
+            angle_degrees -= deg_change
+            # Now check if it is less than -2 or 2 and cap it within that range
+            x, y, rad = get_point_on_circle(
+                rc.X(), rc.Y(), self.strafe_distance, angle_degrees 
+            )
+            self.strafe_next.set(Pose2d(Translation2d(x, y), Rotation2d(rad)))
+            self.drivetrain.drive_to_position(x, y, rad)
         else:
-            self.intimidator.set_stick_values(drive_x, drive_y, drive_z)
-            self.intimidator.go_drive_field()
+            if is_red():
+                drive_x = -drive_x
+                drive_y = -drive_y
+            self.drivetrain.drive_field(drive_x, drive_y, drive_z)
+        # Give rotational access to the driver unless they're snapping to
+        # a heading
+        if self.driver_controller.getStrafe() is False:  # noqa: SIM102
+            if drive_z != 0 and self.driver_controller.getSnap() is False:
+                self.drivetrain.stop_snapping()
+
+    def lock_reef(self, shift_left=False, shift_right=False):
+        pose = self.drivetrain.get_pose()
+        reef_tag_id, _ = Waypoints.closest_reef_tag_id(pose)
+        final_pose = (
+            Waypoints.get_tag_robot_away(reef_tag_id)
+            .transformBy(Transform2d(Translation2d(0, 0), Rotation2d(math.pi)))
+        )
+        if shift_left:
+            final_pose = Waypoints.shift_reef_left(final_pose)
+        elif shift_right:
+            final_pose = Waypoints.shift_reef_right(final_pose)
+        self.final_pose_pub.set(final_pose)
+        self.drivetrain.drive_to_pose(final_pose)
+
+    def lock_ps(self):
+        pose = self.drivetrain.get_pose()
+        tag_id, _ = Waypoints.closest_ps_tag_id(pose)
+        final_pose = (
+            Waypoints.get_tag_robot_away(tag_id)
+        )
+        self.final_pose_pub.set(final_pose)
+        self.drivetrain.drive_to_pose(final_pose)
+
+    def lock_processor(self):
+        pose = self.drivetrain.get_pose()
+        tag_id, _ = Waypoints.closest_processor_tag_id(pose)
+        final_pose = (
+            Waypoints.get_tag_robot_away(tag_id)
+        )
+        self.final_pose_pub.set(final_pose)
+        self.drivetrain.drive_to_pose(final_pose)
+
+    def handle_debug_controller(self) -> None:
+        dpad = self.debug_controller.getPOV()
+        if self.debug_controller.getAButton():
+            self.elevator.target_pos = 0
+        elif self.debug_controller.getBButton():
+            self.elevator.target_pos = 20
+        elif self.debug_controller.getYButton():
+            self.elevator.target_pos = 40
+
+        if self.debug_controller.getRightBumper():
+            self.intake.force_coral_score = True
+        else:
+            self.intake.force_coral_score = False
+
+        if self.debug_controller.getLeftBumper():
+            self.intake.force_coral_intake = True
+        else:
+            self.intake.force_coral_intake = False
 
     def teleopPeriodic(self) -> None:
+        self.handle_debug_controller()
         self.handle_manipulator()
-        self.handle_drivetrain()
-        pose = self.drivetrain.get_pose()
-        Positions.update_dynamic_positions(pose)
+
+        if self.driver_controller.getReefAlgae():
+            self.lock_reef()
+        elif self.driver_controller.getReefLeft():
+            self.lock_reef(shift_left=True)
+        elif self.driver_controller.getReefRight():
+            self.lock_reef(shift_right=True)
+        elif self.driver_controller.getToWallTarget():
+            if self.photoeye.algae_held:
+                self.lock_processor()
+            else:
+                self.lock_ps()
+        elif self.driver_controller.returnToHomeLocation():
+            self.drivetrain.drive_to_pose(
+                Positions.auton_line_2(is_red())
+            )
+        else:
+            self.handle_drivetrain()
 
     def testInit(self) -> None:
         self.driver_controller = ReefscapeDriver(0)
@@ -298,23 +377,15 @@ class MyRobot(magicbot.MagicRobot):
             self.drivetrain.drive_local(0, 0, 0)
 
         self.drivetrain.execute()
+
         self.drivetrain.update_odometry()
 
-    def disabledInit(self):
-        mode = self._automodes.chooser.getSelected()
-        if mode and hasattr(mode, 'pose_set'):
-            mode.pose_set = False
-        return super().disabledInit()
-
     def disabledPeriodic(self) -> None:
-        Positions.update_alliance_positions()
         self.vision.execute()
         self.battery_monitor.execute()
         self.leds.execute()
         self.drivetrain.update_odometry()
         # mode = self._automodes.active_mode
-        if Positions.PROCESSOR.X() == 0:
-            return  # Skip trying to set pose, we don't have position data yet.
         mode = self._automodes.chooser.getSelected()
         if mode and hasattr(mode, 'set_initial_pose'):
             mode.set_initial_pose()

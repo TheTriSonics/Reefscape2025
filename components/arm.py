@@ -1,4 +1,3 @@
-
 import wpilib
 from magicbot import feedback, tunable
 from phoenix6 import configs, signals
@@ -34,7 +33,7 @@ class ArmComponent:
         config.slot0.k_s = 0.0
         config.slot0.k_v = 0.8
         config.slot0.k_a = 0.01
-        config.slot0.k_p = 10.0
+        config.slot0.k_p = 6.0
         config.slot0.k_i = 0.0
         config.slot0.k_d = 0.0
         config.motion_magic.motion_magic_cruise_velocity = 1
@@ -68,9 +67,16 @@ class ArmComponent:
         return current_loc == target_loc
 
     def execute(self):
+        from math import cos, radians
+        curr_pos = self.get_position()
         if self.target_pos < -180 or self.target_pos > 180:
             self.target_pos = norm_deg(self.target_pos)
         can_coder_target = self.target_pos / 360
-        req = self.motor_request.with_position(can_coder_target)
+        max_kg = 0.1  # Call it 0.2 volts just to hold position at 0 degrees
+        k_g = max_kg * cos(radians(curr_pos))
+        # Not sure if we should flip the sign on k_g if we're heading downward.
+        if self.target_pos > curr_pos:  # We're heading down
+            k_g = -k_g
+        req = self.motor_request.with_position(can_coder_target).with_feed_forward(k_g)
         if is_sim():
             self.motor.set_control(req)

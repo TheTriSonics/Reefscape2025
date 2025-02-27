@@ -18,6 +18,7 @@ from utilities.waypoints import Waypoints
 from utilities.position import reverse_choreo
 from utilities.game import ManipLocations, ManipLocation, GamePieces, is_auton, is_red
 from utilities.position import Positions
+from utilities import pn, ps, pb
 
 
 def get_point_on_circle(center_x, center_y, radius, angle_degrees):
@@ -86,7 +87,6 @@ class Intimidator(StateMachine):
             .publish()
         )
 
-
         self.reef_center_pose_pub = (
             ntcore.NetworkTableInstance.getDefault()
             .getStructTopic("/components/intimidator/Reef_pose", Pose2d)
@@ -116,6 +116,16 @@ class Intimidator(StateMachine):
 
     def _clear_traj_pub(self):
         self.swoop_traj_pub.set([])
+
+    def _send_strafe_circle_poses(self, reef_pose: Pose2d, distance: float):
+        strafe_poses = []
+        for i in range(0, 370, 10):
+            x, y, rad = get_point_on_circle(
+                reef_pose.X(), reef_pose.Y(), self.strafe_distance, i
+            )
+            pose = Pose2d(x, y, Rotation2d(rad))
+            strafe_poses.append(pose)
+        self.strafe_positions_pub.set(strafe_poses)
 
     def setup(self):
         self.target_pose = Pose2d()
@@ -215,28 +225,42 @@ class Intimidator(StateMachine):
 
     @state(must_finish=True)
     def drive_swoop(self, initial_call, state_tm):
+        # A 'swoop' drive will try and find a Choreo trajectory that roughly
+        # starts and ends around where the robot is starting and ending.
+        # If a trajectory is found we'll follow along that one until we get
+        # "close enough" to the final endpoint and then revert to using
+        # 'drive to positon' in the drivetrain to lock in the final pose.
         curr_pose = self.drivetrain.get_pose()
         if initial_call:
             # Look up what path to take, a trajectory to load
             # Declare scores as a dict with str as the key type and float as the value
+            # This will map each trajectory name (string) to a score (float)
             scores: dict[str, float] = {}
             scores = {}
             self.target_pose_pub.set(self.target_pose)
             for traj in self.trajectories:
                 end_pose = traj.get_final_pose(is_red())
                 start_pose = traj.get_initial_pose(is_red())
-                assert end_pose
-                assert start_pose
-                # Find distance between end_pose and self.target_pose
+                assert end_pose, f'No end pose found for trajectory {traj.name}'
+                assert start_pose, f'No start pose found for trajectory {traj.name}'
+                # Calcuate the difference between the end pose of the trajectory
+                # and our destination.
                 ediff = end_pose.relativeTo(self.target_pose).translation().norm()
+                # Likewise, check how far away we are from the start pose
                 sdiff = start_pose.relativeTo(curr_pose).translation().norm() 
+                # If we're too far from the start or end then we're going to
+                # reject this trajectory for consideration.
                 if sdiff > self.max_start_dist_error or ediff > self.max_end_dist_error:
                     continue  # Skip this; not worth considering
+                # Now create a score entry for this valid trajectory; we just
+                # add in the end distance different, start distance difference,
+                # and the total time that the trajectory takes to run. The last
+                # one picks the quicker in the caes of a complete tie
                 scores[traj.name] = ediff + sdiff + traj.get_total_time()
 
             import json
             print('Scores:', json.dumps(scores, indent=4, sort_keys=True))
-            # Find the entry in scores that has the lowest distance
+            # Find the entry in scores that has the lowest score 
             if len(scores) > 0:
                 best_traj = min(scores, key=lambda k: float(scores[k]))
                 print('Best trajectory:', best_traj)
@@ -279,45 +303,46 @@ class Intimidator(StateMachine):
 
     @state(must_finish=True)
     def drive_strafe(self, initial_call):
+        robot_pose = self.drivetrain.get_pose()
+        # This is a Pose2d that represents the center of the reef of our own
+        # alliance
+        rc = Waypoints.get_reef_center(is_red())
         if initial_call:
-            robot_pose = self.drivetrain.get_pose()
-            rc = Waypoints.get_reef_center(is_red())
-            # Get the distance between robot pose and rc
+            # The first time we enter this state we'll get our distance away
+            # from the center of the reef, cap it between a min and max value,
+            # then 'lock in' that distance as how far we want to stay from the
+            # center.
+            # If the driver wanted to modify this an input could be detected
+            # in robot.py and then 'punched' into this strafe_distance value
+            # to change behavior, or call go_drive_strafe_fixed() with it
             dist = robot_pose.translation().distance(rc.translation())
-            # Cap the distance between 1.5 and 3.3
             self.strafe_distance = min(max([dist, 1.5]), 3.3)
 
-        robot_pose = self.drivetrain.get_pose()
-        rc = Waypoints.get_reef_center(is_red())
-        self.reef_center_pose_pub.set(rc)
-        strafe_poses = []
-        for i in range(0, 370, 10):
-            x, y, rad = get_point_on_circle(rc.translation().X(), rc.translation().Y(), self.strafe_distance, i)
-            pose = Pose2d(Translation2d(x, y), Rotation2d(rad))
-            strafe_poses.append(pose)
-        self.strafe_positions_pub.set(strafe_poses)
-        # Now get my current angle on the circle
-        dx = robot_pose.X() - rc.X()
-        dy = robot_pose.Y() - rc.Y()
-        # Calculate angle using atan2
-        angle_radians = math.atan2(dy, dx)
-        # Rotation will now control the angle on the circle
+        # Now get the robot's current angle on the circle; atan2 is the version
+        # of arctan that takes sign into account.
+        angle_radians = math.atan2(robot_pose.Y() - rc.Y(),
+                                   robot_pose.X() - rc.X())
 
+        # 'stick rotation' will now control the angle on the circle
         # These units are all sorts of wrong, but seems to drive right - Justin
+        # The idea is to figure out where we want to be on this strafing circle
+        # at the end of the robot execution period (0.02 seconds)
         circum = 2 * math.pi * self.strafe_distance
         speed = self.stick_rotation * 5
         rad_per_sec = 2 * math.pi / (circum / speed) if speed != 0 else 0
-        pn = wpilib.SmartDashboard.putNumber
         rad_per_sec = min(rad_per_sec, 18)
         pn('rad_per_sec', rad_per_sec)
         angle_radians += rad_per_sec * 0.02
         angle_degrees = math.degrees(angle_radians)
-        # Now check if it is less than -2 or 2 and cap it within that range
         x, y, rad = get_point_on_circle(
             rc.X(), rc.Y(), self.strafe_distance, angle_degrees 
         )
 
-        self.strafe_next_pub.set(Pose2d(Translation2d(x, y), Rotation2d(rad)))
+        # Publish poses out to help debug 
+        self.reef_center_pose_pub.set(rc)
+        self._send_strafe_circle_poses(rc, self.strafe_distance)
+        self.strafe_next_pub.set(Pose2d(x, y, Rotation2d(rad)))
+
         self.drivetrain.drive_to_position(x, y, rad, aggressive=True)
 
     @state(must_finish=True)

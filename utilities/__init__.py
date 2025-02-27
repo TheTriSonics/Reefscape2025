@@ -1,5 +1,13 @@
 from .waypoints import Waypoints
+from .position import Positions
 from .game import is_red, is_sim
+
+import wpilib
+
+
+pn = wpilib.SmartDashboard.putNumber
+ps = wpilib.SmartDashboard.putString
+pb = wpilib.SmartDashboard.putBoolean
 
 
 def norm_deg(angle) -> float:
