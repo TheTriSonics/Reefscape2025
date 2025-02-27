@@ -265,10 +265,8 @@ class DrivetrainComponent:
         self.snap_heading: float | None = None
 
         # Leaving the old values here, using some more docile ones for driver practice temporarily
-        # self.choreo_x_controller = PIDController(10, 0, 0)
-        # self.choreo_y_controller = PIDController(10, 0, 0)
-        self.choreo_x_controller = PIDController(6, 0, 0)
-        self.choreo_y_controller = PIDController(6, 0, 0)
+        self.choreo_x_controller = PIDController(10, 0, 0)
+        self.choreo_y_controller = PIDController(10, 0, 0)
         self.choreo_heading_controller = PIDController(15, 0, 0)
         self.choreo_heading_controller.enableContinuousInput(-math.pi, math.pi)
         self.on_red_alliance = False

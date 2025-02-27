@@ -7,7 +7,7 @@ from phoenix6.controls import (
 )
 from phoenix6.configs import TalonFXConfiguration, MotorOutputConfigs
 from utilities.game import ManipLocation
-from utilities import norm_deg
+from utilities import norm_deg, is_sim
 from ids import TalonId, CancoderId
 
 pn = wpilib.SmartDashboard.putNumber
@@ -71,4 +71,5 @@ class WristComponent:
             self.target_pos = norm_deg(self.target_pos)
         can_coder_target = self.target_pos / 360
         req = self.motor_request.with_position(can_coder_target)
-        self.motor.set_control(req)
+        if is_sim():
+            self.motor.set_control(req)

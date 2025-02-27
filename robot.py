@@ -110,6 +110,8 @@ class MyRobot(magicbot.MagicRobot):
         return
 
     def autonomousPeriodic(self):
+        pose = self.drivetrain.get_pose()
+        Positions.update_dynamic_positions(pose)
         pass
 
     def teleopInit(self) -> None:
@@ -192,6 +194,9 @@ class MyRobot(magicbot.MagicRobot):
         ltrig = self.operator_controller.getLeftTriggerAxis()
         if ltrig > 0.25:
             self.elevator.target_pos -= ltrig
+        
+        arm_movement = -self.operator_controller.getLeftY()
+        self.arm.target_pos += arm_movement
 
         # Some buttons to force the manipulator to certain heights. Not to be
         # used in the actual driving of the robot, but handy for debugging
@@ -239,18 +244,7 @@ class MyRobot(magicbot.MagicRobot):
         elif self.driver_controller.getReefRight():
             self.intimidator.go_lock_reef(shift_right=True)
         elif self.driver_controller.getToWallTarget():
-            if self.photoeye.algae_held:
-                self.intimidator.go_drive_processor()
-                self.manipulator.set_algae_processor()
-            else:
-                dpad = self.driver_controller.getPOV()
-                if dpad == -1:
-                    self.intimidator.go_drive_swoop(Positions.PS_CLOSEST)
-                elif dpad == 90:
-                    self.intimidator.go_drive_swoop(Positions.PS_RIGHT)
-                elif dpad == 270:
-                    self.intimidator.go_drive_swoop(Positions.PS_LEFT)
-                
+            self.intimidator.go_drive_swoop(Positions.PS_CLOSEST)
         elif self.driver_controller.returnToHomeLocation():
             self.drivetrain.drive_to_pose(
                 Positions.AUTON_LINE_CENTER
@@ -267,6 +261,8 @@ class MyRobot(magicbot.MagicRobot):
     def teleopPeriodic(self) -> None:
         self.handle_manipulator()
         self.handle_drivetrain()
+        pose = self.drivetrain.get_pose()
+        Positions.update_dynamic_positions(pose)
 
     def testInit(self) -> None:
         self.driver_controller = ReefscapeDriver(0)
@@ -285,7 +281,6 @@ class MyRobot(magicbot.MagicRobot):
             self.drivetrain.drive_local(0, 0, 0)
 
         self.drivetrain.execute()
-
         self.drivetrain.update_odometry()
 
     def disabledInit(self):
