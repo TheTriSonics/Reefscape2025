@@ -234,6 +234,7 @@ class MyRobot(magicbot.MagicRobot):
         pn('rtrig', rtrig)
         pn('ltrig', ltrig)
 
+        dpad = self.driver_controller.getPOV()
         drive_x = -rescale_js(self.driver_controller.getLeftY(), 0.05, 2.5) * max_speed
         drive_y = -rescale_js(self.driver_controller.getLeftX(), 0.05, 2.5) * max_speed
         drive_z = (
@@ -251,7 +252,12 @@ class MyRobot(magicbot.MagicRobot):
         elif self.driver_controller.getReefRight():
             self.intimidator.go_lock_reef(shift_right=True)
         elif self.driver_controller.getToWallTarget():
-            self.intimidator.go_drive_swoop(Positions.PS_CLOSEST)
+            if dpad == 90:
+                self.intimidator.go_drive_swoop(Positions.PS_RIGHT)
+            elif dpad == 270:
+                self.intimidator.go_drive_swoop(Positions.PS_LEFT)
+            else:
+                self.intimidator.go_drive_swoop(Positions.PS_CLOSEST)
         elif self.driver_controller.returnToHomeLocation():
             self.drivetrain.drive_to_pose(
                 Positions.AUTON_LINE_CENTER
