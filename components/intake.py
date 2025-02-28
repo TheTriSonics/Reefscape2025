@@ -382,23 +382,22 @@ class IntakeComponent:
         self.do_3d_repr()
         self.update_sim()
 
+        speed_val = 1.0
+
         motor_power = 0.0
         if self.force_coral_intake:
-            motor_power = 0.2
+            motor_power =  speed_val
         if self.force_coral_score:
-            motor_power = -0.2
+            motor_power = -speed_val
         if self.force_algae_intake:
-            motor_power = 0.2
+            motor_power =  speed_val
         if self.force_algae_score:
-            motor_power = -0.2
+            motor_power = -speed_val
 
         if self.direction in [IntakeDirection.CORAL_IN, IntakeDirection.ALGAE_SCORE]:
-            motor_power = 0.2
+            motor_power = speed_val
         elif self.direction in [IntakeDirection.CORAL_SCORE, IntakeDirection.CORAL_SCORE]:
-            motor_power = -0.2
-        
-        if is_sim():
-            motor_power *= 10 
+            motor_power = -speed_val
 
         self.motor_request.output = motor_power
-        # self.motor.set_control(self.motor_request)
+        self.motor.set_control(self.motor_request)

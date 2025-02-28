@@ -15,7 +15,7 @@ from components.leds import LEDComponent
 from components.wrist import WristComponent
 from components.arm import ArmComponent
 from components.elevator import ElevatorComponent
-from components.intake import IntakeComponent
+from components.intake import IntakeComponent, IntakeDirection
 from components.photoeye import PhotoEyeComponent
 
 from components.leds_sim import LEDSim
@@ -205,6 +205,16 @@ class MyRobot(magicbot.MagicRobot):
         self.arm.target_pos += arm_movement
         self.wrist.target_pos += wrist_movement
 
+        # Intake overrides
+        if self.operator_controller.getRawButton(7):
+            self.intake.force_coral_intake = True
+        else:
+            self.intake.force_coral_intake = False
+        if self.operator_controller.getRawButton(8):
+            self.intake.force_coral_score = True
+        else:
+            self.intake.force_coral_score = False
+
         # Some buttons to force the manipulator to certain heights. Not to be
         # used in the actual driving of the robot, but handy for debugging
         dpad = self.operator_controller.getPOV()
@@ -234,13 +244,11 @@ class MyRobot(magicbot.MagicRobot):
         max_spin_rate = self.max_spin_rate
 
         self.drivetrain.max_wheel_speed = max_speed
-        """
-        rtrig = self.driver_controller.getRawAxis(5)
-        ltrig = self.driver_controller.getRawAxis(2)
+        rtrig = self.driver_controller.getRightTriggerAxis()
+        ltrig = self.driver_controller.getLeftTriggerAxis()
         pn = wpilib.SmartDashboard.putNumber
         pn('rtrig', rtrig)
         pn('ltrig', ltrig)
-        """
 
         dpad = self.driver_controller.getPOV()
         drive_x = -rescale_js(self.driver_controller.getLeftY(), 0.05, 2.5) * max_speed
@@ -276,20 +284,18 @@ class MyRobot(magicbot.MagicRobot):
             self.intimidator.go_drive_local()
         elif self.driver_controller.getStrafe():
             self.intimidator.go_drive_strafe()
+        elif rtrig > 0.15:
+            # Scale this between 0-1 instead of -1 to 1
+            rscaled = rtrig
+            self.intimidator.set_stick_values(0, 0, rscaled*10)
+            self.intimidator.go_drive_strafe()
+        elif ltrig > 0.15:
+            lscaled = ltrig
+            self.intimidator.set_stick_values(0, 0, -lscaled*10)
+            self.intimidator.go_drive_strafe()
         else:
             self.intimidator.set_stick_values(drive_x, drive_y, drive_z)
             self.intimidator.go_drive_field()
-        """
-        elif rtrig > -0.75:
-            # Scale this between 0-1 instead of -1 to 1
-            rscaled = (rtrig + 1) / 2
-            self.intimidator.set_stick_values(0, 0, rscaled*10)
-            self.intimidator.go_drive_strafe()
-        elif ltrig > -0.75:
-            lscaled = (ltrig + 1) / 2
-            self.intimidator.set_stick_values(0, 0, -lscaled*10)
-            self.intimidator.go_drive_strafe()
-        """
 
     def teleopPeriodic(self) -> None:
         self.handle_manipulator()
