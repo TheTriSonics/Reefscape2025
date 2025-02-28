@@ -196,8 +196,14 @@ class MyRobot(magicbot.MagicRobot):
         
         # TODO: Implement deadbanding if not the whole resize_js() method that
         # we use on the driver's stick inputs.
-        arm_movement = -self.operator_controller.getLeftY()
+        arm_movement = -rescale_js(
+            self.operator_controller.getLeftY(), 0.05, 2.5
+        )
+        wrist_movement = -rescale_js(
+            self.operator_controller.getRightY(), 0.05, 2.5
+        )
         self.arm.target_pos += arm_movement
+        self.wrist.target_pos += wrist_movement
 
         # Some buttons to force the manipulator to certain heights. Not to be
         # used in the actual driving of the robot, but handy for debugging
