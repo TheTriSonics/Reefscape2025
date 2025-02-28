@@ -234,11 +234,13 @@ class MyRobot(magicbot.MagicRobot):
         max_spin_rate = self.max_spin_rate
 
         self.drivetrain.max_wheel_speed = max_speed
+        """
         rtrig = self.driver_controller.getRawAxis(5)
         ltrig = self.driver_controller.getRawAxis(2)
         pn = wpilib.SmartDashboard.putNumber
         pn('rtrig', rtrig)
         pn('ltrig', ltrig)
+        """
 
         dpad = self.driver_controller.getPOV()
         drive_x = -rescale_js(self.driver_controller.getLeftY(), 0.05, 2.5) * max_speed
@@ -274,6 +276,10 @@ class MyRobot(magicbot.MagicRobot):
             self.intimidator.go_drive_local()
         elif self.driver_controller.getStrafe():
             self.intimidator.go_drive_strafe()
+        else:
+            self.intimidator.set_stick_values(drive_x, drive_y, drive_z)
+            self.intimidator.go_drive_field()
+        """
         elif rtrig > -0.75:
             # Scale this between 0-1 instead of -1 to 1
             rscaled = (rtrig + 1) / 2
@@ -283,9 +289,7 @@ class MyRobot(magicbot.MagicRobot):
             lscaled = (ltrig + 1) / 2
             self.intimidator.set_stick_values(0, 0, -lscaled*10)
             self.intimidator.go_drive_strafe()
-        else:
-            self.intimidator.set_stick_values(drive_x, drive_y, drive_z)
-            self.intimidator.go_drive_field()
+        """
 
     def teleopPeriodic(self) -> None:
         self.handle_manipulator()

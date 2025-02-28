@@ -6,6 +6,7 @@ from phoenix6.controls import (
 )
 from phoenix6.configs import TalonFXConfiguration, MotorOutputConfigs
 from utilities.game import ManipLocation
+from utilities import is_sim
 from phoenix6.signals import InvertedValue, NeutralModeValue
 
 from ids import TalonId
@@ -24,13 +25,14 @@ class ElevatorComponent:
     def __init__(self):
         config = TalonFXConfiguration()
         config.slot0.k_s = 0.0
-        config.slot0.k_v = 0.0
-        config.slot0.k_a = 0.0
-        config.slot0.k_p = 0.25
-        config.slot0.k_i = 0.0
-        config.slot0.k_d = 0.0
-        config.motion_magic.motion_magic_cruise_velocity = 25
-        config.motion_magic.motion_magic_acceleration = 400
+        config.slot0.k_v = 0.80
+        config.slot0.k_a = 0.001
+        config.slot0.k_p = 8.0
+        config.slot0.k_i = 0.5
+        config.slot0.k_d = 0.25
+        config.slot0.k_g = 0.075
+        config.motion_magic.motion_magic_cruise_velocity = 2
+        config.motion_magic.motion_magic_acceleration = 100
         config.motion_magic.motion_magic_jerk = 4000
         output_config = MotorOutputConfigs()
         output_config.inverted = InvertedValue.CLOCKWISE_POSITIVE
@@ -62,6 +64,8 @@ class ElevatorComponent:
             self.target_pos = 40
         
         req = self.motor_request.with_position(self.target_pos)
+        if not is_sim():
+            return
         self.motor_left.set_control(req)
         # Should this only be done once in setup()? 
         self.motor_right.set_control(

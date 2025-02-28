@@ -16,7 +16,7 @@ pn = wpilib.SmartDashboard.putNumber
 class ArmComponent:
     motor = TalonFX(TalonId.MANIP_ARM.id, TalonId.MANIP_ARM.bus)
     encoder = CANcoder(CancoderId.MANIP_ARM.id, CancoderId.MANIP_ARM.bus)
-    mag_offset = 0.343017578125
+    mag_offset = 0.26513671875
     default_pos = -80.0
     target_pos = tunable(default_pos)
     motor_request = MotionMagicDutyCycle(0, override_brake_dur_neutral=True)
@@ -67,16 +67,25 @@ class ArmComponent:
         return current_loc == target_loc
 
     def execute(self):
+        if self.target_pos < -90:
+            # Driving the arm below -90 would be bad. Very bad. So don't let
+            # anybody do that!
+            self.target_pos = -90
+        if self.target_pos > 90:
+            # Driving the arm above 90 would be bad. Very bad. So don't let
+            # anybody do that!
+            self.target_pos = 90
         from math import cos, radians
         curr_pos = self.get_position()
         if self.target_pos < -180 or self.target_pos > 180:
             self.target_pos = norm_deg(self.target_pos)
         can_coder_target = self.target_pos / 360
+        """
         max_kg = 0.1  # Call it 0.2 volts just to hold position at 0 degrees
         k_g = max_kg * cos(radians(curr_pos))
         # Not sure if we should flip the sign on k_g if we're heading downward.
         if self.target_pos > curr_pos:  # We're heading down
-            k_g = -k_g
-        req = self.motor_request.with_position(can_coder_target).with_feed_forward(k_g)
-        if is_sim():
-            self.motor.set_control(req)
+            k_g = -k_g.with_feed_forward(k_g)
+        """
+        req = self.motor_request.with_position(can_coder_target)
+        self.motor.set_control(req)
