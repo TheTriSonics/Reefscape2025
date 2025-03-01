@@ -40,50 +40,53 @@ class IntakeControl(StateMachine):
     def coral_score(self, initial_call, state_tm):
         self.intake.score_coral()
 
-        if self.photoeye.coral_held is True:
-            self.score_coral_off_at = state_tm + 1.0
+        if self.photoeye.front_photoeye is True:
+            self.score_coral_off_at = state_tm + 0.25
 
-        if self.photoeye.coral_held is False and self.score_coral_off_at < state_tm:
+        if self.photoeye.front_photoeye is False and self.score_coral_off_at < state_tm:
             self.next_state(self.idling)
 
     @state(must_finish=True)
     def algae_score(self, initial_call, state_tm):
         self.intake.score_algae()
 
-        if self.photoeye.algae_held is True:
-            self.score_algae_off_at = state_tm + 1.0
+        if self.photoeye.front_photoeye is True:
+            self.score_algae_off_at = state_tm + 0.25
 
-        if self.photoeye.algae_held is False and self.score_algae_off_at < state_tm:
+        if self.photoeye.front_photoeye is False and self.score_algae_off_at < state_tm:
             self.next_state(self.idling)
 
     @state(must_finish=True)
     def coral_intake(self, initial_call, state_tm):
         self.intake.coral_in()    
 
-        if self.photoeye.coral_held is False:
-            self.intake_coral_off_at = state_tm + 1.0
+        if self.photoeye.front_photoeye is False:
+            self.intake_coral_off_at = state_tm + 0.01
 
-        if self.photoeye.coral_held is True and self.intake_coral_off_at < state_tm:
+        if self.photoeye.front_photoeye is True and self.intake_coral_off_at < state_tm:
             self.next_state(self.idling)
     
     @state(must_finish=True)
     def algae_intake(self, initial_call, state_tm):
         self.intake.algae_in()    
 
-        if self.photoeye.algae_held is False:
-            self.intake_algae_off_at = state_tm + 1.0
+        if self.photoeye.front_photoeye is False:
+            self.intake_algae_off_at = state_tm + 0.01
 
-        if self.photoeye.algae_held is True and self.intake_algae_off_at < state_tm:
+        if self.photoeye.front_photoeye is True and self.intake_algae_off_at < state_tm:
             self.next_state(self.idling)
 
+
+"""   This code isn't currently used anywhere.
     @state(must_finish=True)
     def score_algae(self, initial_call, state_tm):
         if initial_call:
             self.intake.score_algae()
             pass
 
-        if self.photoeye.algae_held is True:
-            self.score_algae_off_at = state_tm + 1.0
+        if self.photoeye.front_photoeye is True:
+            self.score_algae_off_at = state_tm + 0.25
 
-        if self.photoeye.algae_held is False and self.score_algae_off_at < state_tm:
+        if self.photoeye.front_photoeye is False and self.score_algae_off_at < state_tm:
             self.next_state(self.idling)
+"""

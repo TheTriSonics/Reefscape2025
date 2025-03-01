@@ -143,8 +143,11 @@ class MyRobot(magicbot.MagicRobot):
             self.controller_choice = 'Talk to me, Goose!'
             self.driver_controller = ReefscapeDriverThrustmaster(0)
         # self.drivetrain.set_pose(Positions.auton_line_2(is_red()))
-        self.photoeye.coral_held = False
-        self.photoeye.algae_held = True
+        """
+        Removed these due to using the hardware values from the CANdi
+        self.photoeye.back_photoeye = False
+        self.photoeye.front_photoeye = True
+        """
         tag = Waypoints.get_tag_id_from_letter('C', True)
         pose = Waypoints.get_tag_robot_away(tag, face_at=True)
         pose = Waypoints.shift_reef_right(pose)
@@ -154,30 +157,33 @@ class MyRobot(magicbot.MagicRobot):
 
     def handle_manipulator(self) -> None:
         from controllers.manipulator import ManipLocations
-        if self.driver_controller.getManipulatorAdvance():
+        if self.operator_controller.getManipulatorAdvance():
             self.manipulator.request_advance()
-        if self.driver_controller.getCoralMode():
+        if self.operator_controller.getCoralMode():
             self.manipulator.coral_mode()
-        if self.driver_controller.getAlgaeMode():
+        if self.operator_controller.getAlgaeMode():
             self.manipulator.algae_mode()
-        if self.driver_controller.goHome():
+        if self.operator_controller.goHome():
             self.manipulator.go_home()
 
-        # Let's set some heights with the driver controller
+        # Let's set some heights with the operator controller
         if self.manipulator.game_piece_mode == GamePieces.CORAL:
-            if self.driver_controller.getHeightPlacement1():
+            if self.operator_controller.getHeightPlacement1():
                 self.manipulator.set_coral_level1()
-            if self.driver_controller.getHeightPlacement2():
+            if self.operator_controller.getHeightPlacement2():
                 self.manipulator.set_coral_level2()
-            if self.driver_controller.getHeightPlacement3():
+            if self.operator_controller.getHeightPlacement3():
                 self.manipulator.set_coral_level3()
-            if self.driver_controller.getHeightPlacement4():
+            if self.operator_controller.getHeightPlacement4():
                 self.manipulator.set_coral_level4()
         elif self.manipulator.game_piece_mode == GamePieces.ALGAE:
-            if self.driver_controller.getHeightPlacement1():
+            if self.operator_controller.getHeightPlacement1():
                 self.manipulator.set_algae_level1()
-            if self.driver_controller.getHeightPlacement2():
+            if self.operator_controller.getHeightPlacement2():
                 self.manipulator.set_algae_level2()
+
+
+        """ Moved the above to the operator controller, this part is no longer needed
 
         # Now let's do the operator controller, which is how the real robot
         # will likely work
@@ -185,7 +191,8 @@ class MyRobot(magicbot.MagicRobot):
             self.manipulator.go_home()
         if self.operator_controller.getManipulatorAdvance():
             self.manipulator.request_advance()
-
+        """
+            
         # Hack in the right and left bumpers moving the elevator up and down
         rtrig = self.operator_controller.getRightTriggerAxis()
         if rtrig > 0.25:
@@ -215,6 +222,9 @@ class MyRobot(magicbot.MagicRobot):
         else:
             self.intake.force_coral_score = False
 
+
+        """ This part commented out to start using real robot
+
         # Some buttons to force the manipulator to certain heights. Not to be
         # used in the actual driving of the robot, but handy for debugging
         dpad = self.operator_controller.getPOV()
@@ -238,6 +248,7 @@ class MyRobot(magicbot.MagicRobot):
                     self.manipulator.set_coral_level3()
                 case 180:  # Down arrow, trough level 1
                     self.manipulator.set_coral_level1()
+        """
 
     def handle_drivetrain(self) -> None:
         max_speed = self.max_speed

@@ -144,9 +144,9 @@ class Manipulator(StateMachine):
     # We'll start off idle; do nothing  until the operator requests something
     @state(must_finish=True, first=True)
     def idling(self, initial_call):
-        if self.photoeye.coral_held:
+        if self.photoeye.back_photoeye: #TODO check if we need to have a timer on this to ensure coral is moved into the intake and not resting in the chute
             self.next_state(self.coral_in_system)
-        elif self.photoeye.algae_held:
+        elif self.photoeye.front_photoeye:
             self.next_state(self.algae_in_system)
         else:
             if self.operator_advance:
@@ -159,7 +159,7 @@ class Manipulator(StateMachine):
     def coral_intake(self, state_tm, initial_call):
         if initial_call:
             self.intake_control.go_coral_intake()
-        if self.photoeye.coral_held:
+        if self.photoeye.front_photoeye:
             self.next_state(self.coral_in_system)
 
     @state(must_finish=True)
@@ -211,7 +211,7 @@ class Manipulator(StateMachine):
         if initial_call:
             self.intake_control.go_algae_intake()
             self.request_location(self.algae_intake_target)
-        if self.photoeye.algae_held:
+        if self.photoeye.front_photoeye:
             self.next_state(self.algae_in_system)
         
     @state(must_finish=True) 

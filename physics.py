@@ -204,7 +204,7 @@ class PhysicsEngine:
             and self.intake_coral_in_at + 1.6 < now
             and ps_dist < 0.99  # We have to be within a X meters of a pick up station
         ):
-            pe.coral_held = True
+            pe.back_photoeye = True
             self.intake_coral_in_at = -1.0
 
         # Now if intake has been running for 0.6 seconds clear the coral_held eye
@@ -212,7 +212,7 @@ class PhysicsEngine:
             intake.direction == IntakeDirection.CORAL_SCORE
             and self.intake_coral_out_at + 2.0 < now
         ):
-            pe.coral_held = False
+            pe.back_photoeye = False
             self.intake_coral_out_at = -1.0
 
     def update_sim(self, now: float, tm_diff: float) -> None:

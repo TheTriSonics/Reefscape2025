@@ -9,6 +9,7 @@ from phoenix6.configs import TalonFXConfiguration, MotorOutputConfigs
 from utilities.game import ManipLocation
 from utilities import norm_deg, is_sim
 from ids import TalonId, CancoderId
+from components.arm import ArmComponent
 
 pn = wpilib.SmartDashboard.putNumber
 
@@ -20,6 +21,7 @@ class WristComponent:
     default_pos = 1.0
     target_pos = tunable(default_pos)
     motor_request = MotionMagicDutyCycle(0, override_brake_dur_neutral=True)
+    arm: ArmComponent
     
     def __init__(self):
         enc_config = configs.CANcoderConfiguration()
@@ -67,6 +69,12 @@ class WristComponent:
         return current_loc == target_loc
 
     def execute(self):
+        # ----------------------------------------
+        # This limits should not change!
+        if self.arm.get_position() < -65:
+            self.target_pos = self.get_position()
+        # This limits should not change!
+        # ----------------------------------------
         if self.target_pos < -180 or self.target_pos > 180:
             self.target_pos = norm_deg(self.target_pos)
         can_coder_target = self.target_pos / 360

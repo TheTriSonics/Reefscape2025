@@ -28,12 +28,35 @@ class ReefscapeDriver(ReefscapeDriverBase):
 
     def getDriveLocal(self) -> bool:
         return self.getRawButton(8)
+    
+    # TODO: add strafe buttons
+    # TODO: add hanger buttons
+    # TODO: add dpad wall buttons
 
 
 class ReefscapeOperator(ReefscapeOperatorBase):
 
     def goHome(self) -> bool:
+        return self.getYButton()
+    
+    def getManipulatorAdvance(self) -> bool:
         return self.getAButton()
 
-    def getManipulatorAdvance(self) -> bool:
-        return self.getYButtonPressed()
+    def getCoralMode(self) -> bool:
+        return self.getRightBumperButtonPressed()
+    
+    def getAlgaeMode(self) -> bool:
+        return self.getRightBumperButtonPressed()
+
+    
+    def getHeightPlacement1(self) -> bool:
+        return self.getPOV() == 180
+    
+    def getHeightPlacement2(self) -> bool:
+        return self.getPOV() == 90
+    
+    def getHeightPlacement3(self) -> bool:
+        return self.getPOV() == 270
+    
+    def getHeightPlacement4(self) -> bool:
+        return self.getPOV() == 0

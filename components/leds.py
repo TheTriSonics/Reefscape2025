@@ -84,7 +84,7 @@ class LEDComponent:
         if (self.intake.direction != IntakeDirection.NONE or
             (prep_score and not manip.at_position())):
             self.setColor(*self.yellow)
-        elif (self.photoeye.coral_held or
+        elif (self.photoeye.back_photoeye or
               (prep_score and manip.at_position())):
             self.setColor(*self.green)
         self._lights.setData(self._led_data)

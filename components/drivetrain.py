@@ -35,6 +35,7 @@ from utilities import is_red, is_sim
 from ids import CancoderId, TalonId
 
 from components.gyro import GyroComponent
+from components.elevator import ElevatorComponent
 
 from generated.tuner_constants import TunerConstants
 
@@ -223,6 +224,7 @@ class DrivetrainComponent:
     # Note that you can't use the components directly in the __init__ method
     # You have to use them in the setup() method
     gyro: GyroComponent
+    elevator: ElevatorComponent
 
     # size including bumpers
     LENGTH = inchesToMeters(35)
@@ -471,6 +473,18 @@ class DrivetrainComponent:
             )
 
         desired_speeds = self.chassis_speeds
+        # ----------------------------------------
+        # These limits should not change!
+        # TODO Update based off real robot speeds.
+        elevator_speed_limit = -(4.5/80) * self.elevator.get_position() - 5 
+
+        if desired_speeds.vx > elevator_speed_limit:
+            desired_speeds.vx = elevator_speed_limit
+        if desired_speeds.vy > elevator_speed_limit:
+            desired_speeds.vy = elevator_speed_limit
+        # ----------------------------------------
+        # ---------------------------------------- 
+
         desired_states = self.kinematics.toSwerveModuleStates(desired_speeds)
         desired_states = self.kinematics.desaturateWheelSpeeds(
             desired_states, attainableMaxSpeed=self.max_wheel_speed

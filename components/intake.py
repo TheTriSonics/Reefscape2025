@@ -97,7 +97,8 @@ class IntakeComponent:
         if self.coral_score_at + 0.5 > now:
             # We've been moving for 0.5 seconds so clear out any held coral
             # or algae
-            self.photoeye.coral_held = False
+            self.photoeye.front_photoeye = False
+            self.photoeye.back_photoeye = False
             self.coral_score_at = -1
     
         pn('algae_score', self.algae_score_at)
@@ -105,7 +106,7 @@ class IntakeComponent:
         pn('now', now)
         if self.algae_intake_at > 0 and self.algae_intake_at + 0.5 < now and ps_dist < 0.8:
             # We've been moving for 0.5 seconds so assume we have some algae
-            self.photoeye.algae_held = True
+            self.photoeye.front_photoeye = True
             self.algae_intake_at = -1
         if self.direction == IntakeDirection.NONE:
             self.algae_intake_at = -1
@@ -123,7 +124,7 @@ class IntakeComponent:
         if self.algae_score_at + 0.5 > now:
             # We've been moving for 0.5 seconds so clear out any held algae
             # or algae
-            self.photoeye.algae_held = False
+            self.photoeye.front_photoeye = False
             self.algae_score_at = -1
     
         pn('algae_score', self.algae_score_at)
@@ -131,12 +132,12 @@ class IntakeComponent:
         pn('now', now)
         if self.algae_intake_at > 0 and self.algae_intake_at + 0.5 < now and ps_dist < 0.8:
             # We've been moving for 0.5 seconds so assume we have some algae
-            self.photoeye.algae_held = True
+            self.photoeye.front_photoeye = True
             self.algae_intake_at = -1
 
         if self.coral_intake_at > 0 and self.coral_intake_at + 0.5 < now and ps_dist < 0.8:
             # We've been moving for 0.5 seconds so assume we have some coral
-            self.photoeye.coral_held = True
+            self.photoeye.back_photoeye = True
             self.coral_intake_at = -1
     
     def setup(self):
@@ -345,7 +346,7 @@ class IntakeComponent:
     def do_3d_repr(self):
         coral_pose: None | Pose3d = None
         # If we already think we have coral but the photo eye has gone false
-        if self.has_coral is True and self.photoeye.coral_held is False:
+        if self.has_coral is True and self.photoeye.back_photoeye is False:
             # Let's see if we can come up with a pose for the coral
             # Okay, we can... but it seems like the manipulator has moved away
             # from the pose it was at when it scored by the time we get here.
@@ -356,7 +357,7 @@ class IntakeComponent:
             self.has_coral = False
             self._coral_pose = None
         coral_pose = None
-        if self.photoeye.coral_held:
+        if self.photoeye.back_photoeye:
             self.has_coral = True
             robot_pose = self.drivetrain.get_pose()
             coral_pose = self.pose2d_to_pose3d(robot_pose)
