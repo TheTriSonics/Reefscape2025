@@ -151,9 +151,9 @@ class MyRobot(magicbot.MagicRobot):
         tag = Waypoints.get_tag_id_from_letter('C', True)
         pose = Waypoints.get_tag_robot_away(tag, face_at=True)
         pose = Waypoints.shift_reef_right(pose)
-        self.drivetrain.set_pose(pose)
+        # self.drivetrain.set_pose(pose)
         self.manipulator.engage()
-        self.intimidator.engage()
+        # self.intimidator.engage()
 
     def handle_manipulator(self) -> None:
         from controllers.manipulator import ManipLocations
@@ -177,10 +177,14 @@ class MyRobot(magicbot.MagicRobot):
             if self.operator_controller.getHeightPlacement4():
                 self.manipulator.set_coral_level4()
         elif self.manipulator.game_piece_mode == GamePieces.ALGAE:
-            if self.operator_controller.getHeightPlacement1():
-                self.manipulator.set_algae_level1()
             if self.operator_controller.getHeightPlacement2():
+                self.manipulator.set_algae_level1()
+            if self.operator_controller.getHeightPlacement3():
                 self.manipulator.set_algae_level2()
+            if self.operator_controller.getHeightPlacement1():
+                self.manipulator.set_algae_processor
+            if self.operator_controller.getHeightPlacement4():
+                self.manipulator.set_algae_barge
 
 
         """ Moved the above to the operator controller, this part is no longer needed
@@ -313,6 +317,10 @@ class MyRobot(magicbot.MagicRobot):
         self.handle_drivetrain()
         pose = self.drivetrain.get_pose()
         Positions.update_dynamic_positions(pose)
+
+    def robotPeriodic(self):
+        self.manipulator.check_limits()
+        return super().robotPeriodic()
 
     def testInit(self) -> None:
         self.driver_controller = ReefscapeDriver(0)

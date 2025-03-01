@@ -9,8 +9,6 @@ from phoenix6.configs import TalonFXConfiguration, MotorOutputConfigs
 from utilities.game import ManipLocation
 from utilities import norm_deg, is_sim
 from ids import TalonId, CancoderId
-from components.elevator import ElevatorComponent
-from components.wrist import WristComponent
 
 pn = wpilib.SmartDashboard.putNumber
 
@@ -22,8 +20,8 @@ class ArmComponent:
     default_pos = -80.0
     target_pos = tunable(default_pos)
     motor_request = MotionMagicDutyCycle(0, override_brake_dur_neutral=True)
-    elevator: ElevatorComponent
-    wrist: WristComponent
+    lower_limit = -90
+    upper_limit = 90
     
     def __init__(self):
         enc_config = configs.CANcoderConfiguration()
@@ -74,19 +72,14 @@ class ArmComponent:
     def execute(self):
         # ----------------------------------------
         # This limits should not change!
-        if self.target_pos < -90:
+        if self.target_pos < self.lower_limit:
             # Driving the arm below -90 would be bad. Very bad. So don't let
             # anybody do that!
-            self.target_pos = -90
-        if self.target_pos > 90:
+            self.target_pos = self.lower_limit
+        if self.target_pos > self.upper_limit:
             # Driving the arm above 90 would be bad. Very bad. So don't let
             # anybody do that!
-            self.target_pos = 90
-        if self.target_pos < -65 and self.elevator.get_position() > 2:
-            self.target_pos = -65
-        
-        if self.target_pos < -65 and not self.wrist.at_goal():
-            self.target_pos = -65
+            self.target_pos = self.upper_limit
         # This limits should not change!
         #--------------------------------------------
 

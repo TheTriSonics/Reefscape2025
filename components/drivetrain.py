@@ -490,9 +490,9 @@ class DrivetrainComponent:
             desired_states, attainableMaxSpeed=self.max_wheel_speed
         )
 
-        for state, module in zip(desired_states, self.modules):
+        """for state, module in zip(desired_states, self.modules):
             module.module_locked = self.swerve_lock
-            module.set(state)
+            module.set(state)"""
 
         self.update_odometry()
 

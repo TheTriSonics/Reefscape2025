@@ -115,6 +115,15 @@ class Manipulator(StateMachine):
     def set_algae_barge(self):
         self.algae_scoring_target = ManipLocations.BARGE_6
 
+    def check_limits(self):
+        # Elevator----------------------------------------
+        if self.arm.target_pos < -65 and (self.elevator.get_position() > 2 or not self.wrist.at_goal()):
+            self.arm.lower_limit = -65
+        else:
+            self.arm.lower_limit = -90
+        # This limits should not change!
+        # ------------------------------------------------
+
     # That's the end of the operator interface portion
 
     # Now some methods that the states within the system will use as helpers

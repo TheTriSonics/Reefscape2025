@@ -17,7 +17,7 @@ pn = wpilib.SmartDashboard.putNumber
 class WristComponent:
     motor = TalonFX(TalonId.MANIP_WRIST.id, TalonId.MANIP_WRIST.bus)
     encoder = CANcoder(CancoderId.MANIP_WRIST.id, CancoderId.MANIP_WRIST.bus)
-    mag_offset = 0.39990234375
+    mag_offset = -0.05517578125
     default_pos = 1.0
     target_pos = tunable(default_pos)
     motor_request = MotionMagicDutyCycle(0, override_brake_dur_neutral=True)
@@ -69,12 +69,13 @@ class WristComponent:
         return current_loc == target_loc
 
     def execute(self):
-        # ----------------------------------------
+        # Wrist----------------------------------------
         # This limits should not change!
         if self.arm.get_position() < -65:
             self.target_pos = self.get_position()
         # This limits should not change!
         # ----------------------------------------
+
         if self.target_pos < -180 or self.target_pos > 180:
             self.target_pos = norm_deg(self.target_pos)
         can_coder_target = self.target_pos / 360
