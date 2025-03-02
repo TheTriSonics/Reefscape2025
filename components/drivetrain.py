@@ -476,23 +476,21 @@ class DrivetrainComponent:
         # ----------------------------------------
         # These limits should not change!
         # TODO Update based off real robot speeds.
-        elevator_speed_limit = -(4.5/80) * self.elevator.get_position() - 5 
-
-        if desired_speeds.vx > elevator_speed_limit:
-            desired_speeds.vx = elevator_speed_limit
-        if desired_speeds.vy > elevator_speed_limit:
-            desired_speeds.vy = elevator_speed_limit
+        elevator_factor = 1.0
+        if self.elevator.get_position() > 4:
+            elevator_factor = 1 - (0.9 / 60) * self.elevator.get_position()
+            elevator_factor = min(0.1, elevator_factor)
         # ----------------------------------------
         # ---------------------------------------- 
 
         desired_states = self.kinematics.toSwerveModuleStates(desired_speeds)
         desired_states = self.kinematics.desaturateWheelSpeeds(
-            desired_states, attainableMaxSpeed=self.max_wheel_speed
+            desired_states, attainableMaxSpeed=self.max_wheel_speed * elevator_factor
         )
 
-        """for state, module in zip(desired_states, self.modules):
+        for state, module in zip(desired_states, self.modules):
             module.module_locked = self.swerve_lock
-            module.set(state)"""
+            module.set(state)
 
         self.update_odometry()
 
