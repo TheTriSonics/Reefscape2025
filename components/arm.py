@@ -33,12 +33,13 @@ class ArmComponent:
 
         config = TalonFXConfiguration()
         config.slot0.k_s = 0.0
-        config.slot0.k_v = 0.8
-        config.slot0.k_a = 0.01
-        config.slot0.k_p = 6.0
+        config.slot0.k_v = 0.0
+        config.slot0.k_a = 0.0
+        config.slot0.k_p = 4.8
         config.slot0.k_i = 0.0
-        config.slot0.k_d = 0.0
-        config.motion_magic.motion_magic_cruise_velocity = 1
+        config.slot0.k_d = 0.007
+        config.slot0.k_g = 0.026
+        config.motion_magic.motion_magic_cruise_velocity = 8
         config.motion_magic.motion_magic_acceleration = 50
         config.motion_magic.motion_magic_jerk = 250
         config.feedback.feedback_remote_sensor_id = self.encoder.device_id
