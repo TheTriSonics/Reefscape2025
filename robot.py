@@ -151,9 +151,9 @@ class MyRobot(magicbot.MagicRobot):
         tag = Waypoints.get_tag_id_from_letter('C', True)
         pose = Waypoints.get_tag_robot_away(tag, face_at=True)
         pose = Waypoints.shift_reef_right(pose)
-        # self.drivetrain.set_pose(pose)
+        self.drivetrain.set_pose(pose)
         self.manipulator.engage()
-        # self.intimidator.engage()
+        self.intimidator.engage()
 
     def handle_manipulator(self) -> None:
         from controllers.manipulator import ManipLocations
