@@ -29,12 +29,12 @@ class ElevatorComponent:
     def __init__(self):
         config = TalonFXConfiguration()
         config.slot0.k_s = 0.0
-        config.slot0.k_v = 0.80
-        config.slot0.k_a = 0.001
-        config.slot0.k_p = 8.0
-        config.slot0.k_i = 0.5
-        config.slot0.k_d = 0.25
-        config.slot0.k_g = 0.075
+        config.slot0.k_v = 0.0
+        config.slot0.k_a = 0.0
+        config.slot0.k_p = 0.5
+        config.slot0.k_i = 0.0
+        config.slot0.k_d = 0.0
+        config.slot0.k_g = 0.0
         if is_sim():
             config.slot0.k_s = 0.0
             config.slot0.k_v = 0.0
@@ -43,9 +43,9 @@ class ElevatorComponent:
             config.slot0.k_i = 0.0
             config.slot0.k_d = 0.0
             config.slot0.k_g = 0.0
-        config.motion_magic.motion_magic_cruise_velocity = 20
-        config.motion_magic.motion_magic_acceleration = 40
-        config.motion_magic.motion_magic_jerk = 100
+        config.motion_magic.motion_magic_cruise_velocity = 40
+        config.motion_magic.motion_magic_acceleration = 400
+        config.motion_magic.motion_magic_jerk = 4000
         output_config = MotorOutputConfigs()
         output_config.inverted = InvertedValue.CLOCKWISE_POSITIVE
         output_config.neutral_mode = NeutralModeValue.BRAKE
