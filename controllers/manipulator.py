@@ -117,12 +117,13 @@ class Manipulator(StateMachine):
 
     def check_limits(self):
         # Elevator----------------------------------------
-        if self.arm.target_pos < -65 and (self.elevator.get_position() > 2 or not self.wrist.at_goal()):
-            self.arm.lower_limit = -65
-        else:
-            self.arm.lower_limit = -90
+        # if self.arm.target_pos < -65 and (self.elevator.get_position() > 2 or not self.wrist.at_goal()):
+        #     self.arm.lower_limit = -65
+        # else:
+        #     self.arm.lower_limit = -90
         # This limits should not change!
         # ------------------------------------------------
+        pass  # Do nothing for now
 
     # That's the end of the operator interface portion
 
@@ -145,7 +146,9 @@ class Manipulator(StateMachine):
         apos = self.arm.get_position()
         wpos = self.wrist.get_position()
         curr_location = ManipLocation(epos, apos, wpos)
-        return self._target_location == curr_location
+        manip_at_position = self._target_location == curr_location
+        # print(f'Compared {self._target_location} to {curr_location} and got {manip_at_position}')
+        return manip_at_position
     
     # That's the end of the helper methods and from here down we have the
     # various states of the state machine itself.
@@ -153,9 +156,9 @@ class Manipulator(StateMachine):
     # We'll start off idle; do nothing  until the operator requests something
     @state(must_finish=True, first=True)
     def idling(self, initial_call):
-        if self.photoeye.back_photoeye: #TODO check if we need to have a timer on this to ensure coral is moved into the intake and not resting in the chute
+        if self.photoeye.coral_held: #TODO check if we need to have a timer on this to ensure coral is moved into the intake and not resting in the chute
             self.next_state(self.coral_in_system)
-        elif self.photoeye.front_photoeye:
+        elif self.photoeye.algae_held:
             self.next_state(self.algae_in_system)
         else:
             if self.operator_advance:
@@ -168,7 +171,7 @@ class Manipulator(StateMachine):
     def coral_intake(self, state_tm, initial_call):
         if initial_call:
             self.intake_control.go_coral_intake()
-        if self.photoeye.front_photoeye:
+        if self.photoeye.coral_held:
             self.next_state(self.coral_in_system)
 
     @state(must_finish=True)
@@ -220,7 +223,7 @@ class Manipulator(StateMachine):
         if initial_call:
             self.intake_control.go_algae_intake()
             self.request_location(self.algae_intake_target)
-        if self.photoeye.front_photoeye:
+        if self.photoeye.algae_held:
             self.next_state(self.algae_in_system)
         
     @state(must_finish=True) 
@@ -258,7 +261,7 @@ class Manipulator(StateMachine):
         # Here we can check if we're at the position or if we've been
         # waiting too long and we should just move on, like maybe we just can't
         # quite get to the right position, but we've got to try something
-        if self.operator_advance and (self.at_position()):
+        if (self.operator_advance or is_auton()) and (self.at_position()):
             self.next_state(self.algae_intake)
 
     # JJB: I'm not thrilled with the names of these states, coral_score and

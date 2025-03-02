@@ -2,7 +2,7 @@ import wpilib
 from magicbot import feedback, tunable
 from phoenix6.hardware import TalonFX
 from phoenix6.controls import (
-    MotionMagicVoltage, Follower, MotionMagicDutyCycle
+    MotionMagicVoltage, Follower, MotionMagicDutyCycle, DutyCycleOut
 )
 from phoenix6.configs import TalonFXConfiguration, MotorOutputConfigs
 from utilities.game import ManipLocation
@@ -24,7 +24,7 @@ class ElevatorComponent:
     motor_request = MotionMagicDutyCycle(0, override_brake_dur_neutral=True)
     arm: ArmComponent
     upper_limit = 40.0
-    lower_limit = 2.0
+    lower_limit = 0.5
     
     def __init__(self):
         config = TalonFXConfiguration()
@@ -35,9 +35,17 @@ class ElevatorComponent:
         config.slot0.k_i = 0.5
         config.slot0.k_d = 0.25
         config.slot0.k_g = 0.075
-        config.motion_magic.motion_magic_cruise_velocity = 2
-        config.motion_magic.motion_magic_acceleration = 100
-        config.motion_magic.motion_magic_jerk = 4000
+        if is_sim():
+            config.slot0.k_s = 0.0
+            config.slot0.k_v = 0.0
+            config.slot0.k_a = 0.0
+            config.slot0.k_p = 0.05
+            config.slot0.k_i = 0.0
+            config.slot0.k_d = 0.0
+            config.slot0.k_g = 0.0
+        config.motion_magic.motion_magic_cruise_velocity = 20
+        config.motion_magic.motion_magic_acceleration = 40
+        config.motion_magic.motion_magic_jerk = 100
         output_config = MotorOutputConfigs()
         output_config.inverted = InvertedValue.CLOCKWISE_POSITIVE
         output_config.neutral_mode = NeutralModeValue.BRAKE
@@ -70,18 +78,20 @@ class ElevatorComponent:
             # exceed it. That would also be bad. Very bad.
             self.target_pos = self.upper_limit
 
-        if self.arm.get_position() < -65:
-            self.target_pos = self.get_position()
+        # if self.arm.get_position() < -65:
+        #     self.target_pos = self.get_position()
         # This limits should not change!
         # Elevator----------------------------------------
 
         req = self.motor_request.with_position(self.target_pos)
-        if not is_sim():
-            return
-        self.motor_left.set_control(req)
-        # Should this only be done once in setup()? 
-        self.motor_right.set_control(
-            Follower(TalonId.MANIP_ELEVATOR_LEFT.id,
-                        oppose_master_direction=True),
-        )
+        if self.at_goal():
+            self.motor_left.set_control(DutyCycleOut(0))
+            self.motor_right.set_control(DutyCycleOut(0))
+        else:
+            self.motor_left.set_control(req)
+            # Should this only be done once in setup()? 
+            self.motor_right.set_control(
+                Follower(TalonId.MANIP_ELEVATOR_LEFT.id,
+                            oppose_master_direction=True),
+            )
 

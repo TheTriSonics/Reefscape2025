@@ -49,8 +49,6 @@ class IntakeComponent:
     force_algae_score = tunable(False)
     force_algae_intake = tunable(False)
 
-    has_algae = tunable(False)
-
     algae_intake_at = tunable(-1.0)
     algae_score_at = tunable(-1.0)
 
@@ -97,8 +95,8 @@ class IntakeComponent:
         if self.coral_score_at + 0.5 > now:
             # We've been moving for 0.5 seconds so clear out any held coral
             # or algae
-            self.photoeye.front_photoeye = False
-            self.photoeye.back_photoeye = False
+            self.photoeye.algae_held = False
+            self.photoeye.coral_held = False
             self.coral_score_at = -1
     
         pn('algae_score', self.algae_score_at)
@@ -106,7 +104,7 @@ class IntakeComponent:
         pn('now', now)
         if self.algae_intake_at > 0 and self.algae_intake_at + 0.5 < now and ps_dist < 0.8:
             # We've been moving for 0.5 seconds so assume we have some algae
-            self.photoeye.front_photoeye = True
+            self.photoeye.algae_held = True
             self.algae_intake_at = -1
         if self.direction == IntakeDirection.NONE:
             self.algae_intake_at = -1
@@ -124,7 +122,7 @@ class IntakeComponent:
         if self.algae_score_at + 0.5 > now:
             # We've been moving for 0.5 seconds so clear out any held algae
             # or algae
-            self.photoeye.front_photoeye = False
+            self.photoeye.algae_held = False
             self.algae_score_at = -1
     
         pn('algae_score', self.algae_score_at)
@@ -132,12 +130,12 @@ class IntakeComponent:
         pn('now', now)
         if self.algae_intake_at > 0 and self.algae_intake_at + 0.5 < now and ps_dist < 0.8:
             # We've been moving for 0.5 seconds so assume we have some algae
-            self.photoeye.front_photoeye = True
+            self.photoeye.algae_held = True
             self.algae_intake_at = -1
 
         if self.coral_intake_at > 0 and self.coral_intake_at + 0.5 < now and ps_dist < 0.8:
             # We've been moving for 0.5 seconds so assume we have some coral
-            self.photoeye.back_photoeye = True
+            self.photoeye.coral_held = True
             self.coral_intake_at = -1
     
     def setup(self):
@@ -346,7 +344,7 @@ class IntakeComponent:
     def do_3d_repr(self):
         coral_pose: None | Pose3d = None
         # If we already think we have coral but the photo eye has gone false
-        if self.has_coral is True and self.photoeye.back_photoeye is False:
+        if self.has_coral is True and self.photoeye.coral_held is False:
             # Let's see if we can come up with a pose for the coral
             # Okay, we can... but it seems like the manipulator has moved away
             # from the pose it was at when it scored by the time we get here.
@@ -357,7 +355,7 @@ class IntakeComponent:
             self.has_coral = False
             self._coral_pose = None
         coral_pose = None
-        if self.photoeye.back_photoeye:
+        if self.photoeye.coral_held:
             self.has_coral = True
             robot_pose = self.drivetrain.get_pose()
             coral_pose = self.pose2d_to_pose3d(robot_pose)
@@ -381,17 +379,17 @@ class IntakeComponent:
 
     def execute(self):
         self.do_3d_repr()
-        self.update_sim()
+        # self.update_sim()
 
         speed_val = 1.0
 
         motor_power = 0.0
         if self.force_coral_intake:
-            motor_power =  speed_val
+            motor_power = speed_val
         if self.force_coral_score:
             motor_power = -speed_val
         if self.force_algae_intake:
-            motor_power =  speed_val
+            motor_power = speed_val
         if self.force_algae_score:
             motor_power = -speed_val
 

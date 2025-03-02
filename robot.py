@@ -28,7 +28,7 @@ from controllers.intake import IntakeControl
 from utilities.scalers import rescale_js
 from utilities.position import Positions
 from utilities.game import GamePieces
-from utilities import Waypoints, is_red
+from utilities import Waypoints, is_red, pn
 
 from hid.xbox_wired import ReefscapeDriver, ReefscapeOperator
 from hid.logi_flight import ReefscapeDriver as ReefscapeDriverFlight
@@ -118,6 +118,8 @@ class MyRobot(magicbot.MagicRobot):
             wpilib.DriverStation.silenceJoystickConnectionWarning(True)
 
         self.leds.rainbow()
+        self.manipulator.engage()
+        self.intimidator.engage()
         Positions.update_alliance_positions()
         
         # Determine which Joystick to use for the driver.
@@ -152,8 +154,6 @@ class MyRobot(magicbot.MagicRobot):
         pose = Waypoints.get_tag_robot_away(tag, face_at=True)
         pose = Waypoints.shift_reef_right(pose)
         self.drivetrain.set_pose(pose)
-        self.manipulator.engage()
-        self.intimidator.engage()
 
     def handle_manipulator(self) -> None:
         from controllers.manipulator import ManipLocations
@@ -204,6 +204,8 @@ class MyRobot(magicbot.MagicRobot):
         ltrig = self.operator_controller.getLeftTriggerAxis()
         if ltrig > 0.25:
             self.elevator.target_pos -= ltrig
+        pn('op rtrigger', rtrig)
+        pn('op ltrigger', ltrig)
         
         # TODO: Implement deadbanding if not the whole resize_js() method that
         # we use on the driver's stick inputs.
@@ -213,6 +215,7 @@ class MyRobot(magicbot.MagicRobot):
         wrist_movement = -rescale_js(
             self.operator_controller.getRightY(), 0.05, 2.5
         )
+        pn('arm movement', arm_movement)    
         self.arm.target_pos += arm_movement
         self.wrist.target_pos += wrist_movement
 
@@ -352,6 +355,7 @@ class MyRobot(magicbot.MagicRobot):
         self.vision.execute()
         self.battery_monitor.execute()
         self.leds.execute()
+        self.photoeye.execute()
         self.drivetrain.update_odometry()
         # mode = self._automodes.active_mode
         if Positions.PROCESSOR.X() == 0:

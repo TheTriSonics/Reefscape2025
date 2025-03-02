@@ -3,7 +3,7 @@ from magicbot import feedback, tunable
 from phoenix6 import configs, signals
 from phoenix6.hardware import TalonFX, CANcoder
 from phoenix6.controls import (
-    MotionMagicDutyCycle
+    MotionMagicDutyCycle, DutyCycleOut
 )
 from phoenix6.configs import TalonFXConfiguration, MotorOutputConfigs
 from utilities.game import ManipLocation
@@ -95,6 +95,9 @@ class ArmComponent:
         if self.target_pos > curr_pos:  # We're heading down
             k_g = -k_g.with_feed_forward(k_g)
         """
-        req = self.motor_request.with_position(can_coder_target)
-        self.motor.set_control(req)
+        if self.at_goal():
+            self.motor.set_control(DutyCycleOut(0))
+        else:
+            req = self.motor_request.with_position(can_coder_target)
+            self.motor.set_control(req)
         

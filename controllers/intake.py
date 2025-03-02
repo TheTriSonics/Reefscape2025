@@ -39,11 +39,7 @@ class IntakeControl(StateMachine):
     @state(must_finish=True)
     def coral_score(self, initial_call, state_tm):
         self.intake.score_coral()
-
-        if self.photoeye.front_photoeye is True:
-            self.score_coral_off_at = state_tm + 0.25
-
-        if self.photoeye.front_photoeye is False and self.score_coral_off_at < state_tm:
+        if self.photoeye.coral_held is False:
             self.next_state(self.idling)
 
     @state(must_finish=True)

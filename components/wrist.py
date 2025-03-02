@@ -71,8 +71,9 @@ class WristComponent:
     def execute(self):
         # Wrist----------------------------------------
         # This limits should not change!
-        if self.arm.get_position() < -65:
-            self.target_pos = self.get_position()
+        # JJB: Uhm, this breaks something. Like, the robot won't move in sim.
+        # if self.arm.get_position() < -65:
+        #   self.target_pos = self.get_position()
         # This limits should not change!
         # ----------------------------------------
 
@@ -81,5 +82,3 @@ class WristComponent:
         can_coder_target = self.target_pos / 360
         req = self.motor_request.with_position(can_coder_target)
         self.motor.set_control(req)
-        if is_sim():
-            self.motor.set_control(req)

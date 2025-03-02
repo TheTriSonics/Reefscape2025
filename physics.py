@@ -134,13 +134,15 @@ class PhysicsEngine:
         )
         self.manip_motors.append(self.arm_motor)
     
+        egear = 32
+        emoi = 0.00001
         self.elevator_motor_left = Falcon500MotorSim(
-            robot.elevator.motor_left, gearing=1, moi=0.00001
+            robot.elevator.motor_left, gearing=egear, moi=emoi
         )
         self.manip_motors.append(self.elevator_motor_left)
 
         self.elevator_motor_right = Falcon500MotorSim(
-            robot.elevator.motor_right, gearing=1, moi=0.00001
+            robot.elevator.motor_right, gearing=egear, moi=emoi
         )
         self.manip_motors.append(self.elevator_motor_right)
         
