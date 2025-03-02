@@ -80,5 +80,6 @@ class WristComponent:
             self.target_pos = norm_deg(self.target_pos)
         can_coder_target = self.target_pos / 360
         req = self.motor_request.with_position(can_coder_target)
+        self.motor.set_control(req)
         if is_sim():
             self.motor.set_control(req)

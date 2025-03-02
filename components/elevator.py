@@ -76,8 +76,8 @@ class ElevatorComponent:
         # Elevator----------------------------------------
 
         req = self.motor_request.with_position(self.target_pos)
-        if not is_sim():
-            return
+        # if not is_sim():
+        #     return
         self.motor_left.set_control(req)
         # Should this only be done once in setup()? 
         self.motor_right.set_control(
