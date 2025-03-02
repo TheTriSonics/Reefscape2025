@@ -64,7 +64,7 @@ class Manipulator(StateMachine):
         # Set the necessary targets for each component
         self.request_location(ManipLocations.HOME)
         self.intake_control.go_idle()
-        self.next_state_now(self.idling)
+        self.next_state(self.idling)
         self.engage()
 
     def go_algae_score(self):
@@ -170,6 +170,7 @@ class Manipulator(StateMachine):
     @state(must_finish=True)
     def coral_intake(self, state_tm, initial_call):
         if initial_call:
+            self.request_location(ManipLocations.INTAKE_CORAL)
             self.intake_control.go_coral_intake()
         if self.photoeye.coral_held:
             self.next_state(self.coral_in_system)
@@ -195,7 +196,7 @@ class Manipulator(StateMachine):
         # quite get to the right position, but we've got to try something
         at_pos = self.at_position()
         if (self.operator_advance or is_auton()) and (at_pos):
-            self.next_state_now(self.coral_score)
+            self.next_state(self.coral_score)
 
     # JJB: I'm not thrilled with the names of these states, coral_score and
     # coral_scored are too similar, but they make sense.

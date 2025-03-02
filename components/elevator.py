@@ -8,7 +8,6 @@ from phoenix6.configs import TalonFXConfiguration, MotorOutputConfigs
 from utilities.game import ManipLocation
 from utilities import is_sim
 from phoenix6.signals import InvertedValue, NeutralModeValue
-from components.arm import ArmComponent
 
 from ids import TalonId
 
@@ -22,8 +21,7 @@ class ElevatorComponent:
     default_pos = 2.0
     target_pos = tunable(default_pos)
     motor_request = MotionMagicDutyCycle(0, override_brake_dur_neutral=True)
-    arm: ArmComponent
-    upper_limit = 40.0
+    upper_limit = 80.0
     lower_limit = 0.5
     
     def __init__(self):
@@ -66,22 +64,10 @@ class ElevatorComponent:
         return current_loc == target_loc
 
     def execute(self):
-        # Elevator----------------------------------------
-        # This limits should not change!
-        if self.target_pos < self.lower_limit:
-            # TODO Add the lower limit switch.
-            #  Driving the elevator below 0 would be bad. Very bad. So don't let
-            # anybody do that!
-            self.target_pos = self.lower_limit
-        if self.target_pos > self.upper_limit:
-            # There's a max height to this elevator and we don't want to try and
-            # exceed it. That would also be bad. Very bad.
+        if self.target_pos < 0.5:
+            self.target_pos = 0.5
+        elif self.target_pos > self.upper_limit:
             self.target_pos = self.upper_limit
-
-        # if self.arm.get_position() < -65:
-        #     self.target_pos = self.get_position()
-        # This limits should not change!
-        # Elevator----------------------------------------
 
         req = self.motor_request.with_position(self.target_pos)
         if self.at_goal():

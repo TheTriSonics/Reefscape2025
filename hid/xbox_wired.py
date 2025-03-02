@@ -37,10 +37,10 @@ class ReefscapeDriver(ReefscapeDriverBase):
 class ReefscapeOperator(ReefscapeOperatorBase):
 
     def goHome(self) -> bool:
-        return self.getYButton()
+        return self.getYButtonPressed()
     
     def getManipulatorAdvance(self) -> bool:
-        return self.getAButton()
+        return self.getAButtonPressed()
 
     def getCoralMode(self) -> bool:
         return self.getRightBumperButtonPressed()

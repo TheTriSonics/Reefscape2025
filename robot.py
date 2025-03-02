@@ -198,6 +198,7 @@ class MyRobot(magicbot.MagicRobot):
         """
             
         # Hack in the right and left bumpers moving the elevator up and down
+        """
         rtrig = self.operator_controller.getRightTriggerAxis()
         if rtrig > 0.25:
             self.elevator.target_pos += rtrig
@@ -206,6 +207,7 @@ class MyRobot(magicbot.MagicRobot):
             self.elevator.target_pos -= ltrig
         pn('op rtrigger', rtrig)
         pn('op ltrigger', ltrig)
+        """
         
         # TODO: Implement deadbanding if not the whole resize_js() method that
         # we use on the driver's stick inputs.
@@ -316,14 +318,10 @@ class MyRobot(magicbot.MagicRobot):
             self.intimidator.go_drive_field()
 
     def teleopPeriodic(self) -> None:
-        self.handle_manipulator()
-        self.handle_drivetrain()
         pose = self.drivetrain.get_pose()
         Positions.update_dynamic_positions(pose)
-
-    def robotPeriodic(self):
-        self.manipulator.check_limits()
-        return super().robotPeriodic()
+        self.handle_manipulator()
+        self.handle_drivetrain()
 
     def testInit(self) -> None:
         self.driver_controller = ReefscapeDriver(0)

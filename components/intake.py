@@ -381,7 +381,7 @@ class IntakeComponent:
         self.do_3d_repr()
         # self.update_sim()
 
-        speed_val = 1.0
+        speed_val = 1.0/2
 
         motor_power = 0.0
         if self.force_coral_intake:

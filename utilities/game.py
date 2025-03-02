@@ -86,17 +86,17 @@ class ManipLocation:
         self.arm_pos = arm
         self.wrist_pos = wrist
 
-    def within_tolerance(self, other, tol=0.5):
+    def within_tolerance(self, other, tol=1.5, angtol=2.0):
         ediff = abs(self.elevator_pos - other.elevator_pos)
         adiff = abs(self.arm_pos - other.arm_pos)
         wdiff = abs(self.wrist_pos - other.wrist_pos)
-        max_diff = max(ediff, adiff, wdiff)
+        max_diff = max(ediff, adiff)
         # if tol != 0.5:
         #     print('max diff', max_diff)
-        return max_diff < tol
+        return max_diff < tol and wdiff < angtol
 
     def __eq__(self, other):
-        return self.within_tolerance(other, tol=0.5)
+        return self.within_tolerance(other, tol=1.5, angtol=2.0)
 
     def __sub__(self, other):
         return ManipLocation(
@@ -120,11 +120,12 @@ class ManipLocations:
     """
     # Order of params is elevator, arm, wrist, just as in the Location's
     # __init__ method
-    HOME = ManipLocation(0.5, -90, 35) 
-    CORAL_REEF_1 = ManipLocation(10, -60, 75)
-    CORAL_REEF_2 = ManipLocation(15, -20, -12)
-    CORAL_REEF_3 = ManipLocation(25, 35, -52)
-    CORAL_REEF_4 = ManipLocation(35, 50, -130) 
+    HOME = ManipLocation(0.5, -60, 37) 
+    INTAKE_CORAL = ManipLocation(0.5, -90, 37) 
+    CORAL_REEF_1 = ManipLocation(0.5, -60, 0)
+    CORAL_REEF_2 = ManipLocation(0.5, -20, -12)
+    CORAL_REEF_3 = ManipLocation(0.5, 35, -52)
+    CORAL_REEF_4 = ManipLocation(50, 50, 50) 
     ALGAE_REEF_1 = ManipLocation(2, -30, -90)
     ALGAE_REEF_2 = ManipLocation(9, -30, -90)
 

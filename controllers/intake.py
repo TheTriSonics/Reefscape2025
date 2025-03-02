@@ -55,11 +55,8 @@ class IntakeControl(StateMachine):
     @state(must_finish=True)
     def coral_intake(self, initial_call, state_tm):
         self.intake.coral_in()    
-
-        if self.photoeye.front_photoeye is False:
-            self.intake_coral_off_at = state_tm + 0.01
-
-        if self.photoeye.front_photoeye is True and self.intake_coral_off_at < state_tm:
+        if self.photoeye.front_photoeye is True:
+            self.intake.intake_off()
             self.next_state(self.idling)
     
     @state(must_finish=True)
