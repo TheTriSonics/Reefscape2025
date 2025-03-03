@@ -6,7 +6,7 @@ from generated.tuner_constants import TunerConstants
 
 apriltags = AprilTagFieldLayout.loadField(AprilTagField.k2025ReefscapeWelded)
 
-bumper_width = 0.30
+bumper_width = 0.05
 robot_y_offset = TunerConstants._front_left_y_pos + bumper_width
 
 reef_tags = [6, 7, 8, 9, 10, 11, 17, 18, 19, 20, 21, 22]
@@ -220,7 +220,9 @@ class Waypoints:
     def get_tag_robot_away(cls, tag_id, face_at=False) -> Pose2d:
         pose = cls.get_tag_pose(tag_id)
         rot = 0 if face_at is False else math.pi
-        robot_offset = Transform2d(Translation2d(robot_y_offset + 0.2, 0), Rotation2d(rot))
+        sign = 1 if face_at is True else 1.8
+        left_offset = 0.06 if face_at is True else 0.0
+        robot_offset = Transform2d(Translation2d(robot_y_offset * sign, -left_offset), Rotation2d(rot))
         robot_pose = pose.transformBy(robot_offset)
         return robot_pose
 
