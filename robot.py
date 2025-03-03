@@ -182,9 +182,9 @@ class MyRobot(magicbot.MagicRobot):
             if self.operator_controller.getHeightPlacement3():
                 self.manipulator.set_algae_level2()
             if self.operator_controller.getHeightPlacement1():
-                self.manipulator.set_algae_processor
+                self.manipulator.set_algae_processor()
             if self.operator_controller.getHeightPlacement4():
-                self.manipulator.set_algae_barge
+                self.manipulator.set_algae_barge()
 
 
         """ Moved the above to the operator controller, this part is no longer needed

@@ -23,4 +23,7 @@ class PhotoEyeComponent:
         self.back_photoeye = self.candi.get_s1_state().value.value == EYE_BLOCKED
         self.front_photoeye = self.candi.get_s2_state().value.value == EYE_BLOCKED
         # Not the real logic, but we can get started with this.
-        self.coral_held = self.front_photoeye
+        self.coral_held = self.back_photoeye
+        # I kind of want to debounce this or make sure we're actually trying
+        # to pick up the algae but not sure where/how to do that yet.
+        self.algae_held = self.front_photoeye

@@ -63,6 +63,13 @@ class IntakeComponent:
                             .getStructArrayTopic('/components/intake/algae_locs', Pose3d)
                             .publish())
         self._coral_pose = None
+        from phoenix6 import configs
+        limit_configs = configs.CurrentLimitsConfigs()
+        # enable stator current limit to keep algae from falling out when
+        # the motor is trying to keep it in
+        limit_configs.stator_current_limit = 12
+        limit_configs.stator_current_limit_enable = True
+        self.motor.configurator.apply(limit_configs)
 
     def update_sim(self):
         # A method we can call from execute() to move along statuses until
@@ -395,7 +402,9 @@ class IntakeComponent:
 
         if self.direction in [IntakeDirection.CORAL_IN, IntakeDirection.ALGAE_SCORE]:
             motor_power = speed_val
-        elif self.direction in [IntakeDirection.CORAL_SCORE, IntakeDirection.CORAL_SCORE]:
+        elif (
+            self.direction in [IntakeDirection.CORAL_SCORE, IntakeDirection.ALGAE_IN]
+        ):
             motor_power = -speed_val
 
         self.motor_request.output = motor_power

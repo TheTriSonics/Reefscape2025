@@ -31,6 +31,10 @@ class IntakeControl(StateMachine):
         self.next_state(self.algae_intake)
         self.engage()
 
+    def go_algae_hold(self):
+        self.next_state(self.algae_hold)
+        self.engage()
+
 
     @state(first=True, must_finish=True)
     def idling(self):
@@ -62,24 +66,12 @@ class IntakeControl(StateMachine):
     @state(must_finish=True)
     def algae_intake(self, initial_call, state_tm):
         self.intake.algae_in()    
-
-        if self.photoeye.front_photoeye is False:
-            self.intake_algae_off_at = state_tm + 0.01
-
-        if self.photoeye.front_photoeye is True and self.intake_algae_off_at < state_tm:
-            self.next_state(self.idling)
-
-
-"""   This code isn't currently used anywhere.
-    @state(must_finish=True)
-    def score_algae(self, initial_call, state_tm):
-        if initial_call:
-            self.intake.score_algae()
-            pass
-
         if self.photoeye.front_photoeye is True:
-            self.score_algae_off_at = state_tm + 0.25
-
-        if self.photoeye.front_photoeye is False and self.score_algae_off_at < state_tm:
             self.next_state(self.idling)
-"""
+
+    @state(must_finish=True)
+    def algae_hold(self):
+        self.intake.algae_in()    
+        if self.photoeye.front_photoeye is False:
+            self.next_state(self.idling)
+
