@@ -51,12 +51,12 @@ class ArmComponent:
         self.motor.configurator.apply(config)  # type: ignore
         self.motor.configurator.apply(config_output)
 
-        # limit_configs = CurrentLimitsConfigs()
+        limit_configs = CurrentLimitsConfigs()
         # enable stator current limit to keep algae from falling out when
         # the motor is trying to keep it in
-        # limit_configs.stator_current_limit = 60
-        # limit_configs.stator_current_limit_enable = True
-        # self.motor.configurator.apply(limit_configs)
+        limit_configs.stator_current_limit = 30
+        limit_configs.stator_current_limit_enable = True
+        self.motor.configurator.apply(limit_configs)
     
     @feedback
     def get_position(self) -> float:
