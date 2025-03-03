@@ -5,7 +5,7 @@ from phoenix6.hardware import TalonFX, CANcoder
 from phoenix6.controls import (
     MotionMagicDutyCycle, DutyCycleOut
 )
-from phoenix6.configs import TalonFXConfiguration, MotorOutputConfigs
+from phoenix6.configs import TalonFXConfiguration, MotorOutputConfigs, CANcoderConfiguration, CurrentLimitsConfigs
 from utilities.game import ManipLocation
 from utilities import norm_deg, is_sim
 from ids import TalonId, CancoderId
@@ -24,8 +24,7 @@ class ArmComponent:
     upper_limit = 90
     
     def __init__(self):
-        enc_config = configs.CANcoderConfiguration()
-
+        enc_config = CANcoderConfiguration()
         enc_config.magnet_sensor.absolute_sensor_discontinuity_point = 0.5
         enc_config.magnet_sensor.sensor_direction = signals.SensorDirectionValue.COUNTER_CLOCKWISE_POSITIVE
         enc_config.magnet_sensor.magnet_offset = self.mag_offset
@@ -51,6 +50,13 @@ class ArmComponent:
         config_output.neutral_mode = signals.NeutralModeValue.BRAKE
         self.motor.configurator.apply(config)  # type: ignore
         self.motor.configurator.apply(config_output)
+
+        # limit_configs = CurrentLimitsConfigs()
+        # enable stator current limit to keep algae from falling out when
+        # the motor is trying to keep it in
+        # limit_configs.stator_current_limit = 60
+        # limit_configs.stator_current_limit_enable = True
+        # self.motor.configurator.apply(limit_configs)
     
     @feedback
     def get_position(self) -> float:

@@ -8,13 +8,15 @@ class IntakeControl(StateMachine):
     photoeye: PhotoEyeComponent
 
     def __init__(self):
+        self.coral_score_reverse = False
         pass
 
     def go_idle(self):
         self.next_state(self.idling)
         self.engage()
 
-    def go_coral_score(self):
+    def go_coral_score(self, reverse=False):
+        self.coral_score_reverse = reverse
         self.next_state(self.coral_score)
         self.engage()
 
@@ -42,8 +44,11 @@ class IntakeControl(StateMachine):
 
     @state(must_finish=True)
     def coral_score(self, initial_call, state_tm):
-        self.intake.score_coral()
-        if self.photoeye.coral_held is False:
+        if self.coral_score_reverse:
+            self.intake.score_coral_reverse()
+        else:
+            self.intake.score_coral()
+        if state_tm > 0.750 and self.photoeye.front_photoeye is False and self.photoeye.back_photoeye is False:
             self.next_state(self.idling)
 
     @state(must_finish=True)

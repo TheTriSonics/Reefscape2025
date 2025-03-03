@@ -2,6 +2,7 @@ import wpilib
 from phoenix6.hardware import CANdi
 from magicbot import tunable
 from ids import CanId
+from utilities import is_sim
 
 
 class PhotoEyeComponent:
@@ -20,8 +21,9 @@ class PhotoEyeComponent:
         # 1 = We don't know when this would happen
         # 2 = EYE_BLOCKED
         EYE_BLOCKED = 2
-        self.back_photoeye = self.candi.get_s1_state().value.value == EYE_BLOCKED
-        self.front_photoeye = self.candi.get_s2_state().value.value == EYE_BLOCKED
+        if not is_sim():
+            self.back_photoeye = self.candi.get_s1_state().value.value == EYE_BLOCKED
+            self.front_photoeye = self.candi.get_s2_state().value.value == EYE_BLOCKED
         # Not the real logic, but we can get started with this.
         self.coral_held = self.back_photoeye
         # I kind of want to debounce this or make sure we're actually trying

@@ -42,15 +42,10 @@ class IntakeComponent:
     coral_pose_msg = tunable('')
 
     has_coral = tunable(False)
-
-    coral_intake_at = tunable(-1.0)
-    coral_score_at = tunable(-1.0)
+    direction_int = tunable(0)
 
     force_algae_score = tunable(False)
     force_algae_intake = tunable(False)
-
-    algae_intake_at = tunable(-1.0)
-    algae_score_at = tunable(-1.0)
 
     motor_request = DutyCycleOut(0, override_brake_dur_neutral=True)
     direction = IntakeDirection.NONE
@@ -71,80 +66,6 @@ class IntakeComponent:
         limit_configs.stator_current_limit_enable = True
         self.motor.configurator.apply(limit_configs)
 
-    def update_sim(self):
-        # A method we can call from execute() to move along statuses until
-        # we have the real hardware. We could do this in physics.py but
-        # to make it run on the physical robot we can put it here so the logic
-        # can be tested while actually driving it.
-
-        now = wpilib.Timer.getFPGATimestamp()
-        robot_pose = self.drivetrain.get_pose()
-        ps_tag_id, _ = Waypoints.closest_ps_tag_id(robot_pose)
-        ps_tag_pose = Waypoints.get_tag_pose(ps_tag_id)
-        # Now get distance between them
-        ps_dist = robot_pose.translation().distance(ps_tag_pose.translation())
-        pn = wpilib.SmartDashboard.putNumber
-        pn('ps_dist', ps_dist)
-
-        if self.direction == IntakeDirection.NONE:
-            self.coral_intake_at = -1
-            self.coral_score_at = -1
-        elif self.direction == IntakeDirection.CORAL_IN:
-            self.coral_score_at = -1
-        elif self.direction == IntakeDirection.CORAL_SCORE:
-            self.coral_intake_at = -1
-        
-        if self.coral_intake_at < 0 and self.direction == IntakeDirection.CORAL_IN:
-            self.coral_intake_at = now
-        if self.coral_score_at < 0 and self.direction == IntakeDirection.CORAL_SCORE:
-            self.coral_score_at = now
-
-        if self.coral_score_at + 0.5 > now:
-            # We've been moving for 0.5 seconds so clear out any held coral
-            # or algae
-            self.photoeye.algae_held = False
-            self.photoeye.coral_held = False
-            self.coral_score_at = -1
-    
-        pn('algae_score', self.algae_score_at)
-        pn('algae_intake_at', self.algae_intake_at)
-        pn('now', now)
-        if self.algae_intake_at > 0 and self.algae_intake_at + 0.5 < now and ps_dist < 0.8:
-            # We've been moving for 0.5 seconds so assume we have some algae
-            self.photoeye.algae_held = True
-            self.algae_intake_at = -1
-        if self.direction == IntakeDirection.NONE:
-            self.algae_intake_at = -1
-            self.algae_score_at = -1
-        elif self.direction == IntakeDirection.ALGAE_IN:
-            self.algae_score_at = -1
-        elif self.direction == IntakeDirection.ALGAE_SCORE:
-            self.algae_intake_at = -1
-        
-        if self.algae_intake_at < 0 and self.direction == IntakeDirection.ALGAE_IN:
-            self.algae_intake_at = now
-        if self.algae_score_at < 0 and self.direction == IntakeDirection.ALGAE_SCORE:
-            self.algae_score_at = now
-
-        if self.algae_score_at + 0.5 > now:
-            # We've been moving for 0.5 seconds so clear out any held algae
-            # or algae
-            self.photoeye.algae_held = False
-            self.algae_score_at = -1
-    
-        pn('algae_score', self.algae_score_at)
-        pn('algae_intake_at', self.algae_intake_at)
-        pn('now', now)
-        if self.algae_intake_at > 0 and self.algae_intake_at + 0.5 < now and ps_dist < 0.8:
-            # We've been moving for 0.5 seconds so assume we have some algae
-            self.photoeye.algae_held = True
-            self.algae_intake_at = -1
-
-        if self.coral_intake_at > 0 and self.coral_intake_at + 0.5 < now and ps_dist < 0.8:
-            # We've been moving for 0.5 seconds so assume we have some coral
-            self.photoeye.coral_held = True
-            self.coral_intake_at = -1
-    
     def setup(self):
         tfl = Waypoints.get_tag_id_from_letter
         self.coral_static: list[Pose3d] = [
@@ -178,6 +99,9 @@ class IntakeComponent:
 
     def score_coral(self):
         self.direction = IntakeDirection.CORAL_SCORE
+
+    def score_coral_reverse(self):
+        self.direction = IntakeDirection.CORAL_IN
 
     def score_algae(self):
         self.direction = IntakeDirection.ALGAE_SCORE
@@ -277,118 +201,9 @@ class IntakeComponent:
         )
         return coral_pose
 
-    def calc_coral_pose(self, reef_tag_id=None, force_left=False, force_right=False, height=None) -> Pose3d:
-        xoff, yoff, zoff = 0.0, 0.0, 0.0
-        roll, pitch, yaw = 0.0, 0.0, 0.0
-
-        robot_pose = self.drivetrain.get_pose()
-        height = self.get_current_coral_scoring_height()
-        curr_loc = ManipLocation(
-            self.elevator.get_position(),
-            self.arm.get_position(),
-            self.wrist.get_position(),
-        )
-        self.coral_pose_msg = f'Scoring at height {height} for {curr_loc}'
-        if reef_tag_id is None:
-            reef_tag_id, dist = Waypoints.closest_reef_tag_id(robot_pose)
-            if dist > 1.0 or height not in [1, 2, 3, 4]:
-                # Just drop it on the floor!
-                robot_3d_pose = Pose3d(
-                    Translation3d(robot_pose.X(), robot_pose.Y(), 0.2),
-                    Rotation3d(0, 0, robot_pose.rotation().radians()),
-                )
-                coral_pose = robot_3d_pose.transformBy(
-                    Transform3d(Translation3d(0.5, 0, 0.0),
-                                Rotation3d.fromDegrees(0, 45, 0))
-                )
-                return coral_pose
-        tag_pose = Waypoints.get_tag_pose(reef_tag_id)
-        # Flip the pose so right/left make sense
-        flip = Transform2d(Translation2d(0, 0), Rotation2d(math.pi))
-        tag_pose = tag_pose.transformBy(flip)
-        tag_pose_left = Waypoints.shift_reef_left(tag_pose)
-        tag_pose_right = Waypoints.shift_reef_right(tag_pose)
-
-        # If the distance from robot pose to left is less than to the right
-        # then we'll use the left pose
-        base_pose = tag_pose_right
-        if robot_pose.translation().distance(tag_pose_left.translation()) < robot_pose.translation().distance(tag_pose_right.translation()):
-            base_pose = tag_pose_left
-        
-        if force_left:
-            base_pose = tag_pose_left
-        elif force_right:
-            base_pose = tag_pose_right
-
-        tag_3d_pose = Pose3d(
-            Translation3d(base_pose.X(), base_pose.Y(), 0.2),
-            Rotation3d(0, 0, base_pose.rotation().radians()),
-        )
-
-        if height == 1:
-            xoff = 0.20
-            zoff = 0.35
-            pitch = -30
-        elif height == 2:
-            xoff = 0.10
-            zoff = 0.55
-            pitch = 30
-        elif height == 3:
-            xoff = 0.10
-            zoff = 0.95
-            pitch = 30
-        elif height == 4:
-            xoff = 0.075
-            zoff = 1.6
-            pitch = 90
-
-        coral_pose = tag_3d_pose.transformBy(
-            Transform3d(Translation3d(xoff, yoff, zoff),
-                        Rotation3d.fromDegrees(roll, pitch, yaw))
-        )
-        return coral_pose
-
-    def do_3d_repr(self):
-        coral_pose: None | Pose3d = None
-        # If we already think we have coral but the photo eye has gone false
-        if self.has_coral is True and self.photoeye.coral_held is False:
-            # Let's see if we can come up with a pose for the coral
-            # Okay, we can... but it seems like the manipulator has moved away
-            # from the pose it was at when it scored by the time we get here.
-            # and uhh... I think I just need to put a delay in my auton to fix
-            # this.
-            coral_pose = self.calc_coral_pose()
-            self.coral_static.append(coral_pose)
-            self.has_coral = False
-            self._coral_pose = None
-        coral_pose = None
-        if self.photoeye.coral_held:
-            self.has_coral = True
-            robot_pose = self.drivetrain.get_pose()
-            coral_pose = self.pose2d_to_pose3d(robot_pose)
-            # Now move it around baseed on what the robot's doing
-            z_offset = self.elevator.get_position() * 0.05
-            z_offset += math.sin(math.radians(self.arm.get_position())) * 0.5
-            coral_rotation = math.radians(self.wrist.get_position() + self.arm.get_position())
-            coral_pose = coral_pose.transformBy(
-                Transform3d(Translation3d(0, 0, z_offset),
-                            Rotation3d(0, coral_rotation, math.pi))
-            )
-            self._coral_pose = coral_pose
-        else:
-            self.has_coral = False
-            self._coral_pose = None
-        
-        if coral_pose:
-            self.coral_pub.set(self.coral_static + [coral_pose])
-        else:
-            self.coral_pub.set(self.coral_static)
-
     def execute(self):
-        self.do_3d_repr()
-        # self.update_sim()
-
-        speed_val = 1.0/2
+        self.direction_int = self.direction.value
+        speed_val = 0.3
 
         motor_power = 0.0
         if self.force_coral_intake:

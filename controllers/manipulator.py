@@ -3,6 +3,7 @@
 This is a state machine that will control the manipulator.
 """
 import enum
+import ntcore
 from magicbot import StateMachine, state, tunable, feedback, will_reset_to
 
 from components.photoeye import PhotoEyeComponent
@@ -13,6 +14,7 @@ from components.wrist import WristComponent
 from controllers.intake import IntakeControl
 
 from utilities.game import ManipLocations, ManipLocation, GamePieces, is_auton
+from utilities import pb
 
 
 class Manipulator(StateMachine):
@@ -34,6 +36,32 @@ class Manipulator(StateMachine):
     # This is where the system will try and drive itself to at any given time
     _target_location: ManipLocation = ManipLocations.HOME
 
+    def __init__(self):
+        self.game_mode = (
+            ntcore.NetworkTableInstance.getDefault()
+            .getStringTopic("/components/manipulator/game_mode")
+            .publish()
+        )
+        self.coral_scoring_level = (
+            ntcore.NetworkTableInstance.getDefault()
+            .getIntegerTopic("/components/manipulator/coral_level")
+            .publish()
+        )
+        self.algae_intake_level = (
+            ntcore.NetworkTableInstance.getDefault()
+            .getIntegerTopic("/components/manipulator/algae_level")
+            .publish()
+        )
+        self.algae_scoring_level = (
+            ntcore.NetworkTableInstance.getDefault()
+            .getStringTopic("/components/manipulator/algae_target")
+            .publish()
+        )
+        self.game_mode.set('coral')
+        self.coral_scoring_level.set(4)
+        self.algae_intake_level.set(1)
+        self.algae_scoring_level.set('barge')
+
     # This gets called by the MagicBot framework when the system is enabled
     def on_enable(self):
         print('Manipulator enabled')
@@ -54,10 +82,12 @@ class Manipulator(StateMachine):
 
     def coral_mode(self):
         self.game_piece_mode = GamePieces.CORAL
+        self.game_mode.set('coral')
         self.go_home()
 
     def algae_mode(self):
         self.game_piece_mode = GamePieces.ALGAE
+        self.game_mode.set('algae')
         self.go_home()
 
     def go_home(self):
@@ -92,27 +122,35 @@ class Manipulator(StateMachine):
         self.engage()
     
     def set_coral_level1(self):
+        self.coral_scoring_level.set(1)
         self.coral_scoring_target = ManipLocations.CORAL_REEF_1
 
     def set_coral_level2(self):
+        self.coral_scoring_level.set(2)
         self.coral_scoring_target = ManipLocations.CORAL_REEF_2
 
     def set_coral_level3(self):
+        self.coral_scoring_level.set(3)
         self.coral_scoring_target = ManipLocations.CORAL_REEF_3
 
     def set_coral_level4(self):
+        self.coral_scoring_level.set(4)
         self.coral_scoring_target = ManipLocations.CORAL_REEF_4
     
     def set_algae_level1(self):
+        self.algae_intake_level.set(1)
         self.algae_intake_target = ManipLocations.ALGAE_REEF_1
 
     def set_algae_level2(self):
+        self.algae_intake_level.set(2)
         self.algae_intake_target = ManipLocations.ALGAE_REEF_2
     
     def set_algae_processor(self):
+        self.algae_scoring_level.set('processor')
         self.algae_scoring_target = ManipLocations.PROCESSOR_5
 
     def set_algae_barge(self):
+        self.algae_scoring_level.set('barge')
         self.algae_scoring_target = ManipLocations.BARGE_6
 
     def check_limits(self):
@@ -156,9 +194,9 @@ class Manipulator(StateMachine):
     # We'll start off idle; do nothing  until the operator requests something
     @state(must_finish=True, first=True)
     def idling(self, initial_call):
-        if self.photoeye.coral_held and self.game_piece_mode == GamePieces.CORAL:
+        if self.photoeye.front_photoeye and self.game_piece_mode == GamePieces.CORAL:
             self.next_state(self.coral_in_system)
-        elif self.photoeye.algae_held and self.game_piece_mode == GamePieces.ALGAE:
+        elif self.photoeye.front_photoeye and self.game_piece_mode == GamePieces.ALGAE:
             self.next_state(self.algae_in_system)
         else:
             if self.operator_advance:
@@ -172,7 +210,7 @@ class Manipulator(StateMachine):
         if initial_call:
             self.request_location(ManipLocations.INTAKE_CORAL)
             self.intake_control.go_coral_intake()
-        if self.photoeye.coral_held:
+        if self.photoeye.front_photoeye:
             self.next_state(self.coral_in_system)
 
     @state(must_finish=True)
@@ -194,7 +232,7 @@ class Manipulator(StateMachine):
         # Here we can check if we're at the position or if we've been
         # waiting too long and we should just move on, like maybe we just can't
         # quite get to the right position, but we've got to try something
-        at_pos = self.at_position()
+        at_pos = self.at_position() or state_tm > 3.0
         if (self.operator_advance or is_auton()) and (at_pos):
             self.next_state(self.coral_score)
 
@@ -204,11 +242,18 @@ class Manipulator(StateMachine):
     def coral_score(self, state_tm, initial_call):
         # Let's score a coral!
         if initial_call:
-            self.intake_control.go_coral_score()
+            reverse = False
+            if self.coral_scoring_target in [
+                ManipLocations.CORAL_REEF_2,
+                ManipLocations.CORAL_REEF_3,
+            ]:
+                reverse = True
+            pb('Reverse score', reverse)
+            self.intake_control.go_coral_score(reverse=reverse)
 
         # Wait until the intake controller thinks it has scored the coral
         scored = self.intake_control.current_state == self.intake_control.idling.name
-        if self.operator_advance and scored:
+        if scored:
             self.next_state(self.coral_scored)
 
     # NOTE: This step might not really be needed, we could return back
