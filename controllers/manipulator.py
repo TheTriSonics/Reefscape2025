@@ -36,7 +36,8 @@ class Manipulator(StateMachine):
     coral_scoring_target = ManipLocations.CORAL_REEF_4
     algae_scoring_target = ManipLocations.BARGE_6
     algae_intake_target = ManipLocations.ALGAE_REEF_1
-    
+    initial_target = ManipLocations.CORAL_REEF_4
+
     # This is where the system will try and drive itself to at any given time
     _target_location: ManipLocation = ManipLocations.HOME
 
@@ -96,9 +97,10 @@ class Manipulator(StateMachine):
 
     def go_home(self):
         # Set the necessary targets for each component
-        self.request_location(ManipLocations.HOME)
+        if self.get_reef_distance() > self.reef_limit:
+            self.request_location(ManipLocations.HOME)
+            self.next_state(self.idling)
         self.intake_control.go_idle()
-        self.next_state(self.idling)
         self.engage()
 
     def go_algae_score(self):
@@ -243,17 +245,17 @@ class Manipulator(StateMachine):
     def coral_prepare_score(self, initial_call, state_tm):
         move_allowed = False
         if initial_call:
-            initial_target = self.coral_scoring_target
+            self.initial_target = self.coral_scoring_target
             self.request_location(self.coral_scoring_target)
 
         # The operator could change the target value while we're in this state
         # so check for that!  First check if we're allowed to move between positions
-        if initial_target != self.coral_scoring_target:
+        if self.initial_target != self.coral_scoring_target:
             if self.coral_scoring_target in [
                 ManipLocations.CORAL_REEF_1,
                 ManipLocations.CORAL_REEF_2,
                 ManipLocations.CORAL_REEF_3
-                ] and initial_target in [
+                ] and self.initial_target in [
                     ManipLocations.CORAL_REEF_1,
                     ManipLocations.CORAL_REEF_2,
                     ManipLocations.CORAL_REEF_3
@@ -264,7 +266,7 @@ class Manipulator(StateMachine):
                 ManipLocations.CORAL_REEF_3,
                 ManipLocations.CORAL_REEF_3_UP,
                 ManipLocations.CORAL_REEF_4,
-                ] and initial_target in [
+                ] and self.initial_target in [
                     ManipLocations.CORAL_REEF_3_UP,
                     ManipLocations.CORAL_REEF_4,
                     ]:
