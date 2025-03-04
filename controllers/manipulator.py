@@ -28,6 +28,7 @@ class Manipulator(StateMachine):
     drivetrain: DrivetrainComponent
 
     operator_advance = will_reset_to(False)
+    reef_limit = tunable(1.5)
     
     # Create some default targets for the robot. The operator can change these
     # over in robot.py with their controller.
@@ -229,7 +230,7 @@ class Manipulator(StateMachine):
 
     @state(must_finish=True)
     def coral_in_system(self, state_tm, initial_call):
-        if initial_call and self.get_reef_distance() > 1.5:
+        if initial_call and self.get_reef_distance() > self.reef_limit:
             arm_pos = self.coral_scoring_target.arm_pos
             if arm_pos > 0:
                 self.request_location(ManipLocations.DRIVE_UP)
@@ -314,7 +315,7 @@ class Manipulator(StateMachine):
             self.go_arm_safe()
         if self.arm.at_goal():
             self.elevator.target_pos = ManipLocations.HOME.elevator_pos
-        if self.get_reef_distance() > 1.5 and (self.operator_advance or is_auton()):
+        if self.get_reef_distance() > self.reef_limit and (self.operator_advance or is_auton()):
             self.go_home()
 
 # this is the algae stuff
@@ -331,7 +332,7 @@ class Manipulator(StateMachine):
         # Wait here until the operator wants to get into scoring position
         if initial_call:
             self.intake_control.go_algae_hold()
-        if self.get_reef_distance() > 1.5:
+        if self.get_reef_distance() > self.reef_limit:
             arm_pos = self.algae_scoring_target.arm_pos
             if arm_pos > 0:
                 self.request_location(ManipLocations.DRIVE_UP)
@@ -340,7 +341,7 @@ class Manipulator(StateMachine):
             else:
                 self.request_location(ManipLocations.HOME)
             """
-        if self.operator_advance and self.get_reef_distance() > 1.5:
+        if self.operator_advance and self.get_reef_distance() > self.reef_limit:
             self.next_state(self.algae_prepare_score)
     
     @state(must_finish=True)

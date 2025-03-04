@@ -53,6 +53,9 @@ class IntakeControl(StateMachine):
 
     @state(must_finish=True)
     def algae_score(self, initial_call, state_tm):
+        if initial_call:
+            self.score_algae_off_at = state_tm + 0.25
+            
         self.intake.score_algae()
 
         if self.photoeye.front_photoeye is True:
