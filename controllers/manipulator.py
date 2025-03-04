@@ -264,7 +264,6 @@ class Manipulator(StateMachine):
                 ManipLocations.CORAL_REEF_3_UP,
                 ManipLocations.CORAL_REEF_4,
                 ] and initial_target in [
-                    ManipLocations.CORAL_REEF_3,
                     ManipLocations.CORAL_REEF_3_UP,
                     ManipLocations.CORAL_REEF_4,
                     ]:
