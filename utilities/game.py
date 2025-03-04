@@ -126,7 +126,7 @@ class ManipLocations:
     CORAL_REEF_1 = ManipLocation(0.5, -71, 171)
     CORAL_REEF_2 = ManipLocation(17, -63.1, 40)
     CORAL_REEF_3 = ManipLocation(42.5, -63.1, 40)
-    CORAL_REEF_3_UP = ManipLocation(25, 63.1, 166)
+    CORAL_REEF_3_UP = ManipLocation(2, 71.7, 7)
     CORAL_REEF_4 = ManipLocation(55, 39, 20) 
     ALGAE_REEF_1 = ManipLocation(16, -55, 9)
     ALGAE_REEF_2 = ManipLocation(40, -55, 9)

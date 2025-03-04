@@ -203,7 +203,8 @@ class Manipulator(StateMachine):
     
     # That's the end of the helper methods and from here down we have the
     # various states of the state machine itself.
-   
+
+
     # We'll start off idle; do nothing  until the operator requests something
     @state(must_finish=True, first=True)
     def idling(self, initial_call):
@@ -314,9 +315,7 @@ class Manipulator(StateMachine):
             self.go_arm_safe()
         if self.arm.at_goal():
             self.elevator.target_pos = ManipLocations.HOME.elevator_pos
-        pose = self.drivetrain.get_pose()
-        reef_dist = Waypoints.get_distance_to_reef_center(pose, is_red()) 
-        if reef_dist > 1.5 and (self.operator_advance or is_auton()):
+        if self.get_reef_distance() > 1.5 and (self.operator_advance or is_auton()):
             self.go_home()
 
 # this is the algae stuff
@@ -331,8 +330,9 @@ class Manipulator(StateMachine):
     @state(must_finish=True) 
     def algae_in_system(self, state_tm, initial_call):
         # Wait here until the operator wants to get into scoring position
-        if initial_call and self.get_reef_distance() > 1.5:
+        if initial_call:
             self.intake_control.go_algae_hold()
+        if self.get_reef_distance() > 1.5:
             arm_pos = self.algae_scoring_target.arm_pos
             if arm_pos > 0:
                 self.request_location(ManipLocations.DRIVE_UP)
