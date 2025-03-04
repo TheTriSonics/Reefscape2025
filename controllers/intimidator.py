@@ -287,7 +287,8 @@ class Intimidator(StateMachine):
         if self.trajectory is None:
             # If there's no trajectory found we just drive right to the target
             # pose
-            self.drivetrain.drive_to_pose(self.target_pose)
+            aggro = dist_to_end_pose < 0.2
+            self.drivetrain.drive_to_pose(self.target_pose, aggressive=aggro)
         elif (
             self.trajectory.get_total_time() < state_tm
             or (dist_to_end_pose < self.dist_to_direct_drive

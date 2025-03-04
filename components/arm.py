@@ -16,13 +16,13 @@ pn = wpilib.SmartDashboard.putNumber
 class ArmComponent:
     motor = TalonFX(TalonId.MANIP_ARM.id, TalonId.MANIP_ARM.bus)
     encoder = CANcoder(CancoderId.MANIP_ARM.id, CancoderId.MANIP_ARM.bus)
-    mag_offset = 0.154541015625
+    mag_offset = 0.22216796875
     default_pos = -80.0
     target_pos = tunable(default_pos)
     motor_request = MotionMagicDutyCycle(0, override_brake_dur_neutral=True)
     lower_limit = -90
     upper_limit = 90
-    
+
     def __init__(self):
         enc_config = CANcoderConfiguration()
         enc_config.magnet_sensor.absolute_sensor_discontinuity_point = 0.5
@@ -54,19 +54,13 @@ class ArmComponent:
         limit_configs = CurrentLimitsConfigs()
         # enable stator current limit to keep algae from falling out when
         # the motor is trying to keep it in
-        limit_configs.stator_current_limit = 30
+        limit_configs.stator_current_limit = 12
         limit_configs.stator_current_limit_enable = True
         self.motor.configurator.apply(limit_configs)
-    
+
     @feedback
     def get_position(self) -> float:
         ang = self.motor.get_position().value * 360
-        return norm_deg(ang)
-    
-
-    @feedback
-    def get_encoder_position(self) -> float:
-        ang = self.encoder.get_position().value * 360
         return norm_deg(ang)
 
     @feedback
@@ -102,9 +96,5 @@ class ArmComponent:
         if self.target_pos > curr_pos:  # We're heading down
             k_g = -k_g.with_feed_forward(k_g)
         """
-        if self.at_goal():
-            self.motor.set_control(DutyCycleOut(0))
-        else:
-            req = self.motor_request.with_position(can_coder_target)
-            self.motor.set_control(req)
-        
+        req = self.motor_request.with_position(can_coder_target)
+        self.motor.set_control(req)

@@ -39,6 +39,8 @@ class IntakeComponent:
     force_coral_score = tunable(False)
     force_coral_intake = tunable(False)
 
+    go_fast = tunable(False)
+
     coral_pose_msg = tunable('')
 
     has_coral = tunable(False)
@@ -88,25 +90,31 @@ class IntakeComponent:
         self.algae_pub.set(self.algae_static)
 
     def coral_in(self):
+        self.go_fast = False
         # TODO: This might not always mean forward, but for now
         # we'll keep it simple
         self.direction = IntakeDirection.CORAL_IN
 
     def algae_in(self):
+        self.go_fast = True
         # TODO: This might not always mean forward, but for now
         # we'll keep it simple
         self.direction = IntakeDirection.ALGAE_IN
 
     def score_coral(self):
+        self.go_fast = True
         self.direction = IntakeDirection.CORAL_SCORE
 
     def score_coral_reverse(self):
+        self.go_fast = True
         self.direction = IntakeDirection.CORAL_IN
 
     def score_algae(self):
+        self.go_fast = True
         self.direction = IntakeDirection.ALGAE_SCORE
 
     def intake_off(self):
+        self.go_fast = False
         self.direction = IntakeDirection.NONE
 
     def pose2d_to_pose3d(self, pose2d: Pose2d, 
@@ -204,6 +212,8 @@ class IntakeComponent:
     def execute(self):
         self.direction_int = self.direction.value
         speed_val = 0.3
+        if self.go_fast:
+            speed_val = 0.8
 
         motor_power = 0.0
         if self.force_coral_intake:

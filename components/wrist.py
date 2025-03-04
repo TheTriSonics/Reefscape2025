@@ -57,11 +57,6 @@ class WristComponent:
         return norm_deg(ang)
 
     @feedback
-    def get_encoder_position(self) -> float:
-        ang = self.encoder.get_position().value * 360
-        return norm_deg(ang)
-
-    @feedback
     def at_goal(self):
         current_pos = self.get_position()
         target_loc = ManipLocation(0, 0, self.target_pos)

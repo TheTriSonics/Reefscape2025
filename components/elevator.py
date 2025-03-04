@@ -4,7 +4,7 @@ from phoenix6.hardware import TalonFX
 from phoenix6.controls import (
     MotionMagicVoltage, Follower, MotionMagicDutyCycle, DutyCycleOut
 )
-from phoenix6.configs import TalonFXConfiguration, MotorOutputConfigs
+from phoenix6.configs import TalonFXConfiguration, MotorOutputConfigs, CurrentLimitsConfigs
 from utilities.game import ManipLocation
 from utilities import is_sim
 from phoenix6.signals import InvertedValue, NeutralModeValue
@@ -51,6 +51,14 @@ class ElevatorComponent:
         self.motor_left.configurator.apply(output_config)
         self.motor_right.configurator.apply(config)  # type: ignore
         self.motor_right.configurator.apply(output_config)
+
+        limit_configs = CurrentLimitsConfigs()
+        # Limit the motor output so we don't harm anything (including the robot)
+        # if it hits an obstacle.
+        limit_configs.stator_current_limit = 50
+        limit_configs.stator_current_limit_enable = True
+        self.motor_left.configurator.apply(limit_configs)
+        self.motor_right.configurator.apply(limit_configs)
     
     @feedback
     def get_position(self) -> float:

@@ -10,11 +10,13 @@ from components.photoeye import PhotoEyeComponent
 from components.arm import ArmComponent
 from components.elevator import ElevatorComponent
 from components.wrist import WristComponent
+from components.drivetrain import DrivetrainComponent
 
 from controllers.intake import IntakeControl
 
-from utilities.game import ManipLocations, ManipLocation, GamePieces, is_auton
+from utilities.game import ManipLocations, ManipLocation, GamePieces, is_auton, is_red
 from utilities import pb
+from utilities.waypoints import Waypoints
 
 
 class Manipulator(StateMachine):
@@ -23,6 +25,7 @@ class Manipulator(StateMachine):
     elevator: ElevatorComponent
     photoeye: PhotoEyeComponent
     intake_control: IntakeControl
+    drivetrain: DrivetrainComponent
 
     operator_advance = will_reset_to(False)
     
@@ -215,8 +218,10 @@ class Manipulator(StateMachine):
 
     @state(must_finish=True)
     def coral_in_system(self, state_tm, initial_call):
+        pose = self.drivetrain.get_pose()
+        reef_dist = Waypoints.get_distance_to_reef_center(pose, is_red()) 
         # Wait here until the operator wants to get into scoring position
-        if self.operator_advance:
+        if self.operator_advance and reef_dist > 1.5:
             self.next_state(self.coral_prepare_score)
     
     @state(must_finish=True)
@@ -260,7 +265,9 @@ class Manipulator(StateMachine):
     # to the home position when the scoring state knows the coral has ejected
     @state(must_finish=True)
     def coral_scored(self, initial_call, state_tm):
-        if state_tm > 0.5 and (self.operator_advance or is_auton()):
+        pose = self.drivetrain.get_pose()
+        reef_dist = Waypoints.get_distance_to_reef_center(pose, is_red()) 
+        if reef_dist > 1.5 and (self.operator_advance or is_auton()):
             self.go_home()
 
 # this is the algae stuff
@@ -269,20 +276,23 @@ class Manipulator(StateMachine):
         if initial_call:
             self.intake_control.go_algae_intake()
             self.request_location(self.algae_intake_target)
-        if self.photoeye.algae_held:
+        if self.photoeye.algae_held or self.operator_advance:
             self.next_state(self.algae_in_system)
         
     @state(must_finish=True) 
     def algae_in_system(self, state_tm, initial_call):
-        if self.photoeye.algae_held:
+        if initial_call:
             self.intake_control.go_algae_hold()
         # Wait here until the operator wants to get into scoring position
-        if self.operator_advance:
+        pose = self.drivetrain.get_pose()
+        reef_dist = Waypoints.get_distance_to_reef_center(pose, is_red()) 
+        if self.operator_advance and reef_dist > 1.5:
             self.next_state(self.algae_prepare_score)
     
     @state(must_finish=True)
     def algae_prepare_score(self, initial_call, state_tm):
         if initial_call:
+            self.intake_control.go_algae_hold()
             self.request_location(self.algae_scoring_target)
 
         # The operator could change the target value while we're in this state
@@ -293,7 +303,7 @@ class Manipulator(StateMachine):
         # Here we can check if we're at the position or if we've been
         # waiting too long and we should just move on, like maybe we just can't
         # quite get to the right position, but we've got to try something
-        if self.operator_advance and (self.at_position()):
+        if self.operator_advance and (self.at_position() or state_tm > 2.0):
             self.next_state(self.algae_score)
 
     @state(must_finish=True)
@@ -309,21 +319,19 @@ class Manipulator(StateMachine):
         # Here we can check if we're at the position or if we've been
         # waiting too long and we should just move on, like maybe we just can't
         # quite get to the right position, but we've got to try something
-        if (self.operator_advance or is_auton()) and (self.at_position()):
+        if (self.operator_advance or is_auton()) and (self.at_position() or state_tm > 2.0):
             self.next_state(self.algae_intake)
 
     # JJB: I'm not thrilled with the names of these states, coral_score and
     # coral_scored are too similar, but they make sense.
     @state(must_finish=True)
     def algae_score(self, state_tm, initial_call):
-        # Let's score a coral!
+        # Let's score a algae!
         if initial_call:
             self.intake_control.go_algae_score()
 
-        # Wait until the intake controller thinks it has scored the coral
-        scored = self.intake_control.current_state == self.intake_control.idling.name
-        if self.operator_advance and scored:
-            self.next_state(self.algae_scored)
+        if self.operator_advance:
+            self.next_state(self.idling)
 
     # NOTE: This step might not really be needed, we could return back
     # to the home position when the scoring state knows the coral has ejected

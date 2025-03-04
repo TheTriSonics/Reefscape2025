@@ -198,7 +198,6 @@ class MyRobot(magicbot.MagicRobot):
         """
             
         # Hack in the right and left bumpers moving the elevator up and down
-        """
         rtrig = self.operator_controller.getRightTriggerAxis()
         if rtrig > 0.25:
             self.elevator.target_pos += rtrig
@@ -207,7 +206,6 @@ class MyRobot(magicbot.MagicRobot):
             self.elevator.target_pos -= ltrig
         pn('op rtrigger', rtrig)
         pn('op ltrigger', ltrig)
-        """
         
         # TODO: Implement deadbanding if not the whole resize_js() method that
         # we use on the driver's stick inputs.
