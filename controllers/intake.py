@@ -54,11 +54,9 @@ class IntakeControl(StateMachine):
     @state(must_finish=True)
     def algae_score(self, initial_call, state_tm):
         self.intake.score_algae()
-
-        if self.photoeye.front_photoeye is True:
-            self.score_algae_off_at = state_tm + 0.25
-
-        if self.photoeye.front_photoeye is False and self.score_algae_off_at < state_tm:
+        # Just run the intake to score for a bit, then go to idle
+        if state_tm > 2.0:
+            self.intake.intake_off()
             self.next_state(self.idling)
 
     @state(must_finish=True)
