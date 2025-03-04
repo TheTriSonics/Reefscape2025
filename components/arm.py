@@ -51,12 +51,13 @@ class ArmComponent:
         self.motor.configurator.apply(config)  # type: ignore
         self.motor.configurator.apply(config_output)
 
-        limit_configs = CurrentLimitsConfigs()
-        # enable stator current limit to keep algae from falling out when
-        # the motor is trying to keep it in
-        limit_configs.stator_current_limit = 12
-        limit_configs.stator_current_limit_enable = True
-        self.motor.configurator.apply(limit_configs)
+        if not is_sim():
+            limit_configs = CurrentLimitsConfigs()
+            # enable stator current limit to keep algae from falling out when
+            # the motor is trying to keep it in
+            limit_configs.stator_current_limit = 12
+            limit_configs.stator_current_limit_enable = True
+            self.motor.configurator.apply(limit_configs)
 
     @feedback
     def get_position(self) -> float:
@@ -84,17 +85,8 @@ class ArmComponent:
         # This limits should not change!
         #--------------------------------------------
 
-        from math import cos, radians
-        curr_pos = self.get_position()
         if self.target_pos < -180 or self.target_pos > 180:
             self.target_pos = norm_deg(self.target_pos)
         can_coder_target = self.target_pos / 360
-        """
-        max_kg = 0.1  # Call it 0.2 volts just to hold position at 0 degrees
-        k_g = max_kg * cos(radians(curr_pos))
-        # Not sure if we should flip the sign on k_g if we're heading downward.
-        if self.target_pos > curr_pos:  # We're heading down
-            k_g = -k_g.with_feed_forward(k_g)
-        """
         req = self.motor_request.with_position(can_coder_target)
         self.motor.set_control(req)

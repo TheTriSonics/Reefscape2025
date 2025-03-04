@@ -2,7 +2,7 @@
 import math
 from wpilib import SmartDashboard
 from wpimath.geometry import Pose2d
-from magicbot import AutonomousStateMachine, state, feedback
+from magicbot import AutonomousStateMachine, state, feedback, tunable
 
 from utilities.game import is_red
 from utilities.position import Positions
@@ -38,6 +38,8 @@ class AutonBase(AutonomousStateMachine):
     initial_pose = None
     failure_pose = None
 
+    pose_check = tunable(False)
+
     def __init__(self):
         pass
 
@@ -63,7 +65,8 @@ class AutonBase(AutonomousStateMachine):
         robot_pose = self.drivetrain.get_pose()
         diff = robot_pose.relativeTo(pose)
         dist = math.sqrt(diff.X()**2 + diff.Y()**2)
-        return dist < tolerance
+        self.pose_check = dist < tolerance
+        return self.pose_check
 
     @state(must_finish=True)
     def wee(self):

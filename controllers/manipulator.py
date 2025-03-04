@@ -191,6 +191,13 @@ class Manipulator(StateMachine):
         # print(f'Compared {self._target_location} to {curr_location} and got {manip_at_position}')
         return manip_at_position
     
+    @feedback
+    def reef_dist(self) -> float:
+        pose = self.drivetrain.get_pose()
+        reef_dist = Waypoints.get_distance_to_reef_center(pose, is_red()) 
+        return reef_dist
+
+    
     # That's the end of the helper methods and from here down we have the
     # various states of the state machine itself.
    
@@ -218,10 +225,8 @@ class Manipulator(StateMachine):
 
     @state(must_finish=True)
     def coral_in_system(self, state_tm, initial_call):
-        pose = self.drivetrain.get_pose()
-        reef_dist = Waypoints.get_distance_to_reef_center(pose, is_red()) 
         # Wait here until the operator wants to get into scoring position
-        if self.operator_advance and reef_dist > 1.5:
+        if self.operator_advance and self.reef_dist() > 1.5:
             self.next_state(self.coral_prepare_score)
     
     @state(must_finish=True)
@@ -265,9 +270,7 @@ class Manipulator(StateMachine):
     # to the home position when the scoring state knows the coral has ejected
     @state(must_finish=True)
     def coral_scored(self, initial_call, state_tm):
-        pose = self.drivetrain.get_pose()
-        reef_dist = Waypoints.get_distance_to_reef_center(pose, is_red()) 
-        if reef_dist > 1.5 and (self.operator_advance or is_auton()):
+        if self.reef_dist() > 1.5 and (self.operator_advance or is_auton()):
             self.go_home()
 
 # this is the algae stuff
@@ -276,6 +279,11 @@ class Manipulator(StateMachine):
         if initial_call:
             self.intake_control.go_algae_intake()
             self.request_location(self.algae_intake_target)
+        # The operator could change the target value while we're in this state
+        # so check for that!
+        if self._target_location != self.algae_intake_target:
+            self.request_location(self.algae_intake_target)
+
         if self.photoeye.algae_held or self.operator_advance:
             self.next_state(self.algae_in_system)
         
@@ -284,9 +292,7 @@ class Manipulator(StateMachine):
         if initial_call:
             self.intake_control.go_algae_hold()
         # Wait here until the operator wants to get into scoring position
-        pose = self.drivetrain.get_pose()
-        reef_dist = Waypoints.get_distance_to_reef_center(pose, is_red()) 
-        if self.operator_advance and reef_dist > 1.5:
+        if self.operator_advance and self.reef_dist() > 1.5:
             self.next_state(self.algae_prepare_score)
     
     @state(must_finish=True)
@@ -329,6 +335,11 @@ class Manipulator(StateMachine):
         # Let's score a algae!
         if initial_call:
             self.intake_control.go_algae_score()
+
+        # The operator could change the target value while we're in this state
+        # so check for that!
+        if self._target_location != self.algae_intake_target:
+            self.request_location(self.algae_intake_target)
 
         if self.operator_advance:
             self.next_state(self.idling)

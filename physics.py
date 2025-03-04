@@ -247,7 +247,8 @@ class PhysicsEngine:
         a = self.robot.arm
         curr_pos = a.encoder.get_position().value
         vel = self.arm_motor.motor_sim.getAngularVelocity() / 105
-        a.encoder.sim_state.set_raw_position(curr_pos - a.mag_offset + vel)
+        newpos = curr_pos - a.mag_offset + vel
+        a.encoder.sim_state.set_raw_position(newpos)
 
         speeds = self.kinematics.toChassisSpeeds((
             self.swerve_modules[0].get(),

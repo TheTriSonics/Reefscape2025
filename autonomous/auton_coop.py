@@ -35,7 +35,7 @@ class AutonCoop(AutonBase):
     photoeye: PhotoEyeComponent
 
     MODE_NAME = 'Sample - Coopertition'
-    DEFAULT = True
+    DEFAULT = False
 
     def __init__(self):
         pass

@@ -17,8 +17,9 @@ class IntakeControl(StateMachine):
 
     def go_coral_score(self, reverse=False):
         self.coral_score_reverse = reverse
-        self.next_state(self.coral_score)
-        self.engage()
+        if self.current_state != self.coral_score.name:
+            self.next_state(self.coral_score)
+            self.engage()
 
     def go_algae_score(self):
         self.next_state(self.algae_score)

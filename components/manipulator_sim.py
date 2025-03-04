@@ -93,7 +93,7 @@ class ManipulatorSim:
         wrist_angle = self.wrist.get_position()
 
         # Update the mechanism's values with robot values
-        self.elevator_tower.setLength((elevator_height / 2 + 10) / 10)
+        self.elevator_tower.setLength((elevator_height / 3) / 20)
         self.arm_mech.setAngle(arm_angle)
         self.wrist_mech_coral.setAngle(wrist_angle)
         self.wrist_mech_algae.setAngle(wrist_angle + 180)
