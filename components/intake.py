@@ -83,9 +83,9 @@ class IntakeComponent:
 
     def execute(self):
         self.direction_int = self.direction.value
-        speed_val = 0.3
+        speed_val = 0.6
         if self.go_fast:
-            speed_val = 0.8
+            speed_val = 0.9
 
         motor_power = 0.0
         if self.force_coral_intake:
