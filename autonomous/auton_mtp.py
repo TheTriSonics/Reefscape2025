@@ -12,6 +12,7 @@ from controllers.manipulator import Manipulator
 from controllers.intimidator import Intimidator
 from controllers.intake import IntakeControl
 
+from components.elevator import ElevatorComponent
 from components.drivetrain import DrivetrainComponent
 from components.gyro import GyroComponent
 from components.battery_monitor import BatteryMonitorComponent
@@ -25,6 +26,7 @@ ps = SmartDashboard.putString
 
 
 class AutonMountPleasant(AutonBase):
+    elevator: ElevatorComponent
     drivetrain: DrivetrainComponent
     gyro: GyroComponent
     battery_monitor: BatteryMonitorComponent
@@ -46,18 +48,20 @@ class AutonMountPleasant(AutonBase):
     # the origin, positon 0, 0, which is behind a player station on the blue
     # side,
     def get_initial_pose(self):
-        self.photoeye.coral_held = False
+        self.photoeye.back_photoeye = True
+        self.photoeye.coral_held = True
         return Positions.AUTON_LINE_CENTER
 
     @state(must_finish=True, first=True)
     def drive_to_reef(self, state_tm, initial_call):
-        target_pose = Positions.REEF_A_LEFT
+        from utilities import is_sim
+        target_pose = Positions.REEF_F_LEFT
         if initial_call:
             self.intimidator.go_drive_swoop(target_pose)
             self.manipulator.coral_mode()
             self.arm.target_pos = 90
             self.manipulator.set_coral_level4()
-        if state_tm > 6.0:
+        if self.photoeye.coral_held is False:
             self.next_state(self.drive_to_a_safe)
             pass
         if self.at_pose(target_pose, 3.0) and self.arm.get_position() > 80:
@@ -74,12 +78,11 @@ class AutonMountPleasant(AutonBase):
     @state(must_finish=True)
     def drive_to_a_safe(self, state_tm, initial_call):
         from wpimath.geometry import Transform2d, Rotation2d
-        target_pose = Positions.REEF_A_LEFT.transformBy(Transform2d(-1, 0, Rotation2d(0)))
-        if initial_call:
-            self.intimidator.go_drive_swoop(target_pose)
-        if self.at_pose(target_pose, 0.04):
+        robot_pose = Positions.REEF_F_LEFT.transformBy(Transform2d(-0.5, 0, Rotation2d.fromDegrees(90)))
+        self.intimidator.go_drive_pose(robot_pose, aggressive=True)
+        if self.at_pose(robot_pose, 0.04):
             self.manipulator.go_home()
-            if self.manipulator.at_position():
+            if self.elevator.get_position() < 10:
                 self.next_state(self.drive_to_ps)
 
 
@@ -95,7 +98,7 @@ class AutonMountPleasant(AutonBase):
 
     @state(must_finish=True)
     def score_coral(self, state_tm, initial_call):
-        target_pose = Positions.REEF_CLOSEST_LEFT
+        target_pose = Positions.REEF_E_LEFT
         if initial_call:
             self.intimidator.go_drive_swoop(target_pose)
         if self.at_pose(target_pose, 0.04):

@@ -188,10 +188,16 @@ class Intimidator(StateMachine):
         # Put any heading snap-to logic somewhere in here
         self.drivetrain.drive_local(self.stick_x, self.stick_y, self.stick_rotation)
 
+    def go_drive_pose(self, pose: Pose2d, aggressive=False):
+        self.target_pose = pose
+        if self.current_state != self.drive_to_pose.name:
+            self.next_state(self.drive_to_pose)
+            self.engage()
+
     @state(must_finish=True)
     def drive_to_pose(self):
         self._clear_traj_pub()
-        self.drivetrain.drive_to_pose(self.target_pose)
+        self.drivetrain.drive_to_pose(self.target_pose, aggressive=True)
 
     def go_drive_strafe(self):
         self._clear_traj_pub()
