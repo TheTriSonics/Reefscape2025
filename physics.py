@@ -175,6 +175,12 @@ class PhysicsEngine:
             self.camera_fr,
             self.robot.vision.camera_fr_offset,
         )
+        self.camera_bl = PhotonCameraSim(robot.vision.camera_bl, properties)
+        self.camera_bl.setMaxSightRange(5.0)
+        self.vision_sim.addCamera(
+            self.camera_bl,
+            self.robot.vision.camera_bl_offset,
+        )
 
     def update_pe_intake_sim(self, now: float, tm_diff: float) -> None:
         # Ok now let's do photoeyes.

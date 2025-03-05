@@ -89,3 +89,8 @@ class AutonBase(AutonomousStateMachine):
                 Rotation3d(0, math.pi, 0))
             )
         )
+
+    def execute(self):
+        pose = self.drivetrain.get_pose()
+        Positions.update_dynamic_positions(pose)
+        super().execute()

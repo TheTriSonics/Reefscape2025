@@ -36,6 +36,8 @@ class ArmComponent:
         config.slot0.k_a = 0.0
         config.slot0.k_p = 4.8
         config.slot0.k_i = 0.0
+        if is_sim():
+            config.slot0.k_i = 0.5
         config.slot0.k_d = 0.007
         config.slot0.k_g = 0.026
         config.motion_magic.motion_magic_cruise_velocity = 8

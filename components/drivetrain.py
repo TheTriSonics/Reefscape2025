@@ -5,24 +5,23 @@ import magicbot
 import ntcore
 import wpilib
 from magicbot import feedback
-from wpimath.controller import PIDController
 from phoenix6.configs import (
+    CANcoderConfiguration,
     ClosedLoopGeneralConfigs,
     FeedbackConfigs,
-    MotorOutputConfigs,
-    CANcoderConfiguration,
     MagnetSensorConfigs,
+    MotorOutputConfigs,
 )
-from phoenix6.controls import PositionDutyCycle, VelocityVoltage, VoltageOut, DutyCycleOut
+from phoenix6.controls import DutyCycleOut, VelocityVoltage, VoltageOut
 from phoenix6.hardware import CANcoder, TalonFX
 from phoenix6.signals import InvertedValue, NeutralModeValue
 from wpimath.controller import (
+    PIDController,
     ProfiledPIDControllerRadians,
     SimpleMotorFeedforwardMeters,
 )
 from wpimath.estimator import SwerveDrive4PoseEstimator
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
-from wpimath.units import inchesToMeters
 from wpimath.kinematics import (
     ChassisSpeeds,
     SwerveDrive4Kinematics,
@@ -30,14 +29,12 @@ from wpimath.kinematics import (
     SwerveModuleState,
 )
 from wpimath.trajectory import TrapezoidProfileRadians
-from utilities import is_red, is_sim
 
-from ids import CancoderId, TalonId
-
-from components.gyro import GyroComponent
 from components.elevator import ElevatorComponent
-
+from components.gyro import GyroComponent
 from generated.tuner_constants import TunerConstants
+from ids import CancoderId, TalonId
+from utilities import is_red, is_sim
 
 
 def angle_difference(angle1, angle2):
@@ -148,9 +145,8 @@ class SwerveModule:
 
         self.sync_steer_encoder()
 
-        self.steer_pid = PIDController(0, 0, 0)
+        self.steer_pid = PIDController(0.3, 0, 0)
         self.steer_pid.enableContinuousInput(-math.pi, math.pi)
-        wpilib.SmartDashboard.putNumber('magicP', 0.3)
 
         self.drive_request = VelocityVoltage(0)
         self.stop_request = VoltageOut(0)
@@ -184,15 +180,6 @@ class SwerveModule:
         target_displacement = self.state.angle - current_angle
         target_angle = self.state.angle.radians()
 
-        """
-        wpilib.SmartDashboard.putNumber(f"{self.name} ang-tau", target_angle / math.tau)
-        wpilib.SmartDashboard.putNumber(f"{self.name} target", target_angle)
-        wpilib.SmartDashboard.putNumber(f"{self.name} current", current_angle.radians())
-        wpilib.SmartDashboard.putNumber(f"{self.name} orig", current_angle.radians())
-        """
-
-        newP = wpilib.SmartDashboard.getNumber('magicP', 0.3)
-        self.steer_pid.setP(newP)
         steer_output = self.steer_pid.calculate(current_angle.radians(), target_angle)
         self.steer.set_control(DutyCycleOut(steer_output))
 
@@ -226,28 +213,21 @@ class DrivetrainComponent:
     gyro: GyroComponent
     elevator: ElevatorComponent
 
-    # size including bumpers
-    LENGTH = inchesToMeters(35)
-    WIDTH = inchesToMeters(37)
-
-    DRIVE_CURRENT_THRESHOLD = 35
-
     HEADING_TOLERANCE = math.radians(1)
 
     # maxiumum speed for any wheel
     max_wheel_speed = TunerConstants.speed_at_12_volts
 
-    control_loop_wait_time: float
-
     chassis_speeds = magicbot.will_reset_to(ChassisSpeeds(0, 0, 0))
+
     field: wpilib.Field2d
     logger: Logger
 
     send_modules = magicbot.tunable(True)
+    # TODO: Get rid of this swerve lock entirely
     swerve_lock = magicbot.tunable(False)
 
     snapping_to_heading = magicbot.tunable(False)
-    snap_heading_ro = magicbot.tunable(0.0)
 
 
     # TODO: Read from positions.py once autonomous is finished
@@ -462,7 +442,6 @@ class DrivetrainComponent:
         self.snap_heading = None
 
     def execute(self) -> None:
-        self.snap_heading_ro = -999 if self.snap_heading is None else self.snap_heading
         if self.snapping_to_heading:
             self.chassis_speeds.omega = self.choreo_heading_controller.calculate(
                 self.get_rotation().radians()
@@ -478,8 +457,8 @@ class DrivetrainComponent:
         # TODO Update based off real robot speeds.
         elevator_factor = 1.0
         if self.elevator.get_position() > 10:
-            elevator_factor = 1 - (0.9 / 60) * self.elevator.get_position()
-            elevator_factor = min(0.1, elevator_factor)
+            elevator_factor = 1.15 - (0.9 / 60) * self.elevator.get_position()
+            elevator_factor = max(0.1, elevator_factor)
         # ----------------------------------------
         # ---------------------------------------- 
 

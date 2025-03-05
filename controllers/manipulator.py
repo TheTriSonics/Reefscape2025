@@ -123,6 +123,18 @@ class Manipulator(StateMachine):
     def go_coral_score(self):
         self.next_state_now(self.coral_score)
         self.engage()
+
+    def set_coral_level(self, lvl):
+        if lvl == 1:
+            self.set_coral_level1()
+        elif lvl == 2:
+            self.set_coral_level2()
+        elif lvl == 3:
+            self.set_coral_level3()
+        elif lvl == 4:
+            self.set_coral_level4()
+        else:
+            print(f'Invalid coral level {lvl}')
     
     def set_coral_level1(self):
         self.coral_scoring_level.set(1)

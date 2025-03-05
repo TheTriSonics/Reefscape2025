@@ -49,8 +49,8 @@ class IntakeControl(StateMachine):
             self.intake.score_coral_reverse()
         else:
             self.intake.score_coral()
-        if state_tm > 0.750 and self.photoeye.front_photoeye is False and self.photoeye.back_photoeye is False:
-            self.next_state(self.idling)
+        if state_tm > 0.250 and self.photoeye.coral_held is False:
+            self.next_state_now(self.idling)
 
     @state(must_finish=True)
     def algae_score(self, initial_call, state_tm):

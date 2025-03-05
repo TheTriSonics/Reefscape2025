@@ -23,8 +23,10 @@ class VisionComponent():
 
     def __init__(self) -> None:
         self.timer = Timer()
-        self.camera_fr = PhotonCamera("fr")
-        self.camera_fl = PhotonCamera("fl")
+        # Front cameras are backwards in left/right orientation!
+        self.camera_fr = PhotonCamera("fl")
+        self.camera_fl = PhotonCamera("fr")
+        self.camera_bl = PhotonCamera("bl")
 
         self.camera_fr_offset = Transform3d(
             Translation3d(
@@ -43,6 +45,15 @@ class VisionComponent():
             Rotation3d.fromDegrees(0, 22.5, -8.0),
         )
 
+        self.camera_bl_offset = Transform3d(
+            Translation3d(
+                units.inchesToMeters(-11.0),  # Forward/backward offset
+                units.inchesToMeters(10.125),
+                units.inchesToMeters(7.5),
+            ),
+            Rotation3d.fromDegrees(0, -22.5, 188.0),
+        )
+
         field = AprilTagFieldLayout.loadField(AprilTagField.k2025ReefscapeWelded)
 
         self.pose_estimator_fr = PhotonPoseEstimator(
@@ -57,6 +68,12 @@ class VisionComponent():
             self.camera_fl,
             self.camera_fl_offset,
         )
+        self.pose_estimator_bl = PhotonPoseEstimator(
+            field,
+            PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+            self.camera_bl,
+            self.camera_bl_offset,
+        )
 
         self.publisher_fr = (
             ntcore.NetworkTableInstance.getDefault()
@@ -68,10 +85,19 @@ class VisionComponent():
             .getStructTopic("/components/vision/pose_fl", Pose2d)
             .publish()
         )
+        self.publisher_bl = (
+            ntcore.NetworkTableInstance.getDefault()
+            .getStructTopic("/components/vision/pose_bl", Pose2d)
+            .publish()
+        )
 
-        self.cameras = [self.camera_fr, self.camera_fl]
-        self.pose_estimators = [self.pose_estimator_fr, self.pose_estimator_fl]
-        self.publishers = [self.publisher_fr, self.publisher_fl]
+        self.cameras = [self.camera_fr, self.camera_fl, self.camera_bl]
+        self.pose_estimators = [
+            self.pose_estimator_fr,
+            self.pose_estimator_fl,
+            self.pose_estimator_bl,
+        ]
+        self.publishers = [self.publisher_fr, self.publisher_fl, self.publisher_bl]
 
     def execute(self) -> None:
         from math import radians

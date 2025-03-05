@@ -108,9 +108,8 @@ class MyRobot(magicbot.MagicRobot):
         Positions.update_alliance_positions()
         return
 
+    # This does not run at all.
     def autonomousPeriodic(self):
-        pose = self.drivetrain.get_pose()
-        Positions.update_dynamic_positions(pose)
         pass
 
     def teleopInit(self) -> None:
@@ -144,16 +143,6 @@ class MyRobot(magicbot.MagicRobot):
         elif js_name.startswith('Thrustmaster') or js_name.startswith('T.Flight Hotas'):
             self.controller_choice = 'Talk to me, Goose!'
             self.driver_controller = ReefscapeDriverThrustmaster(0)
-        # self.drivetrain.set_pose(Positions.auton_line_2(is_red()))
-        """
-        Removed these due to using the hardware values from the CANdi
-        self.photoeye.back_photoeye = False
-        self.photoeye.front_photoeye = True
-        """
-        tag = Waypoints.get_tag_id_from_letter('C', True)
-        pose = Waypoints.get_tag_robot_away(tag, face_at=True)
-        pose = Waypoints.shift_reef_right(pose)
-        self.drivetrain.set_pose(pose)
 
     def handle_manipulator(self) -> None:
         from controllers.manipulator import ManipLocations
@@ -318,6 +307,8 @@ class MyRobot(magicbot.MagicRobot):
     def teleopPeriodic(self) -> None:
         pose = self.drivetrain.get_pose()
         Positions.update_dynamic_positions(pose)
+        mode = self._automodes.chooser.getSelected()
+        mode.engage()
         self.handle_manipulator()
         self.handle_drivetrain()
 
