@@ -457,7 +457,7 @@ class DrivetrainComponent:
         # TODO Update based off real robot speeds.
         elevator_factor = 1.0
         if self.elevator.get_position() > 10:
-            elevator_factor = 1.15 - (0.9 / 60) * self.elevator.get_position()
+            elevator_factor = 1.225 - (0.9 / 40) * self.elevator.get_position()
             elevator_factor = max(0.1, elevator_factor)
         # ----------------------------------------
         # ---------------------------------------- 
