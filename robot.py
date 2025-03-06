@@ -7,7 +7,6 @@ import wpilib.event
 from wpimath.geometry import Pose2d, Rotation2d, Transform2d, Translation2d
 from magicbot import tunable
 
-from components.drivetrain import DrivetrainComponent
 from components.gyro import GyroComponent
 from components.vision import VisionComponent
 from components.battery_monitor import BatteryMonitorComponent
@@ -17,6 +16,7 @@ from components.arm import ArmComponent
 from components.elevator import ElevatorComponent
 from components.intake import IntakeComponent, IntakeDirection
 from components.photoeye import PhotoEyeComponent
+from components.drivetrain import DrivetrainComponent
 
 from components.leds_sim import LEDSim
 from components.manipulator_sim import ManipulatorSim
@@ -200,10 +200,10 @@ class MyRobot(magicbot.MagicRobot):
         # we use on the driver's stick inputs.
         arm_movement = -rescale_js(
             self.operator_controller.getLeftY(), 0.05, 2.5
-        )
+        ) * 5
         wrist_movement = -rescale_js(
             self.operator_controller.getRightY(), 0.05, 2.5
-        )
+        ) * 5
         pn('arm movement', arm_movement)    
         self.arm.target_pos += arm_movement
         self.wrist.target_pos += wrist_movement

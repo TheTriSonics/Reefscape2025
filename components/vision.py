@@ -102,7 +102,6 @@ class VisionComponent():
     def execute(self) -> None:
         from math import radians
         setDevs = self.drivetrain.estimator.setVisionMeasurementStdDevs
-        tag_id, tag_dist = Waypoints.closest_reef_tag_id(self.drivetrain.get_pose())
         for cam, pose_est, pub in zip(
             self.cameras, self.pose_estimators, self.publishers
         ):
@@ -113,14 +112,7 @@ class VisionComponent():
                     # Skip using this pose in a vision update; it is too ambiguous
                     continue
 
-                taget_ids_in_frame = [t.fiducialId for t in res.getTargets()]
-                if tag_dist < 2.0 and tag_id in taget_ids_in_frame:
-                    # We're close to an apriltag, so we should use that for
-                    # vision. We'll tighten up the std devs to make sure we
-                    # are trusting this reading.
-                    self.std_x, self.std_y, self.std_rot = 0.1, 0.1, radians(22.5)
-                else:
-                    self.std_x, self.std_y, self.std_rot = 0.4, 0.4, radians(45)
+                self.std_x, self.std_y, self.std_rot = 0.4, 0.4, radians(45)
 
                 setDevs((self.std_x, self.std_y, self.std_rot))
                 pupdate = pose_est.update(res)

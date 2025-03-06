@@ -4,7 +4,7 @@ from phoenix6.hardware import TalonFX
 from phoenix6.controls import (
     MotionMagicVoltage, Follower, MotionMagicDutyCycle, DutyCycleOut
 )
-from phoenix6.configs import TalonFXConfiguration, MotorOutputConfigs, CurrentLimitsConfigs
+from phoenix6.configs import TalonFXConfiguration, MotorOutputConfigs, CurrentLimitsConfigs, HardwareLimitSwitchConfigs
 from utilities.game import ManipLocation
 from utilities import is_sim
 from phoenix6.signals import InvertedValue, NeutralModeValue
@@ -41,9 +41,9 @@ class ElevatorComponent:
             config.slot0.k_i = 0.0
             config.slot0.k_d = 0.0
             config.slot0.k_g = 0.0
-        config.motion_magic.motion_magic_cruise_velocity = 40
-        config.motion_magic.motion_magic_acceleration = 400
-        config.motion_magic.motion_magic_jerk = 4000
+        config.motion_magic.motion_magic_cruise_velocity = 80
+        config.motion_magic.motion_magic_acceleration = 200
+        config.motion_magic.motion_magic_jerk = 1000
         output_config = MotorOutputConfigs()
         output_config.inverted = InvertedValue.CLOCKWISE_POSITIVE
         output_config.neutral_mode = NeutralModeValue.BRAKE
@@ -59,6 +59,11 @@ class ElevatorComponent:
         limit_configs.stator_current_limit_enable = True
         self.motor_left.configurator.apply(limit_configs)
         self.motor_right.configurator.apply(limit_configs)
+
+        switch_configs = HardwareLimitSwitchConfigs()
+        switch_configs.forward_limit_type = ForwardLimit.
+        switch_configs.forward_limit_enable = True
+
     
     @feedback
     def get_position(self) -> float:
@@ -72,6 +77,9 @@ class ElevatorComponent:
         return current_loc == target_loc
 
     def execute(self):
+        if self.motor_left.get_forward_limit().value:
+            self.motor_left.set_position(0.0)
+
         if self.target_pos < 0.5:
             self.target_pos = 0.5
         elif self.target_pos > self.upper_limit:

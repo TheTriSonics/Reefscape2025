@@ -62,7 +62,8 @@ class AutonMountPleasantE(AutonBase):
             self.manipulator.set_coral_level4()
             # This immediately asks the arm to go in the 'up' position
             self.arm.target_pos = 90
-            self.intimidator.go_drive_swoop(target_pose)
+            # self.intimidator.go_drive_swoop(target_pose)
+            self.intimidator.go_drive_pose(target_pose, aggressive=True)
         # If we don't have a coral we must have scored
         if self.photoeye.coral_held is False:
             self.next_state(self.drive_to_a_safe)
@@ -74,7 +75,7 @@ class AutonMountPleasantE(AutonBase):
             # Get the lift moving into the right position
             self.manipulator.go_coral_prepare_score()
         if (
-            self.at_pose(target_pose, 0.04) and self.manipulator.at_position()
+            self.at_pose(target_pose) and self.manipulator.at_position()
             and (self.photoeye.back_photoeye or self.photoeye.front_photoeye)
         ):
             self.intake_control.go_coral_score()
@@ -90,7 +91,7 @@ class AutonMountPleasantE(AutonBase):
         robot_pose = self.drivetrain.get_pose()
         # Get difference in rotation between the two
         rot_diff = target_pose.relativeTo(robot_pose)
-        if rot_diff.rotation().degrees() < 5:
+        if rot_diff.rotation().degrees() < 25:
             self.manipulator.go_home()
             self.next_state(self.drive_to_ps)
 
@@ -110,7 +111,7 @@ class AutonMountPleasantE(AutonBase):
                 # Once we've got a coral we can move on
                 self.next_state(self.drive_back_to_reef)
 
-    curr_level = 4
+    curr_level = 3
     curr_left = True
 
     # Leave the initial starting position and head to the Reef to score
@@ -124,7 +125,7 @@ class AutonMountPleasantE(AutonBase):
             # This immediately asks the arm to go in the 'up' position
             if self.curr_level == 4:
                 self.arm.target_pos = 90
-            self.intimidator.go_drive_swoop(target_pose)
+            self.intimidator.go_drive_pose(target_pose, aggressive=True)
         # If we don't have a coral we must have scored
         if self.photoeye.coral_held is False:
             self.curr_left = not self.curr_left
@@ -142,7 +143,7 @@ class AutonMountPleasantE(AutonBase):
             # Get the lift moving into the right position
             self.manipulator.go_coral_prepare_score()
         if (
-            self.at_pose(target_pose, 0.04) and self.manipulator.at_position()
+            self.at_pose(target_pose) and self.manipulator.at_position()
             and (self.photoeye.coral_held)
         ):
             if self.curr_level in [1, 4]:
