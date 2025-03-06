@@ -76,8 +76,8 @@ class ElevatorComponent:
         return current_loc == target_loc
 
     def execute(self):
-        if self.motor_left.get_forward_limit().value:
-            self.motor_left.set_position(0.0)
+        # if self.motor_left.get_forward_limit().value:
+        #     self.motor_left.set_position(0.0)
 
         if self.target_pos < 0.5:
             self.target_pos = 0.5
