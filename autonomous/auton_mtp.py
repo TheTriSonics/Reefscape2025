@@ -102,7 +102,7 @@ class AutonMountPleasantE(AutonBase):
         if initial_call:
             # Set the drivetrain to send us to the player station
             self.intimidator.go_drive_swoop(target_pose)
-        if self.manipulator.reef_dist() > 1.7:
+        if self.manipulator.reef_dist() > 1.2:
             self.manipulator.go_home()
         if self.at_pose(target_pose, 0.50):
             # Turn the intake on when we're close to the station
