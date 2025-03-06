@@ -341,6 +341,7 @@ class MyRobot(magicbot.MagicRobot):
 
     def disabledPeriodic(self) -> None:
         Positions.update_alliance_positions()
+        self.position_manager.execute()
         self.vision.execute()
         self.battery_monitor.execute()
         self.leds.execute()
