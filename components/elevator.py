@@ -61,7 +61,6 @@ class ElevatorComponent:
         self.motor_right.configurator.apply(limit_configs)
 
         switch_configs = HardwareLimitSwitchConfigs()
-        switch_configs.forward_limit_type = ForwardLimit.
         switch_configs.forward_limit_enable = True
 
     
