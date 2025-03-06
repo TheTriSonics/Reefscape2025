@@ -18,6 +18,7 @@ from components.intake import IntakeComponent, IntakeDirection
 from components.photoeye import PhotoEyeComponent
 from components.drivetrain import DrivetrainComponent
 
+from components.position_manager import PositionManagerComponent
 from components.leds_sim import LEDSim
 from components.manipulator_sim import ManipulatorSim
 
@@ -46,6 +47,7 @@ class MyRobot(magicbot.MagicRobot):
     leds_sim: LEDSim
 
     # Components
+    position_manager: PositionManagerComponent
     gyro: GyroComponent
     photoeye: PhotoEyeComponent
     drivetrain: DrivetrainComponent
