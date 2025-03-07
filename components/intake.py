@@ -34,6 +34,8 @@ class IntakeComponent:
     force_coral_score = tunable(False)
     force_coral_intake = tunable(False)
 
+    intake_speed = tunable(0.3)
+
     go_fast = tunable(False)
 
     coral_pose_msg = tunable('')
@@ -83,11 +85,20 @@ class IntakeComponent:
 
     def execute(self):
         self.direction_int = self.direction.value
-        speed_val = 0.6
+        speed_val = self.intake_speed
         if self.go_fast:
             speed_val = 0.9
 
         motor_power = 0.0
+        if self.direction in [IntakeDirection.CORAL_IN, IntakeDirection.ALGAE_SCORE]:
+            motor_power = speed_val
+        elif (
+            self.direction in [IntakeDirection.CORAL_SCORE, IntakeDirection.ALGAE_IN]
+        ):
+            motor_power = -speed_val
+
+        # Put the force calls after the normal operation. Operator should win
+        # if there is any disagreement. Obey the humans!!!
         if self.force_coral_intake:
             motor_power = speed_val
         if self.force_coral_score:
@@ -97,12 +108,6 @@ class IntakeComponent:
         if self.force_algae_score:
             motor_power = -speed_val
 
-        if self.direction in [IntakeDirection.CORAL_IN, IntakeDirection.ALGAE_SCORE]:
-            motor_power = speed_val
-        elif (
-            self.direction in [IntakeDirection.CORAL_SCORE, IntakeDirection.ALGAE_IN]
-        ):
-            motor_power = -speed_val
 
         self.motor_request.output = motor_power
         self.motor.set_control(self.motor_request)
