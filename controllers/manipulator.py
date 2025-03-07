@@ -28,7 +28,7 @@ class Manipulator(StateMachine):
     drivetrain: DrivetrainComponent
 
     operator_advance = will_reset_to(False)
-    reef_protection_dist = tunable(1.25)
+    reef_protection_dist = tunable(1.5)
     
     # Create some default targets for the robot. The operator can change these
     # over in robot.py with their controller.
@@ -307,6 +307,22 @@ class Manipulator(StateMachine):
         # Wait here until the operator wants to get into scoring position
         if self.operator_advance and self.reef_dist() > self.reef_protection_dist:
             self.next_state(self.algae_prepare_score)
+
+    @state(must_finish=True)
+    def algae_prepare_intake(self, initial_call, state_tm):
+        if initial_call:
+            self.request_location(self.algae_intake_target)
+
+        # The operator could change the target value while we're in this state
+        # so check for that!
+        if self._target_location != self.algae_intake_target:
+            self.request_location(self.algae_intake_target)
+
+        # Here we can check if we're at the position or if we've been
+        # waiting too long and we should just move on, like maybe we just can't
+        # quite get to the right position, but we've got to try something
+        if (self.operator_advance or is_auton()) and (self.at_position() or state_tm > 2.0):
+            self.next_state(self.algae_intake)
     
     @state(must_finish=True)
     def algae_prepare_score(self, initial_call, state_tm):
@@ -325,22 +341,6 @@ class Manipulator(StateMachine):
         if self.operator_advance and (self.at_position() or state_tm > 2.0):
             self.next_state(self.algae_score)
 
-    @state(must_finish=True)
-    def algae_prepare_intake(self, initial_call, state_tm):
-        if initial_call:
-            self.request_location(self.algae_intake_target)
-
-        # The operator could change the target value while we're in this state
-        # so check for that!
-        if self._target_location != self.algae_intake_target:
-            self.request_location(self.algae_intake_target)
-
-        # Here we can check if we're at the position or if we've been
-        # waiting too long and we should just move on, like maybe we just can't
-        # quite get to the right position, but we've got to try something
-        if (self.operator_advance or is_auton()) and (self.at_position() or state_tm > 2.0):
-            self.next_state(self.algae_intake)
-
     # JJB: I'm not thrilled with the names of these states, coral_score and
     # coral_scored are too similar, but they make sense.
     @state(must_finish=True)
@@ -349,12 +349,7 @@ class Manipulator(StateMachine):
         if initial_call:
             self.intake_control.go_algae_score()
 
-        # The operator could change the target value while we're in this state
-        # so check for that!
-        if self._target_location != self.algae_intake_target:
-            self.request_location(self.algae_intake_target)
-
-        if self.operator_advance:
+        if self.operator_advance and self.photoeye.front_photoeye is False:
             self.next_state(self.idling)
 
     # NOTE: This step might not really be needed, we could return back

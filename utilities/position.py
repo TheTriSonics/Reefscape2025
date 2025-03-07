@@ -1,6 +1,6 @@
 import math
 import random
-from wpimath.geometry import Pose2d, Translation2d, Rotation2d
+from wpimath.geometry import Pose2d, Translation2d, Rotation2d, Transform2d
 from utilities.game import field_flip_pose2d, field_flip_rotation2d, is_red
 from utilities.waypoints import Waypoints
 from choreo.trajectory import SwerveTrajectory as ChoreoSwerveTrajectory
@@ -59,9 +59,9 @@ class Positions:
     REEF_F_LEFT = Pose2d()
     REEF_F_RIGHT = Pose2d()
 
-    AUTON_LINE_LEFT = Pose2d()
-    AUTON_LINE_CENTER = Pose2d()
-    AUTON_LINE_RIGHT = Pose2d()
+    AUTON_LINE_OUR_CAGE_CENTER = Pose2d()
+    AUTON_LINE_MID = Pose2d()
+    AUTON_LINE_THEIR_CAGE_CENTER = Pose2d()
 
     PS_CLOSEST = Pose2d()
     PS_LEFT = Pose2d()
@@ -92,7 +92,7 @@ class Positions:
         cls.REEF_CLOSEST_RIGHT = Waypoints.shift_reef_right(cls.REEF_CLOSEST)
 
         ps_tag_id, _ = Waypoints.closest_ps_tag_id(robot_pose)
-        cls.PS_CLOSEST = Waypoints.get_tag_robot_away(ps_tag_id, face_at=False)
+        cls.PS_CLOSEST = Waypoints.get_tag_robot_away(ps_tag_id, face_at=False).transformBy(Transform2d(Translation2d(-0.1, 0.0), Rotation2d(0)))
 
 
     @classmethod
@@ -118,12 +118,12 @@ class Positions:
         ps_right_tag_id = 2 if is_red() else 12
         ps_left_pose = Waypoints.get_tag_robot_away(ps_left_tag_id, face_at=False)
         ps_right_pose = Waypoints.get_tag_robot_away(ps_right_tag_id, face_at=False)
-        cls.PS_LEFT = ps_left_pose
-        cls.PS_RIGHT = ps_right_pose
+        cls.PS_LEFT = ps_left_pose.transformBy(Transform2d(Translation2d(-0.1, 0.0), Rotation2d(0)))
+        cls.PS_RIGHT = ps_right_pose.transformBy(Transform2d(Translation2d(-0.1, 0.0), Rotation2d(0)))
 
-        cls.AUTON_LINE_CENTER = cls.auton_line_2(is_red())
-        cls.AUTON_LINE_LEFT = Waypoints.shift_auton_left(cls.AUTON_LINE_CENTER)
-        cls.AUTON_LINE_RIGHT = Waypoints.shift_auton_right(cls.AUTON_LINE_CENTER)
+        cls.AUTON_LINE_OUR_CAGE_CENTER = cls.auton_our_cage_center(is_red())
+        cls.AUTON_LINE_MID = cls.auton_line_center(is_red())
+        cls.AUTON_LINE_THEIR_CAGE_CENTER = cls.auton_their_cage_center(is_red())
 
         # Default the dynamic ones! Just to be safe!
         cls.REEF_CLOSEST = cls.REEF_A
@@ -134,9 +134,24 @@ class Positions:
 
 
     @classmethod
-    def auton_line_2(cls, is_red: bool) -> Pose2d:
+    def auton_our_cage_center(cls, is_red: bool) -> Pose2d:
         pose = Pose2d(7.536, 6.190, math.pi)
         if is_red:
             pose = field_flip_pose2d(pose)
         return pose
+
+    @classmethod
+    def auton_line_center(cls, is_red: bool) -> Pose2d:
+        pose = Pose2d(7.574, 4.046, math.pi)
+        if is_red:
+            pose = field_flip_pose2d(pose)
+        return pose
+
+    @classmethod
+    def auton_their_cage_center(cls, is_red: bool) -> Pose2d:
+        pose = Pose2d(7.536, 1.908, math.pi)
+        if is_red:
+            pose = field_flip_pose2d(pose)
+        return pose
+
 

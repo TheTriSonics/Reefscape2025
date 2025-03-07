@@ -49,7 +49,7 @@ class IntakeControl(StateMachine):
             self.intake.score_coral_reverse()
         else:
             self.intake.score_coral()
-        if state_tm > 0.250 and self.photoeye.coral_held is False:
+        if state_tm > 0.10 and self.photoeye.coral_held is False:
             self.next_state_now(self.idling)
 
     @state(must_finish=True)
@@ -73,9 +73,12 @@ class IntakeControl(StateMachine):
         if self.photoeye.front_photoeye is True:
             self.next_state(self.idling)
 
+    # We just stay in this state until something forces us out
+    # We were exiting back to idilng when the photoeye would clear but
+    # since there's some bounce in the system we'll get rid of that. The
+    # operator will have to manually take us to the 'home' position' if
+    # the algae falls out.
     @state(must_finish=True)
     def algae_hold(self):
         self.intake.algae_in()    
-        if self.photoeye.front_photoeye is False:
-            self.next_state(self.idling)
 

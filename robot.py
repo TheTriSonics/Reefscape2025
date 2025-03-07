@@ -285,7 +285,7 @@ class MyRobot(magicbot.MagicRobot):
                 self.intimidator.go_drive_swoop(Positions.PS_CLOSEST)
         elif self.driver_controller.returnToHomeLocation():
             self.drivetrain.drive_to_pose(
-                Positions.AUTON_LINE_CENTER
+                Positions.AUTON_LINE_OUR_CAGE_CENTER
             )
         elif self.driver_controller.getDriveLocal():
             max_speed = self.lower_max_speed
@@ -307,10 +307,6 @@ class MyRobot(magicbot.MagicRobot):
             self.intimidator.go_drive_field()
 
     def teleopPeriodic(self) -> None:
-        pose = self.drivetrain.get_pose()
-        Positions.update_dynamic_positions(pose)
-        mode = self._automodes.chooser.getSelected()
-        mode.engage()
         self.handle_manipulator()
         self.handle_drivetrain()
 
