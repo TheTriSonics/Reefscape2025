@@ -20,7 +20,7 @@ class ArmComponent:
     default_pos = -80.0
     target_pos = tunable(default_pos)
     motor_request = MotionMagicDutyCycle(0, override_brake_dur_neutral=True)
-    lower_limit = -90
+    lower_limit = -95
     upper_limit = 90
 
     def __init__(self):
