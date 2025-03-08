@@ -277,12 +277,15 @@ class MyRobot(magicbot.MagicRobot):
         elif self.driver_controller.getReefRight():
             self.intimidator.go_lock_reef(shift_right=True)
         elif self.driver_controller.getToWallTarget():
-            if dpad == 90:
-                self.intimidator.go_drive_swoop(Positions.PS_RIGHT)
-            elif dpad == 270:
-                self.intimidator.go_drive_swoop(Positions.PS_LEFT)
+            if self.manipulator.game_piece_mode == GamePieces.ALGAE:
+                self.intimidator.go_drive_swoop(Positions.PROCESSOR)
             else:
-                self.intimidator.go_drive_swoop(Positions.PS_CLOSEST)
+                if dpad == 90:
+                    self.intimidator.go_drive_swoop(Positions.PS_RIGHT)
+                elif dpad == 270:
+                    self.intimidator.go_drive_swoop(Positions.PS_LEFT)
+                else:
+                    self.intimidator.go_drive_swoop(Positions.PS_CLOSEST)
         elif self.driver_controller.returnToHomeLocation():
             self.drivetrain.drive_to_pose(
                 Positions.AUTON_LINE_OUR_CAGE_CENTER
