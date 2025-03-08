@@ -213,11 +213,8 @@ class Intimidator(StateMachine):
     def go_drive_strafe_reef_face(self, face_name: str):
         if face_name not in ['A', 'B', 'C', 'D', 'E', 'F']:
             raise ValueError('Invalid face name, must be A-F, capital.')
-        if self.strafe_to_face != face_name:
-            self.strafe_to_face = face_name 
-            self.next_state_now(self.drive_strafe_reef_face)
-        if self.current_state != self.drive_strafe_reef_face.name:
-            self.strafe_to_face = face_name 
+        if self.strafe_to_face != face_name or self.current_state != self.drive_strafe_reef_face.name:
+            self.strafe_to_face = face_name
             self.next_state_now(self.drive_strafe_reef_face)
         self.engage()
 
@@ -256,7 +253,11 @@ class Intimidator(StateMachine):
                 sdiff = start_pose.relativeTo(curr_pose).translation().norm() 
                 # If we're too far from the start or end then we're going to
                 # reject this trajectory for consideration.
-                if sdiff > self.max_start_dist_error or ediff > self.max_end_dist_error:
+                if (
+                    self.target_pose != Positions.PROCESSOR
+                    and sdiff > self.max_start_dist_error
+                    or ediff > self.max_end_dist_error
+                ):
                     continue  # Skip this; not worth considering
                 # Now create a score entry for this valid trajectory; we just
                 # add in the end distance different, start distance difference,
