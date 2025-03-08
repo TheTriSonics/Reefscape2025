@@ -61,7 +61,7 @@ class AutonBase(AutonomousStateMachine):
         self.selected_alliance = alliance
         self.pose_set = True
 
-    def at_pose(self, pose: Pose2d, tolerance=0.025) -> bool:
+    def at_pose(self, pose: Pose2d, tolerance=0.040) -> bool:
         robot_pose = self.drivetrain.get_pose()
         diff = robot_pose.relativeTo(pose)
         dist = math.sqrt(diff.X()**2 + diff.Y()**2)
