@@ -106,7 +106,9 @@ class Positions:
         
         processor_tag_id = 3 if is_red() else 16
         processor_pose = Waypoints.get_tag_robot_away(processor_tag_id, face_at=True)
-        cls.PROCESSOR = processor_pose
+        cls.PROCESSOR = processor_pose.transformBy(
+            Transform2d(Translation2d(-1.0, 0.0), Rotation2d(0))
+        )
 
         barge_tag_id = 5 if is_red() else 14
         barge_pose = Waypoints.get_tag_robot_away(barge_tag_id, face_at=True)
