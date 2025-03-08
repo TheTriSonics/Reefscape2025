@@ -40,6 +40,7 @@ class PlaceOneClose(AutonBase):
     DEFAULT = False
 
     scoring_level = tunable(4)
+    at_pose_counter = tunable(0)
 
     def __init__(self):
         pass
@@ -74,8 +75,12 @@ class PlaceOneClose(AutonBase):
         if self.at_pose(target_pose, 2.0):
             # Get the lift moving into the right position
             self.manipulator.go_coral_prepare_score()
+        if self.at_pose(target_pose):
+            self.at_pose_counter += 1
+        else:
+            self.at_pose_counter = 0
         if (
-            self.at_pose(target_pose) and self.manipulator.at_position()
+            self.at_pose_counter >= 5 and self.manipulator.at_position()
             and (self.photoeye.back_photoeye or self.photoeye.front_photoeye)
         ) or state_tm > 8.0:
             if self.scoring_level in [2, 3]:
@@ -118,6 +123,8 @@ class AutonMountPleasantE(AutonBase):
 
     curr_level = 4
     curr_left = True 
+
+    at_pose_counter = tunable(0)
     
     def __init__(self):
         pass
@@ -139,9 +146,11 @@ class AutonMountPleasantE(AutonBase):
         # On our first run start putting things in motion
         if initial_call:
             self.manipulator.coral_mode()
+            self.arm.target_pos = 90
             self.manipulator.set_coral_level4()
             # self.intimidator.go_drive_swoop(target_pose)
             self.intimidator.go_drive_pose(target_pose)
+            self.at_pose_counter = 0
         # If we don't have a coral we must have scored
         if self.photoeye.coral_held is False:
             self.next_state(self.drive_to_a_safe)
@@ -149,11 +158,16 @@ class AutonMountPleasantE(AutonBase):
         # position then start moving the whole manipulator into place
         # It would be nice on this one if the arm didn't go below X degrees
         # until the elevator has reached a certain height.
-        if self.at_pose(target_pose, 2.0):
+        if self.at_pose(target_pose, 1.8):
             # Get the lift moving into the right position
             self.manipulator.go_coral_prepare_score()
+        if self.at_pose(target_pose):
+            self.at_pose_counter += 1
+        else:
+            self.at_pose_counter = 0
+        
         if (
-            self.at_pose(target_pose) and self.manipulator.at_position()
+            self.at_pose_counter >= 5 and self.manipulator.at_position()
             and (self.photoeye.back_photoeye or self.photoeye.front_photoeye)
         ) or state_tm > 6.0:
             self.intake_control.go_coral_score()
@@ -218,8 +232,12 @@ class AutonMountPleasantE(AutonBase):
         if self.at_pose(target_pose, 3.0):
             # Get the lift moving into the right position
             self.manipulator.go_coral_prepare_score()
+        if self.at_pose(target_pose):
+            self.at_pose_counter += 1
+        else:
+            self.at_pose_counter = 0
         if (
-            self.at_pose(target_pose) and self.manipulator.at_position()
+            self.at_pose_counter >= 5 and self.manipulator.at_position()
             and (self.photoeye.coral_held)
         ) or state_tm > 4.0:
             if self.curr_level in [1, 4]:
