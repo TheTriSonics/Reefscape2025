@@ -221,7 +221,7 @@ class Waypoints:
         pose = cls.get_tag_pose(tag_id)
         rot = 0 if face_at is False else math.pi
         sign = 1 if face_at is True else 1.8
-        left_offset = 0.06 if face_at is True else 0.0
+        left_offset = 0.04 if face_at is True else 0.0
         robot_offset = Transform2d(Translation2d(robot_y_offset * sign, -left_offset), Rotation2d(rot))
         robot_pose = pose.transformBy(robot_offset)
         return robot_pose

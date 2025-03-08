@@ -339,7 +339,6 @@ class MyRobot(magicbot.MagicRobot):
         return super().disabledInit()
 
     def disabledPeriodic(self) -> None:
-        Positions.update_alliance_positions()
         self.position_manager.execute()
         self.vision.execute()
         self.battery_monitor.execute()

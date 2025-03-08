@@ -400,8 +400,10 @@ class DrivetrainComponent:
     ) -> None:
         if aggressive:
             self.choreo_x_controller.setPID(*self.aggressive_xy_pid)
+            self.choreo_y_controller.setPID(*self.aggressive_xy_pid)
         else:
             self.choreo_x_controller.setPID(*self.default_xy_pid)
+            self.choreo_y_controller.setPID(*self.default_xy_pid)
         robot_pose = self.get_pose()
         xvel = self.choreo_x_controller.calculate(robot_pose.X(), x)
         yvel = self.choreo_y_controller.calculate(robot_pose.Y(), y)

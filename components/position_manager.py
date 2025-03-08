@@ -35,6 +35,12 @@ class PositionManagerComponent:
             .publish()
         )
 
+        self.algae_positions = (
+            ntcore.NetworkTableInstance.getDefault()
+            .getStructArrayTopic("/components/position_manager/reef_algae", Pose2d)
+            .publish()
+        )
+
     def execute(self):
         Positions.update_alliance_positions()
         pose = self.drivetrain.get_pose()
@@ -141,3 +147,13 @@ class PositionManagerComponent:
             Positions.REEF_F_RIGHT,
         ]
         self.right_positions.set(rights)
+
+        centers = [
+            Positions.REEF_A,
+            Positions.REEF_B,
+            Positions.REEF_C,
+            Positions.REEF_D,
+            Positions.REEF_E,
+            Positions.REEF_F,
+        ]
+        self.algae_positions.set(centers)

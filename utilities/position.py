@@ -90,9 +90,11 @@ class Positions:
         cls.REEF_CLOSEST = Waypoints.get_tag_robot_away(reef_tag_id, face_at=True)
         cls.REEF_CLOSEST_LEFT = Waypoints.shift_reef_left(cls.REEF_CLOSEST)
         cls.REEF_CLOSEST_RIGHT = Waypoints.shift_reef_right(cls.REEF_CLOSEST)
+        cls.REEF_CLOSEST = Waypoints.get_tag_robot_away(reef_tag_id, face_at=True).transformBy(Transform2d(Translation2d(0.10, 0),Rotation2d(0)))
+
 
         ps_tag_id, _ = Waypoints.closest_ps_tag_id(robot_pose)
-        cls.PS_CLOSEST = Waypoints.get_tag_robot_away(ps_tag_id, face_at=False).transformBy(Transform2d(Translation2d(-0.1, 0.0), Rotation2d(0)))
+        cls.PS_CLOSEST = Waypoints.get_tag_robot_away(ps_tag_id, face_at=False).transformBy(Transform2d(Translation2d(-0.1, 0.075), Rotation2d(0)))
 
 
     @classmethod
@@ -100,9 +102,10 @@ class Positions:
         for face in ['A', 'B', 'C', 'D', 'E', 'F']:
             tag_id = Waypoints.get_tag_id_from_letter(face, is_red())
             tag_pose = Waypoints.get_tag_robot_away(tag_id, face_at=True)
-            setattr(cls, f'REEF_{face}', tag_pose)
             setattr(cls, f'REEF_{face}_LEFT', Waypoints.shift_reef_left(tag_pose))
             setattr(cls, f'REEF_{face}_RIGHT', Waypoints.shift_reef_right(tag_pose))
+            tag_pose = tag_pose.transformBy(Transform2d(Translation2d(0.10, 0),Rotation2d(0)))
+            setattr(cls, f'REEF_{face}', tag_pose)
         
         processor_tag_id = 3 if is_red() else 16
         processor_pose = Waypoints.get_tag_robot_away(processor_tag_id, face_at=True)
