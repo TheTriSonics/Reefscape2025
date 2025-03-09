@@ -121,7 +121,7 @@ class AutonMountPleasantE(AutonBase):
     MODE_NAME = 'The Big One - Place at F, then fill E'
     DEFAULT = True
 
-    curr_level = 4
+    curr_level = 2
     curr_left = True 
 
     at_pose_counter = tunable(0)
@@ -207,7 +207,7 @@ class AutonMountPleasantE(AutonBase):
     # Leave the initial starting position and head to the Reef to score
     @state(must_finish=True)
     def drive_back_to_reef(self, state_tm, initial_call):
-        target_pose = Positions.REEF_E_LEFT if self.curr_left else Positions.REEF_E_RIGHT
+        target_pose = Positions.REEF_D_LEFT if self.curr_left else Positions.REEF_D_RIGHT
         # On our first run start putting things in motion
         if initial_call:
             self.manipulator.coral_mode()
