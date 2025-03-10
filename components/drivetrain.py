@@ -141,7 +141,6 @@ class SwerveModule:
         drive_config.apply(drive_gear_ratio_config)
 
         self.central_angle = Rotation2d(x, y)
-        self.module_locked = False
 
         self.sync_steer_encoder()
 
@@ -167,14 +166,11 @@ class SwerveModule:
         return self.drive.get_position().value * math.tau*TunerConstants._wheel_radius
 
     def set(self, desired_state: SwerveModuleState):
-        if self.module_locked:
-            desired_state = SwerveModuleState(0, self.central_angle)
-
         self.state = desired_state
         current_angle = self.get_rotation()
         self.state.optimize(current_angle)
 
-        if abs(self.state.speed) < 0.01 and not self.module_locked:
+        if abs(self.state.speed) < 0.01:
             self.drive.set_control(self.stop_request)
 
         target_displacement = self.state.angle - current_angle
@@ -224,13 +220,7 @@ class DrivetrainComponent:
     logger: Logger
 
     send_modules = magicbot.tunable(True)
-    # TODO: Get rid of this swerve lock entirely
-    swerve_lock = magicbot.tunable(False)
-
     snapping_to_heading = magicbot.tunable(False)
-
-
-    # TODO: Read from positions.py once autonomous is finished
 
     def __init__(self) -> None:
 
@@ -470,7 +460,6 @@ class DrivetrainComponent:
         )
 
         for state, module in zip(desired_states, self.modules):
-            module.module_locked = self.swerve_lock
             module.set(state)
 
         self.update_odometry()
@@ -505,12 +494,6 @@ class DrivetrainComponent:
     def get_rotational_velocity(self) -> float:
         v = self.gyro.pigeon.get_angular_velocity_z_world().value
         return math.radians(v)
-
-    def lock_swerve(self) -> None:
-        self.swerve_lock = True
-
-    def unlock_swerve(self) -> None:
-        self.swerve_lock = False
 
     def update_odometry(self) -> None:
         self.estimator.update(self.gyro.get_Rotation2d(), self.get_module_positions())
