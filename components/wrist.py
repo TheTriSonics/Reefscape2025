@@ -3,6 +3,7 @@ from magicbot import feedback, tunable
 from phoenix6 import configs, signals
 from phoenix6.hardware import TalonFX, CANcoder
 from phoenix6.controls import (
+    DutyCycleOut,
     MotionMagicDutyCycle
 )
 from phoenix6.configs import TalonFXConfiguration, MotorOutputConfigs
@@ -10,9 +11,7 @@ from utilities.game import ManipLocation
 from utilities import norm_deg, is_sim
 from ids import TalonId, CancoderId
 from components.arm import ArmComponent
-
-pn = wpilib.SmartDashboard.putNumber
-
+import time
 
 class WristComponent:
     motor = TalonFX(TalonId.MANIP_WRIST.id, TalonId.MANIP_WRIST.bus)
@@ -23,55 +22,61 @@ class WristComponent:
     motor_request = MotionMagicDutyCycle(0, override_brake_dur_neutral=True)
     arm: ArmComponent
     
-    def __init__(self):
-        enc_config = configs.CANcoderConfiguration()
-
-        enc_config.magnet_sensor.absolute_sensor_discontinuity_point = 0.5
-        enc_config.magnet_sensor.sensor_direction = signals.SensorDirectionValue.COUNTER_CLOCKWISE_POSITIVE
-        enc_config.magnet_sensor.magnet_offset = self.mag_offset
-        self.encoder.configurator.apply(enc_config) # type: ignore
-
-        config = TalonFXConfiguration()
-        config.slot0.k_s = 0.0
-        config.slot0.k_v = 0.8
-        config.slot0.k_a = 0.01
-        config.slot0.k_p = 10.0
-        config.slot0.k_i = 0.0
-        config.slot0.k_d = 0.0
-        config.motion_magic.motion_magic_cruise_velocity = 1
-        config.motion_magic.motion_magic_acceleration = 50
-        config.motion_magic.motion_magic_jerk = 250
-        config.feedback.feedback_remote_sensor_id = self.encoder.device_id
-        config.feedback.feedback_sensor_source = signals.FeedbackSensorSourceValue.FUSED_CANCODER
-        config.feedback.sensor_to_mechanism_ratio = 1
-        config.feedback.rotor_to_sensor_ratio = 105
-        config.closed_loop_general.continuous_wrap = True
-        config_output = MotorOutputConfigs()
-        config_output.neutral_mode = signals.NeutralModeValue.BRAKE
-        self.motor.configurator.apply(config)  # type: ignore
-        self.motor.configurator.apply(config_output)
+    # SysID tuning parameters
+    sysid_enabled = tunable(False)
+    sysid_voltage = tunable(0.0)
+    sysid_test_type = tunable("quasistatic") # or "dynamic"
+    sysid_rotation = tunable("forward") # or "backward" 
+    sysid_data_points = []
     
-    @feedback
-    def get_position(self) -> float:
-        ang = self.motor.get_position().value * 360
-        return norm_deg(ang)
+    def __init__(self):
+        # Existing init code...
+        self.last_time = time.time()
+        self.sysid_voltage_command = DutyCycleOut(0)
+        self.log = wpilib.DataLogManager.getLog()
 
-    @feedback
-    def at_goal(self):
-        current_pos = self.get_position()
-        target_loc = ManipLocation(0, 0, self.target_pos)
-        current_loc = ManipLocation(0, 0, current_pos)
-        return current_loc == target_loc
+    def do_sysid(self):
+        """Run a SysID characterization routine"""
+        if not self.sysid_enabled:
+            return
 
+        current_time = time.time()
+        dt = current_time - self.last_time
+        
+        # Get current state
+        position = self.encoder.get_position().value * 360  # degrees
+        velocity = self.encoder.get_velocity().value * 360  # degrees per second
+        voltage = self.motor.get_motor_voltage().value
+        
+        # Determine voltage based on test type
+        if self.sysid_test_type == "quasistatic":
+            # Gradually increase voltage
+            ramp_rate = 0.1  # V/s
+            self.sysid_voltage += ramp_rate * dt
+        else:  # dynamic
+            # Step voltage
+            self.sysid_voltage = 7.0  # Fixed test voltage
+            
+        # Apply direction
+        if self.sysid_rotation == "backward":
+            self.sysid_voltage = -self.sysid_voltage
+            
+        # Apply voltage
+        self.sysid_voltage_command.output = self.sysid_voltage / 12.0  # Convert to duty cycle
+        self.motor.set_control(self.sysid_voltage_command)
+        
+        # Log data
+        self.log.append(f"sysid,{current_time},{position},{velocity},{voltage}")
+        
+        self.last_time = current_time
+        
     def execute(self):
-        # Wrist----------------------------------------
-        # This limits should not change!
-        # JJB: Uhm, this breaks something. Like, the robot won't move in sim.
-        # if self.arm.get_position() < -65:
-        #   self.target_pos = self.get_position()
-        # This limits should not change!
-        # ----------------------------------------
-
+        """Regular execution loop"""
+        if self.sysid_enabled:
+            self.do_sysid()
+            return
+            
+        # Normal execution code...
         if self.target_pos < -180 or self.target_pos > 180:
             self.target_pos = norm_deg(self.target_pos)
         can_coder_target = self.target_pos / 360
