@@ -71,9 +71,9 @@ class Manipulator(StateMachine):
         print('Manipulator enabled')
         # Wherever we're at when enabled we'll just assume we should stay at
         self._target_location = ManipLocation(
-            self.wrist.get_position(),
+            self.elevator.get_position(),
             self.arm.get_position(),
-            self.elevator.get_position()
+            self.wrist.get_position()
         )
 
     # This begins a sections of methods meant to be exposed to the operator
