@@ -34,7 +34,7 @@ from components.elevator import ElevatorComponent
 from components.gyro import GyroComponent
 from generated.tuner_constants import TunerConstants
 from ids import CancoderId, TalonId
-from utilities import is_red, is_sim
+from utilities import is_red, is_sim, is_match
 
 
 def angle_difference(angle1, angle2):
@@ -89,9 +89,6 @@ class SwerveModule:
         enc_config.with_magnet_sensor(mag_config)
         self.encoder.configurator.apply(enc_config)  # type: ignore
 
-        # Configure steer motor
-        steer_config = self.steer.configurator
-
         steer_motor_config = MotorOutputConfigs()
         steer_motor_config.neutral_mode = NeutralModeValue.BRAKE
         # The SDS Mk4i rotation has one pair of gears.
@@ -111,15 +108,12 @@ class SwerveModule:
         steer_closed_loop_config = ClosedLoopGeneralConfigs()
         steer_closed_loop_config.continuous_wrap = True
 
-        steer_config.apply(steer_motor_config)
-        steer_config.apply(steer_pid, 0.01)
-        steer_config.apply(steer_gear_ratio_config)
-        steer_config.apply(steer_closed_loop_config)
-
+        self.steer.configurator.apply(steer_motor_config)
+        self.steer.configurator.apply(steer_pid, 0.01)
+        self.steer.configurator.apply(steer_gear_ratio_config)
+        self.steer.configurator.apply(steer_closed_loop_config)
 
         # Configure drive motor
-        drive_config = self.drive.configurator
-
         drive_motor_config = MotorOutputConfigs()
         drive_motor_config.neutral_mode = NeutralModeValue.BRAKE
         drive_motor_config.inverted = (
@@ -136,13 +130,11 @@ class SwerveModule:
         self.drive_pid = TunerConstants._drive_gains
         self.drive_ff = SimpleMotorFeedforwardMeters(kS=0.01, kV=0.09, kA=0.0)
 
-        drive_config.apply(drive_motor_config)
-        drive_config.apply(self.drive_pid, 0.01)
-        drive_config.apply(drive_gear_ratio_config)
+        self.drive.configurator.apply(drive_motor_config)
+        self.drive.configurator.apply(self.drive_pid, 0.01)
+        self.drive.configurator.apply(drive_gear_ratio_config)
 
         self.central_angle = Rotation2d(x, y)
-
-        self.sync_steer_encoder()
 
         self.steer_pid = PIDController(0.3, 0, 0)
         self.steer_pid.enableContinuousInput(-math.pi, math.pi)
@@ -191,9 +183,6 @@ class SwerveModule:
 
         # original position change/100ms, new m/s -> rot/s
         self.drive.set_control(self.drive_request.with_velocity(target_speed))
-
-    def sync_steer_encoder(self) -> None:
-        self.steer.set_position(self.get_angle_absolute())
 
     def get_position(self) -> SwerveModulePosition:
         return SwerveModulePosition(self.get_distance_traveled(), self.get_rotation())
@@ -246,7 +235,6 @@ class DrivetrainComponent:
         self.choreo_y_controller = PIDController(*self.default_xy_pid)
         self.choreo_heading_controller = PIDController(15, 0, 0)
         self.choreo_heading_controller.enableContinuousInput(-math.pi, math.pi)
-        self.on_red_alliance = False
 
         self.modules = (
             # Front Left
@@ -309,18 +297,18 @@ class DrivetrainComponent:
             self.modules[2].translation,
             self.modules[3].translation,
         )
-        self.sync_all()
 
         nt = ntcore.NetworkTableInstance.getDefault().getTable("/components/drivetrain")
         module_states_table = nt.getSubTable("module_states")
-        self.setpoints_publisher = module_states_table.getStructArrayTopic(
-            "setpoints", SwerveModuleState
-        ).publish()
-        self.measurements_publisher = module_states_table.getStructArrayTopic(
-            "measured", SwerveModuleState
-        ).publish()
+        if not is_match():
+            self.setpoints_publisher = module_states_table.getStructArrayTopic(
+                "setpoints", SwerveModuleState
+            ).publish()
+            self.measurements_publisher = module_states_table.getStructArrayTopic(
+                "measured", SwerveModuleState
+            ).publish()
 
-        wpilib.SmartDashboard.putData("Heading PID", self.heading_controller)
+            wpilib.SmartDashboard.putData("Heading PID", self.heading_controller)
 
     def get_velocity(self) -> ChassisSpeeds:
         return self.kinematics.toChassisSpeeds(self.get_module_states())
@@ -503,10 +491,6 @@ class DrivetrainComponent:
         if self.send_modules:
             self.setpoints_publisher.set([module.state for module in self.modules])
             self.measurements_publisher.set([module.get() for module in self.modules])
-
-    def sync_all(self) -> None:
-        for m in self.modules:
-            m.sync_steer_encoder()
 
     def set_pose(self, pose: Pose2d) -> None:
         print('set pose called -- force location')

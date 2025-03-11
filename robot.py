@@ -276,6 +276,22 @@ class MyRobot(magicbot.MagicRobot):
             self.intimidator.go_lock_reef(shift_left=True)
         elif self.driver_controller.getReefRight():
             self.intimidator.go_lock_reef(shift_right=True)
+
+            if self.driver_controller.getYButtonPressed():
+                # Find the current target
+
+                # Shift the current target forward by 1 unit
+                pass
+            elif self.driver_controller.getXButtonPressed():
+                # shift left
+                pass
+            elif self.driver_controller.getBButtonPressed():
+                # shift right
+                pass
+            elif self.driver_controller.getAButtonPressed():
+                # shift back
+                pass
+
         elif self.driver_controller.getToWallTarget():
             if self.manipulator.game_piece_mode == GamePieces.ALGAE:
                 self.intimidator.go_drive_swoop(Positions.PROCESSOR)

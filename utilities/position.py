@@ -85,13 +85,21 @@ class Positions:
         return random.choice(positions)
 
     @classmethod
+    def identity_face(cls, pose: Pose2d) -> tuple[str | None, str | None]:
+        for face in ["A", "B", "C", "D", "E", "F"]:
+            for suffix in ["_LEFT", "", "_RIGHT"]:
+                val = getattr(cls, f"REEF_{face}{suffix}")
+                if pose == val:
+                    return face, f'REEF_{face}{suffix}'
+        return None, None
+
+    @classmethod
     def update_dynamic_positions(cls, robot_pose: Pose2d):
         reef_tag_id, _ = Waypoints.closest_reef_tag_id(robot_pose)
         cls.REEF_CLOSEST = Waypoints.get_tag_robot_away(reef_tag_id, face_at=True)
         cls.REEF_CLOSEST_LEFT = Waypoints.shift_reef_left(cls.REEF_CLOSEST)
         cls.REEF_CLOSEST_RIGHT = Waypoints.shift_reef_right(cls.REEF_CLOSEST)
         cls.REEF_CLOSEST = Waypoints.get_tag_robot_away(reef_tag_id, face_at=True).transformBy(Transform2d(Translation2d(0.10, 0),Rotation2d(0)))
-
 
         ps_tag_id, _ = Waypoints.closest_ps_tag_id(robot_pose)
         cls.PS_CLOSEST = Waypoints.get_tag_robot_away(ps_tag_id, face_at=False).transformBy(Transform2d(Translation2d(-0.1, 0.075), Rotation2d(0)))

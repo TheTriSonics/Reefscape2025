@@ -53,6 +53,9 @@ def is_red() -> bool:
     return wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed
 
 
+def is_match() -> bool:
+    return wpilib.DriverStation.isFMSAttached()
+
 def is_sim() -> bool:
     return wpilib.RobotBase.isSimulation()
 
