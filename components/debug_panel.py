@@ -1,6 +1,7 @@
 from utilities.game import ManipLocations
 from magicbot import will_reset_to, tunable
 from controllers.manipulator import Manipulator 
+from components.intake import IntakeComponent
 
 
 class DebugPanel:
@@ -15,7 +16,14 @@ class DebugPanel:
     go_algae_processor = tunable(False)
     go_algae_barge = tunable(False)
 
+    score_coral = tunable(False)
+    score_algae = tunable(False)
+    intake_coral = tunable(False)
+    intake_algae = tunable(False)
+    intake_off = tunable(False)
+
     manipulator: Manipulator
+    intake: IntakeComponent
 
     def execute(self):
         if self.go_home:
@@ -36,3 +44,15 @@ class DebugPanel:
         if self.go_coral_1:
             self.manipulator.request_location(ManipLocations.CORAL_REEF_1)
             self.go_coral_1 = False
+        # Intake stuff
+        if self.score_coral:
+            self.intake.score_coral()
+        elif self.score_algae:
+            self.intake.score_algae()
+        elif self.intake_coral:
+            self.intake.coral_in()
+        elif self.intake_algae:
+            self.intake.algae_in()
+        elif self.intake_off:
+            self.intake.intake_off()
+        
