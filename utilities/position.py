@@ -97,8 +97,8 @@ class Positions:
     def update_dynamic_positions(cls, robot_pose: Pose2d):
         reef_tag_id, _ = Waypoints.closest_reef_tag_id(robot_pose)
         reef_start = Waypoints.get_tag_robot_away(reef_tag_id, face_at=True)
-        cls.REEF_CLOSEST_LEFT = reef_start.transformBy(Transform2d(Translation2d(-0.05, 0),Rotation2d(0)))
-        cls.REEF_CLOSEST_RIGHT = reef_start.transformBy(Transform2d(Translation2d(-0.05, 0),Rotation2d(0)))
+        cls.REEF_CLOSEST_LEFT = Waypoints.shift_reef_left(reef_start)
+        cls.REEF_CLOSEST_RIGHT = Waypoints.shift_reef_right(reef_start)
         cls.REEF_CLOSEST = reef_start.transformBy(Transform2d(Translation2d(0.10, 0),Rotation2d(0)))
 
         ps_tag_id, _ = Waypoints.closest_ps_tag_id(robot_pose)
