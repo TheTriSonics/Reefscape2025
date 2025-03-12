@@ -85,6 +85,14 @@ class Positions:
         return random.choice(positions)
 
     @classmethod
+    def get_facepos(cls, face: str, left=False, right=False) -> Pose2d:
+        if left:
+            return getattr(cls, f"REEF_{face}_LEFT")
+        elif right:
+            return getattr(cls, f"REEF_{face}_RIGHT")
+        return getattr(cls, f"REEF_{face}")
+
+    @classmethod
     def identity_face(cls, pose: Pose2d) -> tuple[str | None, str | None]:
         for face in ["A", "B", "C", "D", "E", "F"]:
             for suffix in ["_LEFT", "", "_RIGHT"]:
