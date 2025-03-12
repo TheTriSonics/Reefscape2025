@@ -75,6 +75,8 @@ class MyRobot(magicbot.MagicRobot):
     driver_reef_radians_snap = tunable(0.0)
 
     START_POS_TOLERANCE = 1
+    
+    autonomous_has_run = False
 
     def createObjects(self) -> None:
         self.data_log = wpilib.DataLogManager.getLog()
@@ -108,6 +110,7 @@ class MyRobot(magicbot.MagicRobot):
 
     def autonomousInit(self):
         Positions.update_alliance_positions()
+        self.autonomous_has_run = True
         return
 
     # This does not run at all.
@@ -364,6 +367,9 @@ class MyRobot(magicbot.MagicRobot):
         # mode = self._automodes.active_mode
         if Positions.PROCESSOR.X() == 0:
             return  # Skip trying to set pose, we don't have position data yet.
-        mode = self._automodes.chooser.getSelected()
-        if mode and hasattr(mode, 'set_initial_pose'):
-            mode.set_initial_pose()
+        # We do NOT want to do this between auton and teleop, only before
+        # auton.
+        if not self.autonomous_has_run:
+            mode = self._automodes.chooser.getSelected()
+            if mode and hasattr(mode, 'set_initial_pose'):
+                mode.set_initial_pose()
