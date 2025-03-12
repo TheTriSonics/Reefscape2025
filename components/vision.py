@@ -113,14 +113,19 @@ class VisionComponent():
                     # Skip using this pose in a vision update; it is too ambiguous
                     continue
 
-                taget_ids_in_frame = [t.fiducialId for t in res.getTargets()]
-                if tag_dist < 2.0 and tag_id in taget_ids_in_frame:
                     # We're close to an apriltag, so we should use that for
                     # vision. We'll tighten up the std devs to make sure we
                     # are trusting this reading.
+                taget_ids_in_frame = [t.fiducialId for t in res.getTargets()]
+                # TODO: Change this back if needed
+                if tag_dist < 0.5 and tag_id in taget_ids_in_frame:
+                    self.std_x, self.std_y, self.std_rot = 0.01, 0.01, radians(5.0)
+                elif tag_dist < 1.0 and tag_id in taget_ids_in_frame:
+                    self.std_x, self.std_y, self.std_rot = 0.05, 0.05, radians(10)
+                elif tag_dist < 2.0 and tag_id in taget_ids_in_frame:
                     self.std_x, self.std_y, self.std_rot = 0.1, 0.1, radians(22.5)
                 else:
-                    self.std_x, self.std_y, self.std_rot = 0.4, 0.4, radians(45)
+                    self.std_x, self.std_y, self.std_rot = 0.4, 0.4, radians(22.5)
 
                 setDevs((self.std_x, self.std_y, self.std_rot))
                 pupdate = pose_est.update(res)
