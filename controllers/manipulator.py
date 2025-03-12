@@ -94,6 +94,10 @@ class Manipulator(StateMachine):
         self.game_mode.set('algae')
         self.go_home()
 
+    def go_hold(self):
+        self.next_state_now(self.hold_position)
+        self.engage()
+
     def go_home(self):
         # Set the necessary targets for each component
         self.request_location(ManipLocations.HOME)
@@ -209,10 +213,15 @@ class Manipulator(StateMachine):
         pose = self.drivetrain.get_pose()
         reef_dist = Waypoints.get_distance_to_reef_center(pose, is_red()) 
         return reef_dist
-
     
     # That's the end of the helper methods and from here down we have the
     # various states of the state machine itself.
+    @state(must_finish=True)
+    def hold_position(self):
+        # We're going to do nothing until the operator kicks us out
+        # of this state with the 'go home' button. Operator advance will do
+        # nothing.
+        pass
    
     # We'll start off idle; do nothing  until the operator requests something
     @state(must_finish=True, first=True)

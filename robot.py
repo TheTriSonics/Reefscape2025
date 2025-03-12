@@ -17,6 +17,7 @@ from components.elevator import ElevatorComponent
 from components.intake import IntakeComponent, IntakeDirection
 from components.photoeye import PhotoEyeComponent
 from components.drivetrain import DrivetrainComponent
+from components.debug_panel import DebugPanel
 
 from components.position_manager import PositionManagerComponent
 from components.leds_sim import LEDSim
@@ -51,6 +52,7 @@ class MyRobot(magicbot.MagicRobot):
     gyro: GyroComponent
     photoeye: PhotoEyeComponent
     drivetrain: DrivetrainComponent
+    debug_panel: DebugPanel
     vision: VisionComponent
     battery_monitor: BatteryMonitorComponent
     leds: LEDComponent
@@ -122,7 +124,7 @@ class MyRobot(magicbot.MagicRobot):
             wpilib.DriverStation.silenceJoystickConnectionWarning(True)
 
         self.leds.rainbow()
-        self.manipulator.engage()
+        self.manipulator.go_hold()
         self.intimidator.engage()
         Positions.update_alliance_positions()
         
