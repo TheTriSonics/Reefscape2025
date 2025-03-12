@@ -36,7 +36,7 @@ class PlaceOneClose(AutonBase):
     intake_control: IntakeControl
     photoeye: PhotoEyeComponent
 
-    MODE_NAME = 'Super Simple Place One (select level)'
+    MODE_NAME = 'MTP - Super Simple Place One (select level)'
     DEFAULT = False
 
     scoring_level = tunable(4)
@@ -118,7 +118,7 @@ class AutonMountPleasantE(AutonBase):
     intake_control: IntakeControl
     photoeye: PhotoEyeComponent
 
-    MODE_NAME = 'The Big One - Place at F, then fill E'
+    MODE_NAME = 'MTP - The Big One - Place at F, then fill E'
     DEFAULT = True
 
     curr_level = 2
