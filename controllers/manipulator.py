@@ -253,13 +253,33 @@ class Manipulator(StateMachine):
     
     @state(must_finish=True)
     def coral_prepare_score(self, initial_call, state_tm):
-        if initial_call:
-            self.request_location(self.coral_scoring_target)
+        curr_target = self.coral_scoring_target
+        if initial_call and curr_target != ManipLocations.CORAL_REEF_4:
+            self.request_location(curr_target)
+        
+        if curr_target == ManipLocations.CORAL_REEF_4:
+            # We have special rules for getting to level 4 because it can
+            # interfere with the reef.
+            epos = curr_target.elevator_pos
+            # Don't move the arm until the elevator and wrist are in position.
+            # This allows the arm to come down onto the reef instead of trying
+            # to push through it as it elevates.
+            apos = (
+                curr_target.arm_pos
+                if self.elevator.at_goal()
+                else self.arm.get_position()
+            )
+            wpos = curr_target.wrist_pos
+            tmp_loc = ManipLocation(epos, apos, wpos)
+            self.request_location(tmp_loc)
 
         # The operator could change the target value while we're in this state
         # so check for that!
-        if self._target_location != self.coral_scoring_target:
-            self.request_location(self.coral_scoring_target)
+        if (
+            self._target_location != curr_target
+            and curr_target != ManipLocations.CORAL_REEF_4
+        ):
+            self.request_location(curr_target)
 
         # Here we can check if we're at the position or if we've been
         # waiting too long and we should just move on, like maybe we just can't
