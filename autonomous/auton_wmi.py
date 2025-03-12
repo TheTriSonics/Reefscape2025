@@ -142,7 +142,7 @@ class BigOne(AutonBase):
     # Leave the initial starting position and head to the Reef to score
     @state(must_finish=True, first=True)
     def drive_to_reef(self, state_tm, initial_call):
-        target_pose: Pose2d = getattr(Positions, f"REEF_{self.first_face}_LEFT")
+        target_pose = Positions.get_facepos(self.first_face, left=True)
         # On our first run start putting things in motion
         if initial_call:
             self.manipulator.coral_mode()
@@ -176,7 +176,7 @@ class BigOne(AutonBase):
     @state(must_finish=True)
     def drive_to_a_safe(self, state_tm, initial_call):
         from wpimath.geometry import Transform2d, Rotation2d
-        base_pose: Pose2d = getattr(Positions, f"REEF_{self.first_face}_LEFT")
+        base_pose = Positions.get_facepos(self.first_face, left=True)
         target_pose = base_pose.transformBy(Transform2d(-0.5, 0, Rotation2d.fromDegrees(90)))
         if initial_call:
             self.intimidator.go_drive_pose(target_pose, aggressive=True)
@@ -207,10 +207,7 @@ class BigOne(AutonBase):
     # Leave the initial starting position and head to the Reef to score
     @state(must_finish=True)
     def drive_back_to_reef(self, state_tm, initial_call):
-        if self.curr_left:
-            target_pose = getattr(Positions, f"REEF_{self.fill_face}_LEFT")
-        else:
-            target_pose = getattr(Positions, f"REEF_{self.fill_face}_RIGHT")
+        target_pose = Positions.get_facepos(self.fill_face, left=self.curr_left)
         assert target_pose
         # On our first run start putting things in motion
         if initial_call:
