@@ -247,7 +247,10 @@ class Manipulator(StateMachine):
 
     @state(must_finish=True)
     def coral_in_system(self, state_tm, initial_call):
-        if self.coral_scoring_target in [ManipLocations.CORAL_REEF_4]:
+        if (
+            self.coral_scoring_target in [ManipLocations.CORAL_REEF_4]
+            and self.reef_dist() > self.reef_protection_dist
+        ):
             self.arm.target_pos = 90
         # Wait here until the operator wants to get into scoring position
         if self.operator_advance and self.reef_dist() > self.reef_protection_dist:
@@ -258,6 +261,8 @@ class Manipulator(StateMachine):
         curr_target = self.coral_scoring_target
         if initial_call and curr_target != ManipLocations.CORAL_REEF_4:
             self.request_location(curr_target)
+        if initial_call and curr_target == ManipLocations.CORAL_REEF_4:
+            self.arm.target_pos = 90
         
         if curr_target == ManipLocations.CORAL_REEF_4:
             # We have special rules for getting to level 4 because it can
