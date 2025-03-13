@@ -218,7 +218,7 @@ class DrivetrainComponent:
                                                 .publish()
         )
         self.heading_controller = ProfiledPIDControllerRadians(
-            0.5, 0, 0, TrapezoidProfileRadians.Constraints(100, 100)
+            0.5, 0, 0, TrapezoidProfileRadians.Constraints(2 * math.tau * 6, 49 * 6)
         )
         self.heading_controller.enableContinuousInput(-math.pi, math.pi)
         self.heading_controller.setTolerance(self.HEADING_TOLERANCE)
@@ -385,7 +385,7 @@ class DrivetrainComponent:
         robot_pose = self.get_pose()
         xvel = self.choreo_x_controller.calculate(robot_pose.X(), x)
         yvel = self.choreo_y_controller.calculate(robot_pose.Y(), y)
-        hvel = self.choreo_heading_controller.calculate(robot_pose.rotation().radians(), heading)
+        hvel = self.heading_controller.calculate(robot_pose.rotation().radians(), heading)
         diff = angle_difference(robot_pose.rotation().radians(), heading)
         self.wait_until_aligned = 90
         tol = math.radians(self.wait_until_aligned)
@@ -423,7 +423,7 @@ class DrivetrainComponent:
 
     def execute(self) -> None:
         if self.snapping_to_heading:
-            self.chassis_speeds.omega = self.choreo_heading_controller.calculate(
+            self.chassis_speeds.omega = self.heading_controller.calculate(
                 self.get_rotation().radians()
             )
         else:
@@ -459,7 +459,8 @@ class DrivetrainComponent:
         # Generate the next speeds for the robot
         dx = sample.vx + self.choreo_x_controller.calculate(pose.X(), sample.x)
         dy = sample.vy + self.choreo_y_controller.calculate(pose.Y(), sample.y)
-        do = sample.omega + self.choreo_heading_controller.calculate(pose.rotation().radians(), sample.heading)
+        # do = sample.omega + self.choreo_heading_controller.calculate(pose.rotation().radians(), sample.heading)
+        do = sample.omega + self.heading_controller.calculate(pose.rotation().radians(), sample.heading)
         """
         pn = wpilib.SmartDashboard.putNumber
         pn('choreo dx', dx)
