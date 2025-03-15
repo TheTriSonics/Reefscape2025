@@ -36,6 +36,9 @@ from generated.tuner_constants import TunerConstants
 from ids import CancoderId, TalonId
 from utilities import is_red, is_sim, is_match
 
+from choreo.trajectory import SwerveSample as ChoreoSwerveSample
+from pathplannerlib.path import PathPlannerTrajectoryState
+
 
 def angle_difference(angle1, angle2):
     """
@@ -169,7 +172,9 @@ class SwerveModule:
         target_angle = self.state.angle.radians()
 
         steer_output = self.steer_pid.calculate(current_angle.radians(), target_angle)
-        self.steer.set_control(DutyCycleOut(steer_output))
+        self.steer.set_control(
+            DutyCycleOut(steer_output)
+        )
 
         diff = self.state.angle - current_angle
         if (abs(diff.degrees()) < 1):
@@ -310,7 +315,7 @@ class DrivetrainComponent:
 
             wpilib.SmartDashboard.putData("Heading PID", self.heading_controller)
 
-    def get_velocity(self) -> ChassisSpeeds:
+    def get_chassis_speeds(self) -> ChassisSpeeds:
         return self.kinematics.toChassisSpeeds(self.get_module_states())
 
     def get_module_states(
@@ -385,21 +390,9 @@ class DrivetrainComponent:
         robot_pose = self.get_pose()
         xvel = self.choreo_x_controller.calculate(robot_pose.X(), x)
         yvel = self.choreo_y_controller.calculate(robot_pose.Y(), y)
-        hvel = self.heading_controller.calculate(robot_pose.rotation().radians(), heading)
-        diff = angle_difference(robot_pose.rotation().radians(), heading)
-        self.wait_until_aligned = 90
-        tol = math.radians(self.wait_until_aligned)
-        """
-        pn = wpilib.SmartDashboard.putNumber
-        pn('hvel', hvel)
-        pn('diff', diff)
-        pn('heading', heading)
-        pn('rot', robot_pose.rotation().radians())
-        """
-        # Stop the drivetrain from translating until rotation is close to target
-        if diff > tol:
-            xvel = 0
-            yvel = 0
+        hvel = self.choreo_heading_controller.calculate(robot_pose.rotation().radians(), heading)
+        if is_sim():
+            hvel = self.choreo_heading_controller.calculate(robot_pose.rotation().radians(), heading)
         self.drive_field(xvel, yvel, hvel)
 
     def drive_local(self, vx: float, vy: float, omega: float) -> None:
@@ -436,9 +429,11 @@ class DrivetrainComponent:
         # These limits should not change!
         # TODO Update based off real robot speeds.
         elevator_factor = 1.0
+        """
         if self.elevator.get_position() > 10:
             elevator_factor = 1.225 - (0.9 / 40) * self.elevator.get_position()
             elevator_factor = max(0.25, elevator_factor)
+        """
         # ----------------------------------------
         # ---------------------------------------- 
 
@@ -451,8 +446,26 @@ class DrivetrainComponent:
             module.set(state)
 
         self.update_odometry()
+    
+    def follow_trajectory_pp(self, sample: PathPlannerTrajectoryState):
+        # Get the current pose of the robot
+        pose = self.get_pose()
 
-    def follow_trajectory(self, sample):
+        # Generate the next speeds for the robot
+        dx = sample.fieldSpeeds.vx + self.choreo_x_controller.calculate(
+            pose.X(), sample.pose.X()
+        )
+        dy = sample.fieldSpeeds.vy + self.choreo_y_controller.calculate(
+            pose.Y(), sample.pose.Y()
+        )
+        do = sample.fieldSpeeds.omega + self.choreo_heading_controller.calculate(
+            pose.rotation().radians(), sample.pose.rotation().radians()
+        )
+
+        # Apply the generated speeds
+        self.drive_field(dx, dy, do)
+
+    def follow_trajectory_choreo(self, sample: ChoreoSwerveSample):
         # Get the current pose of the robot
         pose = self.get_pose()
 

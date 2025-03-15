@@ -30,16 +30,16 @@ class VisionComponent():
 
         self.camera_fr_offset = Transform3d(
             Translation3d(
-                units.inchesToMeters(11.0),
-                units.inchesToMeters(-10.125),
+                units.inchesToMeters(10.5),
+                units.inchesToMeters(-12.0),
                 units.inchesToMeters(7.5),
             ),
             Rotation3d.fromDegrees(0, 22.5, 8.0),
         )
         self.camera_fl_offset = Transform3d(
             Translation3d(
-                units.inchesToMeters(11.0), # Forward/backward offset
-                units.inchesToMeters(10.125),
+                units.inchesToMeters(10.5),  # Forward/backward offset
+                units.inchesToMeters(12.0),
                 units.inchesToMeters(7.5),
             ),
             Rotation3d.fromDegrees(0, 22.5, -8.0),
@@ -47,7 +47,7 @@ class VisionComponent():
 
         self.camera_bl_offset = Transform3d(
             Translation3d(
-                units.inchesToMeters(-11.0),  # Forward/backward offset
+                units.inchesToMeters(-13.0),  # Forward/backward offset
                 units.inchesToMeters(10.125),
                 units.inchesToMeters(7.5),
             ),
@@ -109,18 +109,19 @@ class VisionComponent():
             results = cam.getAllUnreadResults()
             for res in results:
                 best_target = res.getBestTarget()
-                if best_target and best_target.poseAmbiguity > 0.2:
+                if best_target and (best_target.poseAmbiguity > 0.2):
                     # Skip using this pose in a vision update; it is too ambiguous
                     continue
 
                 taget_ids_in_frame = [t.fiducialId for t in res.getTargets()]
-                if tag_dist < 2.0 and tag_id in taget_ids_in_frame:
-                    # We're close to an apriltag, so we should use that for
-                    # vision. We'll tighten up the std devs to make sure we
-                    # are trusting this reading.
+                if tag_dist < 0.5 and tag_id in taget_ids_in_frame:
+                    self.std_x, self.std_y, self.std_rot = 0.01, 0.01, radians(5.0)
+                elif tag_dist < 1.0 and tag_id in taget_ids_in_frame:
+                    self.std_x, self.std_y, self.std_rot = 0.05, 0.05, radians(10)
+                elif tag_dist < 2.0 and tag_id in taget_ids_in_frame:
                     self.std_x, self.std_y, self.std_rot = 0.1, 0.1, radians(22.5)
                 else:
-                    self.std_x, self.std_y, self.std_rot = 0.4, 0.4, radians(45)
+                    self.std_x, self.std_y, self.std_rot = 0.4, 0.4, radians(22.5)
 
                 setDevs((self.std_x, self.std_y, self.std_rot))
                 pupdate = pose_est.update(res)

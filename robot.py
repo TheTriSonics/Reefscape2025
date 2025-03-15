@@ -67,7 +67,7 @@ class MyRobot(magicbot.MagicRobot):
 
     max_speed = magicbot.tunable(25.0)  # m/s
     lower_max_speed = magicbot.tunable(6)  # m/s
-    max_spin_rate = magicbot.tunable(2 * math.tau)
+    max_spin_rate = magicbot.tunable(2 * math.tau * 2)
     lower_max_spin_rate = magicbot.tunable(math.pi)  # m/s
     controller_choice = tunable('')
     controller_name = tunable('')
@@ -82,6 +82,7 @@ class MyRobot(magicbot.MagicRobot):
 
     def createObjects(self) -> None:
         self.data_log = wpilib.DataLogManager.getLog()
+        wpilib.DriverStation.startDataLog(self.data_log, logJoysticks=True)
 
         self.field = wpilib.Field2d()
         wpilib.SmartDashboard.putData(self.field)
@@ -369,6 +370,7 @@ class MyRobot(magicbot.MagicRobot):
         # mode = self._automodes.active_mode
         if Positions.PROCESSOR.X() == 0:
             return  # Skip trying to set pose, we don't have position data yet.
+        Intimidator.load_trajectories()
         # We do NOT want to do this between auton and teleop, only before
         # auton.
         if not self.autonomous_has_run:

@@ -9,14 +9,23 @@ import wpilib
 from pathlib import Path
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d, Transform2d
 from magicbot import StateMachine, state, tunable, feedback, will_reset_to
-
+from pathplannerlib.path import (
+    PathPlannerPath,
+    PathPlannerTrajectory,
+    PathPlannerTrajectoryState,
+    PathConstraints,
+    GoalEndState,
+    IdealStartingState,
+    ConstraintsZone,
+)
+from pathplannerlib.config import RobotConfig
 from components.drivetrain import DrivetrainComponent
 from choreo import load_swerve_trajectory
 from choreo.trajectory import SwerveTrajectory as ChoreoSwerveTrajectory
 
 from utilities.waypoints import Waypoints
 from utilities.position import reverse_choreo
-from utilities.game import ManipLocations, ManipLocation, GamePieces, is_auton, is_red
+from utilities.game import ManipLocations, ManipLocation, GamePieces, is_auton, is_red, field_flip_pose2d, field_flip_translation2d, field_flip_rotation2d
 from utilities.position import Positions
 from utilities import pn, ps, pb
 
@@ -66,8 +75,15 @@ class Intimidator(StateMachine):
     max_end_dist_error = tunable(1.0)
     dist_to_direct_drive = tunable(0.5)
 
+    trajectories: list[ChoreoSwerveTrajectory] = []
+    waypoints: list[list[Pose2d]] = [[]]
+    alliance_loaded = None
+
     def __init__(self):
-        self.trajectory: ChoreoSwerveTrajectory | None = None
+        self.choreo_trajectory: ChoreoSwerveTrajectory | None = None
+        self.pp_trajectory: PathPlannerTrajectory | None = None 
+        self.pp_constraint = PathConstraints(4.9, 5.0, 2 * math.tau, 1.0)
+        self.pp_config = RobotConfig.fromGUISettings()
         self.target_pose: Pose2d
         self.target_pose_pub = (
             ntcore.NetworkTableInstance.getDefault()
@@ -75,9 +91,21 @@ class Intimidator(StateMachine):
             .publish()
         )
 
-        self.swoop_traj_pub = (
+        self.choreo_traj_pub = (
             ntcore.NetworkTableInstance.getDefault()
-            .getStructArrayTopic("/components/intimidator/swoop_traj", Pose2d)
+            .getStructArrayTopic("/components/intimidator/choreo_swoop_traj", Pose2d)
+            .publish()
+        )
+
+        self.pp_traj_pub = (
+            ntcore.NetworkTableInstance.getDefault()
+            .getStructArrayTopic("/components/intimidator/pp_swoop_traj", Pose2d)
+            .publish()
+        )
+
+        self.pp_waypoints_pub = (
+            ntcore.NetworkTableInstance.getDefault()
+            .getStructArrayTopic("/components/intimidator/pp_swoop_waypoints", Pose2d)
             .publish()
         )
 
@@ -103,19 +131,51 @@ class Intimidator(StateMachine):
             .getStructTopic("/components/intimidator/strafe_next", Pose2d)
             .publish()
         )
-        self.trajectories: list[ChoreoSwerveTrajectory] = []
 
-    def load_trajectories(self):
+    @classmethod
+    def load_trajectories(cls):
+        if cls.alliance_loaded == is_red():
+            return
+        cls.alliance_loaded = is_red()
         # iterate through every file in deploy/choreo that matches *.traj
         for traj_file in Path("deploy/choreo").rglob("*.traj"):
             print(f"Loading trajectory {traj_file.stem}")
             traj = load_swerve_trajectory(traj_file.stem)
             rtraj = reverse_choreo(traj)
-            self.trajectories.append(traj)
-            self.trajectories.append(rtraj)
+            cls.trajectories.append(traj)
+            cls.trajectories.append(rtraj)
+            # Ok let's pull the raw waypoints out now.
+            import json
+            waypoint_poses = []
+            # Always get the blue side. We can flip to red later if needed
+            rc = Waypoints.get_reef_center(False)
+            print('Reef center:')
+            print(rc.X(), rc.Y())
+            with open(traj_file) as f:
+                obj = json.load(f)
+                waypoints = obj['snapshot']["waypoints"]
+                # Iterate through every waypoint in the trajectory, but also grab
+                # the next one at the same time
+                for wp, next_wp in zip(waypoints, waypoints[1:]):
+                    x = wp['x']
+                    y = wp['y']
+                    next_x = next_wp['x']
+                    next_y = next_wp['y']
+                    # The current waypoint should point at the next one
+                    heading = math.atan2(next_y-y, next_x-x)
+                    print(f'waypoint heading: {x},{y} to {next_x}, {next_y}', math.degrees(heading))
+                    # This might be wrong on the blue side!!!
+                    rot = Rotation2d(heading + math.pi)
+                    pose = Pose2d(x, y, rot)
+                    if is_red():
+                        pose = field_flip_pose2d(pose)
+                    waypoint_poses.append(pose)
+                cls.waypoints.append(waypoint_poses)
+                cls.waypoints.append(list(reversed(waypoint_poses)))
 
     def _clear_traj_pub(self):
-        self.swoop_traj_pub.set([])
+        self.choreo_traj_pub.set([])
+        self.pp_traj_pub.set([])
 
     def _send_strafe_circle_poses(self, reef_pose: Pose2d, distance: float):
         strafe_poses = []
@@ -222,9 +282,125 @@ class Intimidator(StateMachine):
         if self.target_pose != target_pose:
             self.target_pose = target_pose
             self.next_state_now(self.drive_swoop)
-        if self.current_state != self.drive_swoop.name:
+        if self.current_state not in [self.drive_swoop.name, self.follow_pp.name]:
             self.next_state_now(self.drive_swoop)
         self.engage()
+
+    @state(must_finish=True)
+    def follow_choreo(self, initial_call, state_tm):
+        traj = self.choreo_trajectory
+        assert traj
+        curr_pose = self.drivetrain.get_pose()
+        dist_to_end_pose = (
+            curr_pose.relativeTo(self.target_pose).translation().norm()
+        )
+        choreo_final = traj.get_final_pose(is_red())
+        assert choreo_final
+        final_dist = self.target_pose.relativeTo(choreo_final).translation().norm()
+        if initial_call:
+            traj_poses: list[Pose2d] = []
+            for x in range(0, int(traj.get_total_time() * 1000), 100):
+                sample = traj.sample_at(x / 1000, is_red())
+                assert sample
+                traj_poses.append(Pose2d(sample.x, sample.y, sample.heading))
+            self.choreo_traj_pub.set(traj_poses)
+        if final_dist > 0.01 and dist_to_end_pose < 1.00:
+            # If the final pose isn't basically identical to where we want to be
+            # then we're going to jump back to the 'drive_swoop' state at
+            # this point. That can then decide how to finish out the drive
+            self.next_state_now(self.drive_swoop)
+        sample = traj.sample_at(state_tm, is_red())
+        assert sample
+        self.traj_desired_pose.set(sample.get_pose())
+        self.drivetrain.follow_trajectory_choreo(sample)
+
+    def find_choreo_trajectory(self, curr_pose: Pose2d, target_pose: Pose2d):
+        scores: dict[str, float] = {}
+        self.target_pose_pub.set(self.target_pose)
+        for traj in self.trajectories:
+            end_pose = traj.get_final_pose(is_red())
+            start_pose = traj.get_initial_pose(is_red())
+            assert end_pose, f'No end pose found for trajectory {traj.name}'
+            assert start_pose, f'No start pose found for trajectory {traj.name}'
+            # Calcuate the difference between the end pose of the trajectory
+            # and our destination.
+            ediff = end_pose.relativeTo(self.target_pose).translation().norm()
+            # Likewise, check how far away we are from the start pose
+            sdiff = start_pose.relativeTo(curr_pose).translation().norm() 
+            # If we're too far from the start or end then we're going to
+            # reject this trajectory for consideration.
+            if (
+                self.target_pose != Positions.PROCESSOR
+                and sdiff > self.max_start_dist_error
+                or ediff > self.max_end_dist_error
+            ):
+                continue  # Skip this; not worth considering
+            # Now create a score entry for this valid trajectory; we just
+            # add in the end distance different, start distance difference,
+            # and the total time that the trajectory takes to run. The last
+            # one picks the quicker in the caes of a complete tie
+            scores[traj.name] = ediff + sdiff + traj.get_total_time()
+
+        import json
+        # Find the entry in scores that has the lowest score 
+        if len(scores) > 0:
+            best_traj = min(scores, key=lambda k: float(scores[k]))
+            print('Winning trajectory:', best_traj)
+            # Find trajectory in self.trajectories that has a name that matches best_traj
+            traj = next(
+                traj for traj in self.trajectories if traj.name == best_traj
+            )
+            assert traj
+            return traj
+        else:
+            return None
+    
+    def find_choreo_waypoints(self, curr_pose: Pose2d, target_pose: Pose2d):
+        self.target_pose_pub.set(self.target_pose)
+        winner = None
+        winner_score = math.inf
+        for wp in self.waypoints:
+            if len(wp) < 2:
+                continue
+            end_pose = wp[-1]
+            start_pose = wp[0]
+            assert end_pose
+            assert start_pose
+            # Calcuate the difference between the end pose of the trajectory
+            # and our destination.
+            ediff = end_pose.relativeTo(self.target_pose).translation().norm()
+            # Likewise, check how far away we are from the start pose
+            sdiff = start_pose.relativeTo(curr_pose).translation().norm() 
+            # If we're too far from the start or end then we're going to
+            # reject this trajectory for consideration.
+            score = ediff + sdiff
+            if (
+                self.target_pose != Positions.PROCESSOR
+                and sdiff > self.max_start_dist_error
+                or ediff > self.max_end_dist_error
+            ):
+                continue
+            if score < winner_score:
+                winner = wp
+                winner_score = score
+        return winner
+
+    @state(must_finish=True)
+    def follow_pp(self, initial_call, state_tm):
+        assert self.pp_trajectory
+        if initial_call:
+            traj_poses: list[Pose2d] = []
+            for x in range(0, int(self.pp_trajectory.getTotalTimeSeconds() * 1000), 100):
+                sample = self.pp_trajectory.sample(x / 1000)
+                assert sample
+                traj_poses.append(Pose2d(sample.pose.x, sample.pose.y, sample.heading))
+            self.pp_traj_pub.set(traj_poses)
+        sample = self.pp_trajectory.sample(state_tm)
+        self.drivetrain.follow_trajectory_pp(sample)
+        print(f'state_tm: {state_tm}, total_time: {self.pp_trajectory.getTotalTimeSeconds()}')
+        if state_tm > self.pp_trajectory.getTotalTimeSeconds():
+            print('yes, state_tm > total_time', state_tm)
+            self.next_state(self.drive_swoop)
 
     @state(must_finish=True)
     def drive_swoop(self, initial_call, state_tm):
@@ -234,80 +410,61 @@ class Intimidator(StateMachine):
         # "close enough" to the final endpoint and then revert to using
         # 'drive to positon' in the drivetrain to lock in the final pose.
         curr_pose = self.drivetrain.get_pose()
+        dist_from_final = curr_pose.relativeTo(self.target_pose).translation().norm()
+        if dist_from_final < 0.025:
+            self.next_state(self.completed)
+            return 
+
         if initial_call:
-            # Look up what path to take, a trajectory to load
-            # Declare scores as a dict with str as the key type and float as the value
-            # This will map each trajectory name (string) to a score (float)
-            scores: dict[str, float] = {}
-            scores = {}
-            self.target_pose_pub.set(self.target_pose)
-            for traj in self.trajectories:
-                end_pose = traj.get_final_pose(is_red())
-                start_pose = traj.get_initial_pose(is_red())
-                assert end_pose, f'No end pose found for trajectory {traj.name}'
-                assert start_pose, f'No start pose found for trajectory {traj.name}'
-                # Calcuate the difference between the end pose of the trajectory
-                # and our destination.
-                ediff = end_pose.relativeTo(self.target_pose).translation().norm()
-                # Likewise, check how far away we are from the start pose
-                sdiff = start_pose.relativeTo(curr_pose).translation().norm() 
-                # If we're too far from the start or end then we're going to
-                # reject this trajectory for consideration.
-                if (
-                    self.target_pose != Positions.PROCESSOR
-                    and sdiff > self.max_start_dist_error
-                    or ediff > self.max_end_dist_error
-                ):
-                    continue  # Skip this; not worth considering
-                # Now create a score entry for this valid trajectory; we just
-                # add in the end distance different, start distance difference,
-                # and the total time that the trajectory takes to run. The last
-                # one picks the quicker in the caes of a complete tie
-                scores[traj.name] = ediff + sdiff + traj.get_total_time()
-
-            import json
-            print('Scores:', json.dumps(scores, indent=4, sort_keys=True))
-            # Find the entry in scores that has the lowest score 
-            if len(scores) > 0:
-                best_traj = min(scores, key=lambda k: float(scores[k]))
-                print('Best trajectory:', best_traj)
-                # Find trajectory in self.trajectories that has a name that matches best_traj
-                traj = next(
-                    traj for traj in self.trajectories if traj.name == best_traj
-                )
-                assert traj
-                self.trajectory = traj
-                # Now let's publish the poses of the trajectory
-                traj_poses: list[Pose2d] = []
-                for x in range(0, int(traj.get_total_time() * 1000), 100):
-                    sample = traj.sample_at(x / 1000, is_red())
-                    assert sample
-                    traj_poses.append(Pose2d(sample.x, sample.y, sample.heading))
-                self.swoop_traj_pub.set(traj_poses)
+            # traj = self.find_choreo_trajectory(curr_pose, self.target_pose)
+            # if traj:
+            if False:
+                self.choreo_trajectory = traj
+                self.next_state(self.follow_choreo)
+                return
             else:
-                self.trajectory = None
-                self.swoop_traj_pub.set([])
-
-        dist_to_end_pose = (
-            curr_pose.relativeTo(self.target_pose).translation().norm()
-        )
-        if self.trajectory is None:
-            # If there's no trajectory found we just drive right to the target
-            # pose
-            aggro = dist_to_end_pose < 0.2
-            self.drivetrain.drive_to_pose(self.target_pose, aggressive=aggro)
-        elif (
-            self.trajectory.get_total_time() < state_tm
-            or (dist_to_end_pose < self.dist_to_direct_drive
-                and state_tm > self.trajectory.get_total_time() * 0.90)
-        ):
-            # The trajectory has expired, so, drive to the final pose
-            self.drivetrain.drive_to_pose(self.target_pose, aggressive=True)
+                if dist_from_final > 0.10:
+                    # Let's create a PathPlanner to go right to it
+                    # First see if we can lift some waypoints into this from
+                    # our choreo paths
+                    choreo_waypoints = self.find_choreo_waypoints(curr_pose, self.target_pose)
+                    # Find the heading needed to get from curr_pose to self.target_pose
+                    heading = math.atan2(
+                        self.target_pose.Y() - curr_pose.Y(),
+                        self.target_pose.X() - curr_pose.X(),
+                    )
+                    initial_waypoint_pose = Pose2d(curr_pose.translation(), Rotation2d(heading))
+                    all_waypoints = [initial_waypoint_pose]
+                    if choreo_waypoints is not None:
+                        all_waypoints = [initial_waypoint_pose, *choreo_waypoints]
+                        print('using Choreo waypoints for PP path')
+                    second_to_last_pose = all_waypoints[-1]
+                    heading = math.atan2(
+                        self.target_pose.Y() - second_to_last_pose.Y(),
+                        self.target_pose.X() - second_to_last_pose.X(),
+                    )
+                    final_waypoint_pose = Pose2d(self.target_pose.translation(), Rotation2d(heading))
+                    all_waypoints.append(final_waypoint_pose)
+                    self.pp_waypoints_pub.set(all_waypoints)
+                    waypoints = PathPlannerPath.waypointsFromPoses(
+                        all_waypoints
+                    )
+                    path = PathPlannerPath(
+                        waypoints,
+                        self.pp_constraint,
+                        None,
+                        GoalEndState(0.0, self.target_pose.rotation()),
+                    )
+                    path.preventFlipping = True
+                    self.pp_trajectory = path.generateTrajectory(
+                        self.drivetrain.chassis_speeds,
+                        curr_pose.rotation(),
+                        self.pp_config,
+                    )
+                    self.next_state_now(self.follow_pp)
         else:
-            sample = self.trajectory.sample_at(state_tm, is_red())
-            assert sample
-            self.traj_desired_pose.set(sample.get_pose())
-            self.drivetrain.follow_trajectory(sample)
+            self.drivetrain.drive_to_pose(self.target_pose, aggressive=True)
+
 
     @state(must_finish=True)
     def drive_strafe(self, initial_call):

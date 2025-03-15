@@ -119,7 +119,7 @@ class AutonMountPleasantE(AutonBase):
     photoeye: PhotoEyeComponent
 
     MODE_NAME = 'MTP - The Big One - Place at F, then fill E'
-    DEFAULT = True
+    DEFAULT = False
 
     curr_level = 2
     curr_left = True 
@@ -148,8 +148,8 @@ class AutonMountPleasantE(AutonBase):
             self.manipulator.coral_mode()
             self.arm.target_pos = 90
             self.manipulator.set_coral_level4()
-            # self.intimidator.go_drive_swoop(target_pose)
-            self.intimidator.go_drive_pose(target_pose)
+            self.intimidator.go_drive_swoop(target_pose)
+            # self.intimidator.go_drive_pose(target_pose)
             self.at_pose_counter = 0
         # If we don't have a coral we must have scored
         if self.photoeye.coral_held is False:

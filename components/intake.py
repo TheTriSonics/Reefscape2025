@@ -12,6 +12,7 @@ from components import (
     ArmComponent,
     DrivetrainComponent,
 )
+from utilities import norm_deg
 from ids import TalonId
 
 
@@ -83,6 +84,9 @@ class IntakeComponent:
         self.go_fast = False
         self.direction = IntakeDirection.NONE
 
+    def my_angle(self):
+        return norm_deg(self.wrist.get_position() + self.arm.get_position())
+
     def execute(self):
         self.direction_int = self.direction.value
         speed_val = self.intake_speed
@@ -93,9 +97,13 @@ class IntakeComponent:
         if self.direction in [IntakeDirection.CORAL_IN, IntakeDirection.ALGAE_SCORE]:
             motor_power = speed_val
         elif (
-            self.direction in [IntakeDirection.CORAL_SCORE, IntakeDirection.ALGAE_IN]
+            self.direction in [IntakeDirection.ALGAE_IN]
         ):
             motor_power = -speed_val
+
+        if self.direction == IntakeDirection.CORAL_SCORE:
+            curr_ang = self.my_angle()
+            motor_power = -speed_val if curr_ang < 90 and curr_ang > -90 else speed_val
 
         # Put the force calls after the normal operation. Operator should win
         # if there is any disagreement. Obey the humans!!!

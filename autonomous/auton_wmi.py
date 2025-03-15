@@ -1,7 +1,7 @@
-# File for all of the choreo related paths
 import math
+import ntcore
 from wpilib import SmartDashboard
-from wpimath.geometry import Pose2d
+from wpimath.geometry import Pose2d, Transform2d, Rotation2d
 from magicbot import AutonomousStateMachine, state, feedback, tunable
 
 from utilities.game import is_red, ManipLocations
@@ -93,7 +93,6 @@ class PlaceOneClose(AutonBase):
     @state(must_finish=True)
     def drive_to_safe(self, state_tm, initial_call):
         # After this we do nothing. We just get into a safe spot
-        from wpimath.geometry import Transform2d, Rotation2d
         target_pose = Positions.REEF_CLOSEST_LEFT.transformBy(Transform2d(-0.5, 0, Rotation2d.fromDegrees(90)))
         if initial_call:
             self.intimidator.go_drive_pose(target_pose, aggressive=True)
@@ -119,15 +118,19 @@ class BigOne(AutonBase):
     intake_control: IntakeControl
     photoeye: PhotoEyeComponent
 
-    first_face = 'A'
-    fill_face = 'A'
-    curr_level = 4
-    curr_left = True 
+    first_face = tunable('A')
+    fill_face = tunable('A')
+    curr_level = tunable(4)
+    curr_left = tunable(True)
 
     at_pose_counter = tunable(0)
     
     def __init__(self):
-        pass
+        self.backup_pose_pub = (
+            ntcore.NetworkTableInstance.getDefault()
+            .getStructTopic("/components/auton_wmi/backup_pose", Pose2d)
+            .publish()
+        )
 
     # The base class uses this in set_initial_pose() to set where the robot
     # thinks it should be at the beginning of an auton.  If you dont' provide
@@ -152,7 +155,7 @@ class BigOne(AutonBase):
             self.at_pose_counter = 0
         # If we don't have a coral we must have scored
         if self.photoeye.coral_held is False:
-            self.next_state(self.drive_to_a_safe)
+            self.next_state(self.back_off_reef)
         # If we're close-ish to the reef and the arm has achieved an upright
         # position then start moving the whole manipulator into place
         # It would be nice on this one if the arm didn't go below X degrees
@@ -169,24 +172,30 @@ class BigOne(AutonBase):
             self.at_pose_counter >= 5 and self.manipulator.at_position()
             and (self.photoeye.back_photoeye or self.photoeye.front_photoeye)
         ) or state_tm > 6.0:
-            self.intake_control.go_coral_score()
-
-    # Move the robot into a safe position to lower the manipulator system.
-    # Quick rotation 90 degrees is the current thought.
+            self.next_state(self.score_first_coral)
+    
     @state(must_finish=True)
-    def drive_to_a_safe(self, state_tm, initial_call):
-        from wpimath.geometry import Transform2d, Rotation2d
-        base_pose = Positions.get_facepos(self.first_face, left=True)
-        target_pose = base_pose.transformBy(Transform2d(-0.5, 0, Rotation2d.fromDegrees(90)))
-        if initial_call:
-            self.intimidator.go_drive_pose(target_pose, aggressive=True)
-        robot_pose = self.drivetrain.get_pose()
-        # Get difference in rotation between the two
-        rot_diff = target_pose.relativeTo(robot_pose)
-        if rot_diff.rotation().degrees() < 25:
-            self.manipulator.go_home()
-            self.next_state(self.drive_to_ps)
+    def score_first_coral(self, state_tm, initial_call):
+        if self.photoeye.coral_held is True:
+            self.manipulator.go_coral_score()
+        else:
+            self.next_state(self.back_off_reef)
 
+    @state(must_finish=True)
+    def back_off_reef(self, state_tm, initial_call):
+        self.arm.target_pos = 90
+        angle_check_ok = False
+        if self.arm.get_position() > 85 or angle_check_ok:
+            self.elevator.target_pos = 0
+        ps_pose = Positions.PS_CLOSEST
+        reef_pose = Positions.REEF_CLOSEST
+        backup_target = reef_pose.transformBy(Transform2d(-0.5, 0, Rotation2d(0)))
+        backup_pose = Pose2d(backup_target.translation(), ps_pose.rotation())
+        self.backup_pose_pub.set(backup_pose)   
+        self.intimidator.go_drive_pose(backup_target)
+        # self.drivetrain.drive_to_pose(backup_target, aggressive=True)
+        if self.elevator.at_goal() and self.elevator.target_pos < 10:
+            self.next_state(self.drive_to_ps)
 
     @state(must_finish=True)    
     def drive_to_ps(self, state_tm, initial_call):
@@ -194,7 +203,8 @@ class BigOne(AutonBase):
         if initial_call:
             # Set the drivetrain to send us to the player station
             self.intimidator.go_drive_swoop(target_pose)
-        if self.manipulator.reef_dist() > 1.7:
+        angle_check_ok = False
+        if self.manipulator.reef_dist() > 1.7 or angle_check_ok:
             self.manipulator.go_home()
         if self.at_pose(target_pose, 0.50):
             # Turn the intake on when we're close to the station
@@ -249,37 +259,45 @@ class BigOne(AutonBase):
 
 class BigOneLeft(BigOne):
     MODE_NAME = 'WMI - Big One Left'
-    DEFAULT = False
+    DEFAULT = True
+
+    first_face = tunable('F')
+    fill_face = tunable('E')
 
     def __init__(self) -> None:
-        self.first_face = 'F'
-        self.fill_face = 'E'
+        super().__init__()
 
 
 class BigOneRight(BigOne):
     MODE_NAME = 'WMI - Big One Right'
     DEFAULT = False
 
+    first_face = tunable('B')
+    fill_face = tunable('C')
+
     def __init__(self) -> None:
-        self.first_face = 'B'
-        self.fill_face = 'C'
+        super().__init__()
 
 
 class BigOneLeft3(BigOne):
     MODE_NAME = 'WMI - Big One Left Level 3'
     DEFAULT = False
 
+    first_face = tunable('F')
+    fill_face = tunable('E')
+    curr_level = tunable(3)
+
     def __init__(self) -> None:
-        self.first_face = 'F'
-        self.fill_face = 'E'
-        self.curr_level = 3
+        super().__init__()
 
 
 class BigOneRight3(BigOne):
     MODE_NAME = 'WMI - Big One Right Level 3'
     DEFAULT = False
 
+    first_face = tunable('B')
+    fill_face = tunable('C')
+    curr_level = tunable(3)
+
     def __init__(self) -> None:
-        self.first_face = 'B'
-        self.fill_face = 'C'
-        self.curr_level = 3
+        super().__init__()

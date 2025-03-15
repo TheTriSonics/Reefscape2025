@@ -126,7 +126,8 @@ class Manipulator(StateMachine):
         self.engage()
 
     def go_coral_score(self):
-        self.next_state_now(self.coral_score)
+        if self.current_state != self.coral_score.name:
+            self.next_state(self.coral_score)
         self.engage()
 
     def set_coral_level(self, lvl):
