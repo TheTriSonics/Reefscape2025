@@ -15,7 +15,7 @@ from components.wrist import WristComponent
 from components.arm import ArmComponent
 from components.elevator import ElevatorComponent
 from components.intake import IntakeComponent, IntakeDirection
-from components.climber import ClimberComponent
+# from components.climber import ClimberComponent
 from components.photoeye import PhotoEyeComponent
 from components.drivetrain import DrivetrainComponent
 from components.debug_panel import DebugPanel
@@ -65,7 +65,7 @@ class MyRobot(magicbot.MagicRobot):
     elevator: ElevatorComponent
     intake: IntakeComponent
     intake_control: IntakeControl
-    climber: ClimberComponent
+    # climber: ClimberComponent
 
     max_speed = magicbot.tunable(25.0)  # m/s
     lower_max_speed = magicbot.tunable(6)  # m/s
@@ -228,6 +228,7 @@ class MyRobot(magicbot.MagicRobot):
         else:
             self.intake.force_coral_score = False
         # Intake overrides
+        """
         if self.operator_controller.getRawButton(3):
             self.climber.force_climber_up = True
         else:
@@ -236,6 +237,7 @@ class MyRobot(magicbot.MagicRobot):
             self.climber.force_climber_down = True
         else:
             self.climber.force_climber_down = False
+        """
 
 
         """ This part commented out to start using real robot
