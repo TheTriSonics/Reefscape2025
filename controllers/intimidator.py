@@ -416,14 +416,13 @@ class Intimidator(StateMachine):
             return 
 
         if initial_call:
-            # traj = self.find_choreo_trajectory(curr_pose, self.target_pose)
-            # if traj:
-            if False:
+            traj = self.find_choreo_trajectory(curr_pose, self.target_pose)
+            if traj:
                 self.choreo_trajectory = traj
                 self.next_state(self.follow_choreo)
                 return
             else:
-                if dist_from_final > 0.10:
+                if dist_from_final > 999.10:
                     # Let's create a PathPlanner to go right to it
                     # First see if we can lift some waypoints into this from
                     # our choreo paths
