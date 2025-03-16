@@ -85,14 +85,10 @@ class ElevatorComponent:
             self.target_pos = self.upper_limit
 
         req = self.motor_request.with_position(self.target_pos)
-        if self.at_goal():
-            self.motor_left.set_control(DutyCycleOut(0))
-            self.motor_right.set_control(DutyCycleOut(0))
-        else:
-            self.motor_left.set_control(req)
-            # Should this only be done once in setup()? 
-            self.motor_right.set_control(
-                Follower(TalonId.MANIP_ELEVATOR_LEFT.id,
-                            oppose_master_direction=True),
-            )
+        self.motor_left.set_control(req)
+        # Should this only be done once in setup()? 
+        self.motor_right.set_control(
+            Follower(TalonId.MANIP_ELEVATOR_LEFT.id,
+                        oppose_master_direction=True),
+        )
 

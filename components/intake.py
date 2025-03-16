@@ -108,13 +108,13 @@ class IntakeComponent:
         # Put the force calls after the normal operation. Operator should win
         # if there is any disagreement. Obey the humans!!!
         if self.force_coral_intake:
-            motor_power = speed_val
+            motor_power = 0.9
         if self.force_coral_score:
-            motor_power = -speed_val
+            motor_power = -0.9
         if self.force_algae_intake:
-            motor_power = speed_val
+            motor_power = 0.9
         if self.force_algae_score:
-            motor_power = -speed_val
+            motor_power = -0.9
 
 
         self.motor_request.output = motor_power

@@ -34,7 +34,7 @@ class VisionComponent():
                 units.inchesToMeters(-12.0),
                 units.inchesToMeters(7.5),
             ),
-            Rotation3d.fromDegrees(0, 22.5, 8.0),
+            Rotation3d.fromDegrees(0, 22.5, 14.0),
         )
         self.camera_fl_offset = Transform3d(
             Translation3d(
@@ -42,7 +42,7 @@ class VisionComponent():
                 units.inchesToMeters(12.0),
                 units.inchesToMeters(7.5),
             ),
-            Rotation3d.fromDegrees(0, 22.5, -8.0),
+            Rotation3d.fromDegrees(0, 22.5, -14.0),
         )
 
         self.camera_fc_offset = Transform3d(

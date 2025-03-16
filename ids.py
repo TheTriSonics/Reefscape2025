@@ -26,8 +26,10 @@ class TalonId:
     MANIP_WRIST = CANDevice(26, manipulator)
     MANIP_INTAKE = CANDevice(27, manipulator)
 
-    CLIMB_ONE = CANDevice(51, drive)
-    CLIMB_TWO = CANDevice(52, drive)
+    CLIMB = CANDevice(51, manipulator)
+    
+    UNUSED = CANDevice(51, drive)
+    UNUSED2 = CANDevice(52, drive)
 
     MANIP_ELEVATOR_LEFT = CANDevice(61, drive)
     MANIP_ELEVATOR_RIGHT = CANDevice(62, drive)
