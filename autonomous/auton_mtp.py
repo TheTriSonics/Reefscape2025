@@ -121,7 +121,7 @@ class AutonMountPleasantE(AutonBase):
     MODE_NAME = 'The Big One - Place at F, then fill E'
     DEFAULT = True
 
-    curr_level = 2
+    curr_level = 4
     curr_left = True 
 
     at_pose_counter = tunable(0)
@@ -203,11 +203,12 @@ class AutonMountPleasantE(AutonBase):
             if self.photoeye.coral_held:
                 # Once we've got a coral we can move on
                 self.next_state(self.drive_back_to_reef)
+                pass
 
     # Leave the initial starting position and head to the Reef to score
     @state(must_finish=True)
     def drive_back_to_reef(self, state_tm, initial_call):
-        target_pose = Positions.REEF_D_LEFT if self.curr_left else Positions.REEF_D_RIGHT
+        target_pose = Positions.REEF_E_LEFT if self.curr_left else Positions.REEF_E_RIGHT
         # On our first run start putting things in motion
         if initial_call:
             self.manipulator.coral_mode()
@@ -240,7 +241,9 @@ class AutonMountPleasantE(AutonBase):
             self.at_pose_counter >= 5 and self.manipulator.at_position()
             and (self.photoeye.coral_held)
         ) or state_tm > 4.0:
-            if self.curr_level in [1, 4]:
-                self.intake_control.go_coral_score()
-            elif self.curr_level in [2, 3]:
-                self.intake_control.go_coral_score(reverse=True)
+            # Hold off on even trying to score due to manip coming down in teleop
+            # if self.curr_level in [1, 4]:
+            #     self.intake_control.go_coral_score()
+            # elif self.curr_level in [2, 3]:
+            #     self.intake_control.go_coral_score(reverse=True)
+            pass

@@ -426,8 +426,8 @@ class DrivetrainComponent:
 
     def drive_local(self, vx: float, vy: float, omega: float) -> None:
         """Robot oriented drive commands"""
-        if abs(omega) < 0.01 and self.snap_heading is None:
-            self.snap_to_heading(self.get_heading().radians())
+        # if abs(omega) < 0.01 and self.snap_heading is None:
+        #     self.snap_to_heading(self.get_heading().radians())
         self.chassis_speeds = ChassisSpeeds(vx, vy, omega)
 
     # Note that haeding should be in radians

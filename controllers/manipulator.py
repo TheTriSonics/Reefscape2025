@@ -290,7 +290,7 @@ class Manipulator(StateMachine):
     @state(must_finish=True)
     def algae_intake(self, state_tm, initial_call):
         if initial_call:
-            self.intake_control.go_algae_intake()
+            self.intake_control.go_algae_hold()
             self.request_location(self.algae_intake_target)
         # The operator could change the target value while we're in this state
         # so check for that!

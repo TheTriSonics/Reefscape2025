@@ -34,7 +34,7 @@ class VisionComponent():
                 units.inchesToMeters(-10.125),
                 units.inchesToMeters(7.5),
             ),
-            Rotation3d.fromDegrees(0, 22.5, 8.0),
+            Rotation3d.fromDegrees(0, 22.5, 14.0),
         )
         self.camera_fl_offset = Transform3d(
             Translation3d(
@@ -42,7 +42,7 @@ class VisionComponent():
                 units.inchesToMeters(10.125),
                 units.inchesToMeters(7.5),
             ),
-            Rotation3d.fromDegrees(0, 22.5, -8.0),
+            Rotation3d.fromDegrees(0, 22.5, -14.0),
         )
 
         self.camera_bl_offset = Transform3d(
@@ -114,13 +114,19 @@ class VisionComponent():
                     continue
 
                 taget_ids_in_frame = [t.fiducialId for t in res.getTargets()]
-                if tag_dist < 2.0 and tag_id in taget_ids_in_frame:
                     # We're close to an apriltag, so we should use that for
                     # vision. We'll tighten up the std devs to make sure we
                     # are trusting this reading.
+                if tag_dist < 0.5 and tag_id in taget_ids_in_frame:
+                    self.std_x, self.std_y, self.std_rot = 0.01, 0.01, radians(5.0)
+                if tag_dist < 1.0 and tag_id in taget_ids_in_frame:
+                    self.std_x, self.std_y, self.std_rot = 0.05, 0.05, radians(10.0)
+                if tag_dist < 2.0 and tag_id in taget_ids_in_frame:
                     self.std_x, self.std_y, self.std_rot = 0.1, 0.1, radians(22.5)
-                else:
+                if tag_dist < 3.0 and tag_id in taget_ids_in_frame:
                     self.std_x, self.std_y, self.std_rot = 0.4, 0.4, radians(45)
+                else:
+                    self.std_x, self.std_y, self.std_rot = 2, 2, radians(45)
 
                 setDevs((self.std_x, self.std_y, self.std_rot))
                 pupdate = pose_est.update(res)
