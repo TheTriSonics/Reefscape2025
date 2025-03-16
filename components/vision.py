@@ -30,16 +30,16 @@ class VisionComponent():
 
         self.camera_fr_offset = Transform3d(
             Translation3d(
-                units.inchesToMeters(11.0),
-                units.inchesToMeters(-10.125),
+                units.inchesToMeters(10.5),
+                units.inchesToMeters(-12.0),
                 units.inchesToMeters(7.5),
             ),
             Rotation3d.fromDegrees(0, 22.5, 14.0),
         )
         self.camera_fl_offset = Transform3d(
             Translation3d(
-                units.inchesToMeters(11.0), # Forward/backward offset
-                units.inchesToMeters(10.125),
+                units.inchesToMeters(10.5),  # Forward/backward offset
+                units.inchesToMeters(12.0),
                 units.inchesToMeters(7.5),
             ),
             Rotation3d.fromDegrees(0, 22.5, -14.0),
@@ -47,7 +47,7 @@ class VisionComponent():
 
         self.camera_bl_offset = Transform3d(
             Translation3d(
-                units.inchesToMeters(-11.0),  # Forward/backward offset
+                units.inchesToMeters(-13.0),  # Forward/backward offset
                 units.inchesToMeters(10.125),
                 units.inchesToMeters(7.5),
             ),
@@ -109,7 +109,7 @@ class VisionComponent():
             results = cam.getAllUnreadResults()
             for res in results:
                 best_target = res.getBestTarget()
-                if best_target and best_target.poseAmbiguity > 0.2:
+                if best_target and (best_target.poseAmbiguity > 0.2):
                     # Skip using this pose in a vision update; it is too ambiguous
                     continue
 

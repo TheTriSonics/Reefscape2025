@@ -34,7 +34,10 @@ from components.elevator import ElevatorComponent
 from components.gyro import GyroComponent
 from generated.tuner_constants import TunerConstants
 from ids import CancoderId, TalonId
-from utilities import is_red, is_sim
+from utilities import is_red, is_sim, is_match
+
+from choreo.trajectory import SwerveSample as ChoreoSwerveSample
+from pathplannerlib.path import PathPlannerTrajectoryState
 
 
 def angle_difference(angle1, angle2):
@@ -89,9 +92,6 @@ class SwerveModule:
         enc_config.with_magnet_sensor(mag_config)
         self.encoder.configurator.apply(enc_config)  # type: ignore
 
-        # Configure steer motor
-        steer_config = self.steer.configurator
-
         steer_motor_config = MotorOutputConfigs()
         steer_motor_config.neutral_mode = NeutralModeValue.BRAKE
         # The SDS Mk4i rotation has one pair of gears.
@@ -111,15 +111,12 @@ class SwerveModule:
         steer_closed_loop_config = ClosedLoopGeneralConfigs()
         steer_closed_loop_config.continuous_wrap = True
 
-        steer_config.apply(steer_motor_config)
-        steer_config.apply(steer_pid, 0.01)
-        steer_config.apply(steer_gear_ratio_config)
-        steer_config.apply(steer_closed_loop_config)
-
+        self.steer.configurator.apply(steer_motor_config)
+        self.steer.configurator.apply(steer_pid, 0.01)
+        self.steer.configurator.apply(steer_gear_ratio_config)
+        self.steer.configurator.apply(steer_closed_loop_config)
 
         # Configure drive motor
-        drive_config = self.drive.configurator
-
         drive_motor_config = MotorOutputConfigs()
         drive_motor_config.neutral_mode = NeutralModeValue.BRAKE
         drive_motor_config.inverted = (
@@ -136,14 +133,11 @@ class SwerveModule:
         self.drive_pid = TunerConstants._drive_gains
         self.drive_ff = SimpleMotorFeedforwardMeters(kS=0.01, kV=0.09, kA=0.0)
 
-        drive_config.apply(drive_motor_config)
-        drive_config.apply(self.drive_pid, 0.01)
-        drive_config.apply(drive_gear_ratio_config)
+        self.drive.configurator.apply(drive_motor_config)
+        self.drive.configurator.apply(self.drive_pid, 0.01)
+        self.drive.configurator.apply(drive_gear_ratio_config)
 
         self.central_angle = Rotation2d(x, y)
-        self.module_locked = False
-
-        self.sync_steer_encoder()
 
         self.steer_pid = PIDController(0.3, 0, 0)
         self.steer_pid.enableContinuousInput(-math.pi, math.pi)
@@ -167,21 +161,20 @@ class SwerveModule:
         return self.drive.get_position().value * math.tau*TunerConstants._wheel_radius
 
     def set(self, desired_state: SwerveModuleState):
-        if self.module_locked:
-            desired_state = SwerveModuleState(0, self.central_angle)
-
         self.state = desired_state
         current_angle = self.get_rotation()
         self.state.optimize(current_angle)
 
-        if abs(self.state.speed) < 0.01 and not self.module_locked:
+        if abs(self.state.speed) < 0.01:
             self.drive.set_control(self.stop_request)
 
         target_displacement = self.state.angle - current_angle
         target_angle = self.state.angle.radians()
 
         steer_output = self.steer_pid.calculate(current_angle.radians(), target_angle)
-        self.steer.set_control(DutyCycleOut(steer_output))
+        self.steer.set_control(
+            DutyCycleOut(steer_output)
+        )
 
         diff = self.state.angle - current_angle
         if (abs(diff.degrees()) < 1):
@@ -195,9 +188,6 @@ class SwerveModule:
 
         # original position change/100ms, new m/s -> rot/s
         self.drive.set_control(self.drive_request.with_velocity(target_speed))
-
-    def sync_steer_encoder(self) -> None:
-        self.steer.set_position(self.get_angle_absolute())
 
     def get_position(self) -> SwerveModulePosition:
         return SwerveModulePosition(self.get_distance_traveled(), self.get_rotation())
@@ -224,13 +214,7 @@ class DrivetrainComponent:
     logger: Logger
 
     send_modules = magicbot.tunable(True)
-    # TODO: Get rid of this swerve lock entirely
-    swerve_lock = magicbot.tunable(False)
-
     snapping_to_heading = magicbot.tunable(False)
-
-
-    # TODO: Read from positions.py once autonomous is finished
 
     def __init__(self) -> None:
 
@@ -239,7 +223,7 @@ class DrivetrainComponent:
                                                 .publish()
         )
         self.heading_controller = ProfiledPIDControllerRadians(
-            0.5, 0, 0, TrapezoidProfileRadians.Constraints(100, 100)
+            0.5, 0, 0, TrapezoidProfileRadians.Constraints(2 * math.tau * 6, 49 * 6)
         )
         self.heading_controller.enableContinuousInput(-math.pi, math.pi)
         self.heading_controller.setTolerance(self.HEADING_TOLERANCE)
@@ -256,7 +240,6 @@ class DrivetrainComponent:
         self.choreo_y_controller = PIDController(*self.default_xy_pid)
         self.choreo_heading_controller = PIDController(15, 0, 0)
         self.choreo_heading_controller.enableContinuousInput(-math.pi, math.pi)
-        self.on_red_alliance = False
 
         self.modules = (
             # Front Left
@@ -319,20 +302,20 @@ class DrivetrainComponent:
             self.modules[2].translation,
             self.modules[3].translation,
         )
-        self.sync_all()
 
         nt = ntcore.NetworkTableInstance.getDefault().getTable("/components/drivetrain")
         module_states_table = nt.getSubTable("module_states")
-        self.setpoints_publisher = module_states_table.getStructArrayTopic(
-            "setpoints", SwerveModuleState
-        ).publish()
-        self.measurements_publisher = module_states_table.getStructArrayTopic(
-            "measured", SwerveModuleState
-        ).publish()
+        if not is_match():
+            self.setpoints_publisher = module_states_table.getStructArrayTopic(
+                "setpoints", SwerveModuleState
+            ).publish()
+            self.measurements_publisher = module_states_table.getStructArrayTopic(
+                "measured", SwerveModuleState
+            ).publish()
 
-        wpilib.SmartDashboard.putData("Heading PID", self.heading_controller)
+            wpilib.SmartDashboard.putData("Heading PID", self.heading_controller)
 
-    def get_velocity(self) -> ChassisSpeeds:
+    def get_chassis_speeds(self) -> ChassisSpeeds:
         return self.kinematics.toChassisSpeeds(self.get_module_states())
 
     def get_module_states(
@@ -408,20 +391,8 @@ class DrivetrainComponent:
         xvel = self.choreo_x_controller.calculate(robot_pose.X(), x)
         yvel = self.choreo_y_controller.calculate(robot_pose.Y(), y)
         hvel = self.choreo_heading_controller.calculate(robot_pose.rotation().radians(), heading)
-        diff = angle_difference(robot_pose.rotation().radians(), heading)
-        self.wait_until_aligned = 90
-        tol = math.radians(self.wait_until_aligned)
-        """
-        pn = wpilib.SmartDashboard.putNumber
-        pn('hvel', hvel)
-        pn('diff', diff)
-        pn('heading', heading)
-        pn('rot', robot_pose.rotation().radians())
-        """
-        # Stop the drivetrain from translating until rotation is close to target
-        if diff > tol:
-            xvel = 0
-            yvel = 0
+        if is_sim():
+            hvel = self.choreo_heading_controller.calculate(robot_pose.rotation().radians(), heading)
         self.drive_field(xvel, yvel, hvel)
 
     def drive_local(self, vx: float, vy: float, omega: float) -> None:
@@ -445,7 +416,7 @@ class DrivetrainComponent:
 
     def execute(self) -> None:
         if self.snapping_to_heading:
-            self.chassis_speeds.omega = self.choreo_heading_controller.calculate(
+            self.chassis_speeds.omega = self.heading_controller.calculate(
                 self.get_rotation().radians()
             )
         else:
@@ -458,9 +429,11 @@ class DrivetrainComponent:
         # These limits should not change!
         # TODO Update based off real robot speeds.
         elevator_factor = 1.0
+        """
         if self.elevator.get_position() > 10:
             elevator_factor = 1.225 - (0.9 / 40) * self.elevator.get_position()
             elevator_factor = max(0.25, elevator_factor)
+        """
         # ----------------------------------------
         # ---------------------------------------- 
 
@@ -470,19 +443,37 @@ class DrivetrainComponent:
         )
 
         for state, module in zip(desired_states, self.modules):
-            module.module_locked = self.swerve_lock
             module.set(state)
 
         self.update_odometry()
+    
+    def follow_trajectory_pp(self, sample: PathPlannerTrajectoryState):
+        # Get the current pose of the robot
+        pose = self.get_pose()
 
-    def follow_trajectory(self, sample):
+        # Generate the next speeds for the robot
+        dx = sample.fieldSpeeds.vx + self.choreo_x_controller.calculate(
+            pose.X(), sample.pose.X()
+        )
+        dy = sample.fieldSpeeds.vy + self.choreo_y_controller.calculate(
+            pose.Y(), sample.pose.Y()
+        )
+        do = sample.fieldSpeeds.omega + self.choreo_heading_controller.calculate(
+            pose.rotation().radians(), sample.pose.rotation().radians()
+        )
+
+        # Apply the generated speeds
+        self.drive_field(dx, dy, do)
+
+    def follow_trajectory_choreo(self, sample: ChoreoSwerveSample):
         # Get the current pose of the robot
         pose = self.get_pose()
 
         # Generate the next speeds for the robot
         dx = sample.vx + self.choreo_x_controller.calculate(pose.X(), sample.x)
         dy = sample.vy + self.choreo_y_controller.calculate(pose.Y(), sample.y)
-        do = sample.omega + self.choreo_heading_controller.calculate(pose.rotation().radians(), sample.heading)
+        # do = sample.omega + self.choreo_heading_controller.calculate(pose.rotation().radians(), sample.heading)
+        do = sample.omega + self.heading_controller.calculate(pose.rotation().radians(), sample.heading)
         """
         pn = wpilib.SmartDashboard.putNumber
         pn('choreo dx', dx)
@@ -506,12 +497,6 @@ class DrivetrainComponent:
         v = self.gyro.pigeon.get_angular_velocity_z_world().value
         return math.radians(v)
 
-    def lock_swerve(self) -> None:
-        self.swerve_lock = True
-
-    def unlock_swerve(self) -> None:
-        self.swerve_lock = False
-
     def update_odometry(self) -> None:
         self.estimator.update(self.gyro.get_Rotation2d(), self.get_module_positions())
 
@@ -520,10 +505,6 @@ class DrivetrainComponent:
         if self.send_modules:
             self.setpoints_publisher.set([module.state for module in self.modules])
             self.measurements_publisher.set([module.get() for module in self.modules])
-
-    def sync_all(self) -> None:
-        for m in self.modules:
-            m.sync_steer_encoder()
 
     def set_pose(self, pose: Pose2d) -> None:
         print('set pose called -- force location')

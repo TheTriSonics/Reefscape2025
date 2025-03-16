@@ -11,16 +11,33 @@ class PositionManagerComponent:
 
     reef_a_left_offset = tunable(0.0)
     reef_a_right_offset = tunable(0.0)
+    reef_a_forward_offset = tunable(0.0)
+    reef_a_back_offset = tunable(0.0)
+    
     reef_b_left_offset = tunable(0.0)
     reef_b_right_offset = tunable(0.0)
+    reef_b_forward_offset = tunable(0.0)
+    reef_b_back_offset = tunable(0.0)
+
     reef_c_left_offset = tunable(0.0)
     reef_c_right_offset = tunable(0.0)
+    reef_c_forward_offset = tunable(0.0)
+    reef_c_back_offset = tunable(0.0)
+
     reef_d_left_offset = tunable(0.0)
     reef_d_right_offset = tunable(0.0)
+    reef_d_forward_offset = tunable(0.0)
+    reef_d_back_offset = tunable(0.0)
+    
     reef_e_left_offset = tunable(0.0)
     reef_e_right_offset = tunable(0.0)
+    reef_e_forward_offset = tunable(0.0)
+    reef_e_back_offset = tunable(0.0)
+
     reef_f_left_offset = tunable(0.0)
     reef_f_right_offset = tunable(0.0)
+    reef_f_forward_offset = tunable(0.0)
+    reef_f_back_offset = tunable(0.0)
 
     def __init__(self):
         self.left_positions = (

@@ -18,6 +18,7 @@ from components.intake import IntakeComponent, IntakeDirection
 from components.climber import ClimberComponent
 from components.photoeye import PhotoEyeComponent
 from components.drivetrain import DrivetrainComponent
+from components.debug_panel import DebugPanel
 
 from components.position_manager import PositionManagerComponent
 from components.leds_sim import LEDSim
@@ -52,6 +53,7 @@ class MyRobot(magicbot.MagicRobot):
     gyro: GyroComponent
     photoeye: PhotoEyeComponent
     drivetrain: DrivetrainComponent
+    debug_panel: DebugPanel
     vision: VisionComponent
     battery_monitor: BatteryMonitorComponent
     leds: LEDComponent
@@ -77,9 +79,12 @@ class MyRobot(magicbot.MagicRobot):
     driver_reef_radians_snap = tunable(0.0)
 
     START_POS_TOLERANCE = 1
+    
+    autonomous_has_run = False
 
     def createObjects(self) -> None:
         self.data_log = wpilib.DataLogManager.getLog()
+        wpilib.DriverStation.startDataLog(self.data_log, logJoysticks=True)
 
         self.field = wpilib.Field2d()
         wpilib.SmartDashboard.putData(self.field)
@@ -110,6 +115,7 @@ class MyRobot(magicbot.MagicRobot):
 
     def autonomousInit(self):
         Positions.update_alliance_positions()
+        self.autonomous_has_run = True
         return
 
     # This does not run at all.
@@ -121,7 +127,7 @@ class MyRobot(magicbot.MagicRobot):
             wpilib.DriverStation.silenceJoystickConnectionWarning(True)
 
         self.leds.rainbow()
-        self.manipulator.engage()
+        self.manipulator.go_hold()
         self.intimidator.engage()
         Positions.update_alliance_positions()
         
@@ -287,6 +293,22 @@ class MyRobot(magicbot.MagicRobot):
             self.intimidator.go_lock_reef(shift_left=True)
         elif self.driver_controller.getReefRight():
             self.intimidator.go_lock_reef(shift_right=True)
+
+            if self.driver_controller.getYButtonPressed():
+                # Find the current target
+
+                # Shift the current target forward by 1 unit
+                pass
+            elif self.driver_controller.getXButtonPressed():
+                # shift left
+                pass
+            elif self.driver_controller.getBButtonPressed():
+                # shift right
+                pass
+            elif self.driver_controller.getAButtonPressed():
+                # shift back
+                pass
+
         elif self.driver_controller.getToWallTarget():
             if self.manipulator.game_piece_mode == GamePieces.ALGAE:
                 self.intimidator.go_drive_swoop(Positions.PROCESSOR)
@@ -359,6 +381,10 @@ class MyRobot(magicbot.MagicRobot):
         # mode = self._automodes.active_mode
         if Positions.PROCESSOR.X() == 0:
             return  # Skip trying to set pose, we don't have position data yet.
-        mode = self._automodes.chooser.getSelected()
-        if mode and hasattr(mode, 'set_initial_pose'):
-            mode.set_initial_pose()
+        Intimidator.load_trajectories()
+        # We do NOT want to do this between auton and teleop, only before
+        # auton.
+        if not self.autonomous_has_run:
+            mode = self._automodes.chooser.getSelected()
+            if mode and hasattr(mode, 'set_initial_pose'):
+                mode.set_initial_pose()

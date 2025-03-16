@@ -53,6 +53,9 @@ def is_red() -> bool:
     return wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed
 
 
+def is_match() -> bool:
+    return wpilib.DriverStation.isFMSAttached()
+
 def is_sim() -> bool:
     return wpilib.RobotBase.isSimulation()
 
@@ -125,9 +128,11 @@ class ManipLocations:
     CORAL_REEF_1 = ManipLocation(0.5, -71, 171)
     CORAL_REEF_2 = ManipLocation(16.0, -63.1, 40)
     CORAL_REEF_3 = ManipLocation(42.0, -63.1, 40)
+    CORAL_REEF_3_ARM = ManipLocation(32.0, 63.1, 40)
     CORAL_REEF_4 = ManipLocation(55, 39, 20) 
     ALGAE_REEF_1 = ManipLocation(16, -55, 9)
     ALGAE_REEF_2 = ManipLocation(40, -55, 9)
+    PREP_CORAL_4 = ManipLocation(0.5, 90, CORAL_REEF_4.wrist_pos) 
 
     #changed from processor to processor_5 and barge to barge_6
     PROCESSOR_5 = ManipLocation(2, -80, 35)

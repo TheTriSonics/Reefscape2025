@@ -94,6 +94,10 @@ class Manipulator(StateMachine):
         self.game_mode.set('algae')
         self.go_home()
 
+    def go_hold(self):
+        self.next_state_now(self.hold_position)
+        self.engage()
+
     def go_home(self):
         # Set the necessary targets for each component
         self.request_location(ManipLocations.HOME)
@@ -122,7 +126,8 @@ class Manipulator(StateMachine):
         self.engage()
 
     def go_coral_score(self):
-        self.next_state_now(self.coral_score)
+        if self.current_state != self.coral_score.name:
+            self.next_state(self.coral_score)
         self.engage()
 
     def set_coral_level(self, lvl):
@@ -209,10 +214,15 @@ class Manipulator(StateMachine):
         pose = self.drivetrain.get_pose()
         reef_dist = Waypoints.get_distance_to_reef_center(pose, is_red()) 
         return reef_dist
-
     
     # That's the end of the helper methods and from here down we have the
     # various states of the state machine itself.
+    @state(must_finish=True)
+    def hold_position(self):
+        # We're going to do nothing until the operator kicks us out
+        # of this state with the 'go home' button. Operator advance will do
+        # nothing.
+        pass
    
     # We'll start off idle; do nothing  until the operator requests something
     @state(must_finish=True, first=True)
@@ -238,19 +248,46 @@ class Manipulator(StateMachine):
 
     @state(must_finish=True)
     def coral_in_system(self, state_tm, initial_call):
+        if (
+            self.coral_scoring_target in [ManipLocations.CORAL_REEF_4]
+            and self.reef_dist() > self.reef_protection_dist
+        ):
+            self.arm.target_pos = 90
         # Wait here until the operator wants to get into scoring position
         if self.operator_advance and self.reef_dist() > self.reef_protection_dist:
             self.next_state(self.coral_prepare_score)
     
     @state(must_finish=True)
     def coral_prepare_score(self, initial_call, state_tm):
-        if initial_call:
-            self.request_location(self.coral_scoring_target)
+        curr_target = self.coral_scoring_target
+        if initial_call and curr_target != ManipLocations.CORAL_REEF_4:
+            self.request_location(curr_target)
+        if initial_call and curr_target == ManipLocations.CORAL_REEF_4:
+            self.arm.target_pos = 90
+        
+        if curr_target == ManipLocations.CORAL_REEF_4:
+            # We have special rules for getting to level 4 because it can
+            # interfere with the reef.
+            epos = curr_target.elevator_pos
+            # Don't move the arm until the elevator and wrist are in position.
+            # This allows the arm to come down onto the reef instead of trying
+            # to push through it as it elevates.
+            apos = (
+                curr_target.arm_pos
+                if self.elevator.at_goal()
+                else self.arm.get_position()
+            )
+            wpos = curr_target.wrist_pos
+            tmp_loc = ManipLocation(epos, apos, wpos)
+            self.request_location(tmp_loc)
 
         # The operator could change the target value while we're in this state
         # so check for that!
-        if self._target_location != self.coral_scoring_target:
-            self.request_location(self.coral_scoring_target)
+        if (
+            self._target_location != curr_target
+            and curr_target != ManipLocations.CORAL_REEF_4
+        ):
+            self.request_location(curr_target)
 
         # Here we can check if we're at the position or if we've been
         # waiting too long and we should just move on, like maybe we just can't

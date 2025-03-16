@@ -85,11 +85,28 @@ class Positions:
         return random.choice(positions)
 
     @classmethod
+    def get_facepos(cls, face: str, left=False, right=False) -> Pose2d:
+        if left:
+            return getattr(cls, f"REEF_{face}_LEFT")
+        elif right:
+            return getattr(cls, f"REEF_{face}_RIGHT")
+        return getattr(cls, f"REEF_{face}")
+
+    @classmethod
+    def identity_face(cls, pose: Pose2d) -> tuple[str | None, str | None]:
+        for face in ["A", "B", "C", "D", "E", "F"]:
+            for suffix in ["_LEFT", "", "_RIGHT"]:
+                val = getattr(cls, f"REEF_{face}{suffix}")
+                if pose == val:
+                    return face, f'REEF_{face}{suffix}'
+        return None, None
+
+    @classmethod
     def update_dynamic_positions(cls, robot_pose: Pose2d):
         reef_tag_id, _ = Waypoints.closest_reef_tag_id(robot_pose)
         reef_start = Waypoints.get_tag_robot_away(reef_tag_id, face_at=True)
-        cls.REEF_CLOSEST_LEFT = Waypoints.shift_reef_left(reef_start.transformBy(Transform2d(Translation2d(-0.05, 0),Rotation2d(0))))
-        cls.REEF_CLOSEST_RIGHT = Waypoints.shift_reef_right(reef_start.transformBy(Transform2d(Translation2d(-0.05, 0),Rotation2d(0))))
+        cls.REEF_CLOSEST_LEFT = Waypoints.shift_reef_left(reef_start)
+        cls.REEF_CLOSEST_RIGHT = Waypoints.shift_reef_right(reef_start)
         cls.REEF_CLOSEST = reef_start.transformBy(Transform2d(Translation2d(0.10, 0),Rotation2d(0)))
 
         ps_tag_id, _ = Waypoints.closest_ps_tag_id(robot_pose)

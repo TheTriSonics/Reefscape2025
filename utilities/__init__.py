@@ -1,6 +1,6 @@
 from .waypoints import Waypoints
 from .position import Positions
-from .game import is_red, is_sim
+from .game import is_red, is_sim, is_match
 
 import wpilib
 

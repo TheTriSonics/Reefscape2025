@@ -2,6 +2,7 @@ import wpilib
 from components import (
     ElevatorComponent, WristComponent, ArmComponent, IntakeComponent
 )
+from utilities import is_sim
 
 
 class ManipulatorSim:
@@ -93,7 +94,7 @@ class ManipulatorSim:
         wrist_angle = self.wrist.get_position()
 
         # Update the mechanism's values with robot values
-        self.elevator_tower.setLength((elevator_height / 3) / 20)
+        self.elevator_tower.setLength(0.8 + (elevator_height / 60))
         self.arm_mech.setAngle(arm_angle)
         self.wrist_mech_coral.setAngle(wrist_angle)
         self.wrist_mech_algae.setAngle(wrist_angle + 180)
@@ -115,4 +116,5 @@ class ManipulatorSim:
             self.intake_coral_arrow2.setLength(0)
 
     def execute(self):
-        self.update_mech_sim()
+        if is_sim():
+            self.update_mech_sim()
