@@ -151,7 +151,7 @@ class VisionComponent():
                     # continue
                     pass
                 linear_baseline_std = 0.02  # meters
-                angular_baseline_std = 0.06  # radians
+                angular_baseline_std = math.degrees(10)  # radians
 
                 pupdate = pose_est.update(res)
                 if pupdate:
