@@ -8,6 +8,7 @@ import phoenix6
 import phoenix6.unmanaged
 import wpilib
 import robotpy_apriltag
+from wpimath.geometry import Rotation2d
 from photonlibpy.simulation.visionSystemSim import VisionSystemSim
 from photonlibpy.simulation.photonCameraSim import PhotonCameraSim
 from photonlibpy.simulation.simCameraProperties import SimCameraProperties
@@ -162,21 +163,34 @@ class PhysicsEngine:
 
         self.vision_sim = VisionSystemSim("ardu_cam-1")
         self.vision_sim.addAprilTags(self.apriltag_layout)
-        properties = SimCameraProperties.OV9281_1280_720()
-        self.camera_fl = PhotonCameraSim(robot.vision.camera_fl, properties)
-        self.camera_fl.setMaxSightRange(5.0)
+        properties_fl = SimCameraProperties.OV9281_1280_720()
+        properties_fr = SimCameraProperties.OV9281_1280_720()
+        properties_fc = SimCameraProperties.OV9281_1280_720()
+        properties_bl = SimCameraProperties.OV9281_1280_720()
+        properties_fl.setCalibrationFromFOV(1280, 720, Rotation2d.fromDegrees(115))
+        properties_fr.setCalibrationFromFOV(1280, 720, Rotation2d.fromDegrees(115))
+        properties_fc.setCalibrationFromFOV(1280, 720, Rotation2d.fromDegrees(115))
+
+        self.camera_fl = PhotonCameraSim(robot.vision.camera_fl, properties_fl)
+        self.camera_fl.setMaxSightRange(4.0)
         self.vision_sim.addCamera(
             self.camera_fl,
             self.robot.vision.camera_fl_offset,
         )
-        self.camera_fr = PhotonCameraSim(robot.vision.camera_fr, properties)
-        self.camera_fr.setMaxSightRange(5.0)
+        self.camera_fr = PhotonCameraSim(robot.vision.camera_fr, properties_fr)
+        self.camera_fr.setMaxSightRange(4.0)
         self.vision_sim.addCamera(
             self.camera_fr,
             self.robot.vision.camera_fr_offset,
         )
-        self.camera_bl = PhotonCameraSim(robot.vision.camera_bl, properties)
-        self.camera_bl.setMaxSightRange(5.0)
+        self.camera_fc = PhotonCameraSim(robot.vision.camera_fc, properties_fc)
+        self.camera_fc.setMaxSightRange(3.0)
+        self.vision_sim.addCamera(
+            self.camera_fc,
+            self.robot.vision.camera_fc_offset,
+        )
+        self.camera_bl = PhotonCameraSim(robot.vision.camera_bl, properties_bl)
+        self.camera_bl.setMaxSightRange(4.0)
         self.vision_sim.addCamera(
             self.camera_bl,
             self.robot.vision.camera_bl_offset,
