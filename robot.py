@@ -184,17 +184,6 @@ class MyRobot(magicbot.MagicRobot):
                 self.manipulator.set_algae_processor()
             if self.operator_controller.getHeightPlacement4():
                 self.manipulator.set_algae_barge()
-
-
-        """ Moved the above to the operator controller, this part is no longer needed
-
-        # Now let's do the operator controller, which is how the real robot
-        # will likely work
-        if self.operator_controller.goHome():
-            self.manipulator.go_home()
-        if self.operator_controller.getManipulatorAdvance():
-            self.manipulator.request_advance()
-        """
             
         # Hack in the right and left bumpers moving the elevator up and down
         rtrig = self.operator_controller.getRightTriggerAxis()
@@ -203,8 +192,6 @@ class MyRobot(magicbot.MagicRobot):
         ltrig = self.operator_controller.getLeftTriggerAxis()
         if ltrig > 0.25:
             self.elevator.target_pos -= ltrig
-        pn('op rtrigger', rtrig)
-        pn('op ltrigger', ltrig)
         
         # TODO: Implement deadbanding if not the whole resize_js() method that
         # we use on the driver's stick inputs.
@@ -214,7 +201,6 @@ class MyRobot(magicbot.MagicRobot):
         wrist_movement = -rescale_js(
             self.operator_controller.getRightY(), 0.05, 2.5
         ) * 5
-        pn('arm movement', arm_movement)    
         self.arm.target_pos += arm_movement
         self.wrist.target_pos += wrist_movement
 
@@ -227,45 +213,16 @@ class MyRobot(magicbot.MagicRobot):
             self.intake.force_coral_score = True
         else:
             self.intake.force_coral_score = False
-        # Intake overrides
-        """
-        if self.operator_controller.getRawButton(3):
-            self.climber.force_climber_up = True
-        else:
-            self.climber.force_climber_up = False
-        if self.operator_controller.getRawButton(2):
-            self.climber.force_climber_down = True
-        else:
-            self.climber.force_climber_down = False
-        """
 
-
-        """ This part commented out to start using real robot
-
-        # Some buttons to force the manipulator to certain heights. Not to be
-        # used in the actual driving of the robot, but handy for debugging
-        dpad = self.operator_controller.getPOV()
-        if self.operator_controller.getRightBumper():
-            match dpad:
-                case 0:  # Up arrow, top coral 
-                    self.manipulator.request_location(ManipLocations.CORAL_REEF_4)
-                case 90:  # Right arrow, 2nd coral
-                    self.manipulator.request_location(ManipLocations.CORAL_REEF_2)
-                case 270:  # Left arrow, 3rd coral
-                    self.manipulator.request_location(ManipLocations.CORAL_REEF_3)
-                case 180:  # Down arrow, trough level 1
-                    self.manipulator.request_location(ManipLocations.CORAL_REEF_1)
-        else:
-            match dpad:
-                case 0:  # Up arrow, top coral 
-                    self.manipulator.set_coral_level4()
-                case 90:  # Right arrow, 2nd coral
-                    self.manipulator.set_coral_level2()
-                case 270:  # Left arrow, 3rd coral
-                    self.manipulator.set_coral_level3()
-                case 180:  # Down arrow, trough level 1
-                    self.manipulator.set_coral_level1()
-        """
+        # Climber overrides
+        # if self.operator_controller.getRawButton(3):
+        #     self.climber.force_climber_up = True
+        # else:
+        #     self.climber.force_climber_up = False
+        # if self.operator_controller.getRawButton(2):
+        #     self.climber.force_climber_down = True
+        # else:
+        #     self.climber.force_climber_down = False
 
     def handle_drivetrain(self) -> None:
         max_speed = self.max_speed
@@ -274,9 +231,6 @@ class MyRobot(magicbot.MagicRobot):
         self.drivetrain.max_wheel_speed = max_speed
         rtrig = self.driver_controller.getRightTriggerAxis()
         ltrig = self.driver_controller.getLeftTriggerAxis()
-        pn = wpilib.SmartDashboard.putNumber
-        pn('rtrig', rtrig)
-        pn('ltrig', ltrig)
 
         dpad = self.driver_controller.getPOV()
         drive_x = -rescale_js(self.driver_controller.getLeftY(), 0.05, 2.5) * max_speed
