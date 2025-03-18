@@ -375,7 +375,7 @@ class DrivetrainComponent:
     
     def drive_to_pose(self, pose: Pose2d, aggressive=False) -> None:
         self.drive_to_position(
-            pose.X(), pose.Y(), pose.rotation().radians(), aggressive=False
+            pose.X(), pose.Y(), pose.rotation().radians(), aggressive=aggressive
         )
 
     def drive_to_position(
