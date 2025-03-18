@@ -280,7 +280,7 @@ class Manipulator(StateMachine):
             # to push through it as it elevates.
             apos = (
                 curr_target.arm_pos
-                if self.elevator.at_goal()
+                if (self.elevator.at_goal() or self.elevator.get_position() > 10)
                 else self.arm.get_position()
             )
             wpos = curr_target.wrist_pos
