@@ -66,7 +66,7 @@ class PlaceOneClose(AutonBase):
             self.manipulator.set_coral_level(self.scoring_level)
             self.intimidator.go_drive_pose(target_pose)
         # If we don't have a coral we must have scored
-        if self.photoeye.coral_held is False:
+        if self.photoeye.coral_held is False or state_tm > 7.0:
             self.next_state(self.drive_to_safe)
         # If we're close-ish to the reef and the arm has achieved an upright
         # position then start moving the whole manipulator into place
@@ -82,7 +82,7 @@ class PlaceOneClose(AutonBase):
         if (
             self.at_pose_counter >= 5 and self.manipulator.at_position()
             and (self.photoeye.back_photoeye or self.photoeye.front_photoeye)
-        ) or state_tm > 8.0:
+        ) or state_tm > 6.0:
             if self.scoring_level in [2, 3]:
                 self.intake_control.go_coral_score(reverse=True)
             else:
@@ -180,6 +180,9 @@ class BigOne(AutonBase):
             self.manipulator.go_coral_score()
         else:
             self.next_state(self.back_off_reef)
+        if state_tm > 1.0:
+            self.next_state(self.back_off_reef)
+
 
     @state(must_finish=True)
     def back_off_reef(self, state_tm, initial_call):
@@ -194,7 +197,7 @@ class BigOne(AutonBase):
         self.backup_pose_pub.set(backup_pose)   
         self.intimidator.go_drive_pose(backup_target)
         # self.drivetrain.drive_to_pose(backup_target, aggressive=True)
-        if self.elevator.at_goal() and self.elevator.target_pos < 10:
+        if self.elevator.get_position() < 20 and self.elevator.target_pos < 10:
             self.next_state(self.drive_to_ps)
 
     @state(must_finish=True)    
@@ -210,9 +213,14 @@ class BigOne(AutonBase):
             # Turn the intake on when we're close to the station
             self.manipulator.request_location(ManipLocations.INTAKE_CORAL)
             self.intake_control.go_coral_intake()
-            if self.photoeye.coral_held:
-                # Once we've got a coral we can move on
-                self.next_state(self.drive_back_to_reef)
+        if self.at_pose(target_pose, 0.10):
+            self.at_pose_counter += 1
+        else:
+            self.at_pose_counter = 0
+        if self.at_pose_counter >= 5 or self.photoeye.coral_held:
+            # Once we've got a coral, or we've been here for a bit we can move
+            # on to the reef
+            self.next_state(self.drive_back_to_reef)
 
     # Leave the initial starting position and head to the Reef to score
     @state(must_finish=True)
@@ -224,25 +232,20 @@ class BigOne(AutonBase):
             self.manipulator.coral_mode()
             self.manipulator.set_coral_level(self.curr_level)
             # This immediately asks the arm to go in the 'up' position
-            if self.curr_level == 4:
+            if self.curr_level == 4 and self.photoeye.coral_held:
                 self.arm.target_pos = 90
             self.intimidator.go_drive_swoop(target_pose)
-        # If we don't have a coral we must have scored
-        if self.photoeye.coral_held is False:
-            self.curr_left = not self.curr_left
-            if self.curr_left:
-                self.curr_level -= 1
-            if self.curr_level == 0:
-                self.next_state(self.wee)
-                return
-            self.next_state(self.drive_to_ps)
         # If we're close-ish to the reef and the arm has achieved an upright
         # position then start moving the whole manipulator into place
         # It would be nice on this one if the arm didn't go below X degrees
         # until the elevator has reached a certain height.
-        if self.at_pose(target_pose, 3.0):
-            # Get the lift moving into the right position
-            self.manipulator.go_coral_prepare_score()
+        if self.at_pose(target_pose, 2.0):
+            # Get the lift moving into the right position if we have coral
+            if self.photoeye.coral_held:
+                self.manipulator.go_coral_prepare_score()
+            else:
+                # Go back to the player station if we didn't get that coral
+                self.next_state(self.drive_to_ps)
         if self.at_pose(target_pose):
             self.at_pose_counter += 1
         else:
@@ -255,6 +258,19 @@ class BigOne(AutonBase):
                 self.intake_control.go_coral_score()
             elif self.curr_level in [2, 3]:
                 self.intake_control.go_coral_score(reverse=True)
+            self.next_state(self.await_score)
+
+    @state(must_finish=True)
+    def await_score(self, state_tm, initial_call):
+        # If we don't have a coral we must have scored
+        if self.photoeye.coral_held is False or state_tm > 5.0:
+            self.curr_left = not self.curr_left
+            if self.curr_left:
+                self.curr_level -= 1
+            if self.curr_level == 0:
+                self.next_state(self.wee)
+                return
+            self.next_state(self.drive_to_ps)
 
 
 class BigOneLeft(BigOne):
