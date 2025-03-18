@@ -95,6 +95,12 @@ class Manipulator(StateMachine):
         self.go_home()
 
     def go_hold(self):
+        self._target_location = ManipLocation(
+            self.elevator.get_position(),
+            self.arm.get_position(),
+            self.wrist.get_position()
+        )
+        self.request_location(self._target_location)
         self.next_state_now(self.hold_position)
         self.engage()
 
