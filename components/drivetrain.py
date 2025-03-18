@@ -223,7 +223,7 @@ class DrivetrainComponent:
                                                 .publish()
         )
         self.heading_controller = ProfiledPIDControllerRadians(
-            0.5, 0, 0, TrapezoidProfileRadians.Constraints(2 * math.tau * 6, 49 * 6)
+            0.5, 0, 0, TrapezoidProfileRadians.Constraints(3 * math.tau, 49 * 6)
         )
         self.heading_controller.enableContinuousInput(-math.pi, math.pi)
         self.heading_controller.setTolerance(self.HEADING_TOLERANCE)
@@ -231,7 +231,7 @@ class DrivetrainComponent:
 
         # Leaving the old values here, using some more docile ones for driver practice temporarily
         self.default_xy_pid = (10, 1, 0)
-        self.aggressive_xy_pid = (16, 1.25, 0)
+        self.aggressive_xy_pid = (20, 0, 0)
         if is_sim():
             self.default_xy_pid = (14, 2, 0)
             self.aggressive_xy_pid = (30, 3, 0)
@@ -472,13 +472,6 @@ class DrivetrainComponent:
         dy = sample.vy + self.choreo_y_controller.calculate(pose.Y(), sample.y)
         # do = sample.omega + self.choreo_heading_controller.calculate(pose.rotation().radians(), sample.heading)
         do = sample.omega + self.heading_controller.calculate(pose.rotation().radians(), sample.heading)
-        """
-        pn = wpilib.SmartDashboard.putNumber
-        pn('choreo dx', dx)
-        pn('choreo dy', dy)
-        pn('choreo do', do)
-        pn('choreo fakedo', fakedo)
-        """
         # Apply the generated speeds
         self.drive_field(dx, dy, do)
 
@@ -505,7 +498,6 @@ class DrivetrainComponent:
             self.measurements_publisher.set([module.get() for module in self.modules])
 
     def set_pose(self, pose: Pose2d) -> None:
-        print('set pose called -- force location')
         self.estimator.resetPosition(
             self.gyro.get_Rotation2d(), self.get_module_positions(), pose
         )

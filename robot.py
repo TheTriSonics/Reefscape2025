@@ -155,7 +155,6 @@ class MyRobot(magicbot.MagicRobot):
             self.driver_controller = ReefscapeDriverThrustmaster(0)
 
     def handle_manipulator(self) -> None:
-        from controllers.manipulator import ManipLocations
         if self.operator_controller.getManipulatorAdvance():
             self.manipulator.request_advance()
         if self.operator_controller.getCoralMode():
@@ -169,20 +168,20 @@ class MyRobot(magicbot.MagicRobot):
         if self.manipulator.game_piece_mode == GamePieces.CORAL:
             if self.operator_controller.getHeightPlacement1():
                 self.manipulator.set_coral_level1()
-            if self.operator_controller.getHeightPlacement2():
+            elif self.operator_controller.getHeightPlacement2():
                 self.manipulator.set_coral_level2()
-            if self.operator_controller.getHeightPlacement3():
+            elif self.operator_controller.getHeightPlacement3():
                 self.manipulator.set_coral_level3()
-            if self.operator_controller.getHeightPlacement4():
+            elif self.operator_controller.getHeightPlacement4():
                 self.manipulator.set_coral_level4()
         elif self.manipulator.game_piece_mode == GamePieces.ALGAE:
             if self.operator_controller.getHeightPlacement2():
                 self.manipulator.set_algae_level1()
-            if self.operator_controller.getHeightPlacement3():
+            elif self.operator_controller.getHeightPlacement3():
                 self.manipulator.set_algae_level2()
-            if self.operator_controller.getHeightPlacement1():
+            elif self.operator_controller.getHeightPlacement1():
                 self.manipulator.set_algae_processor()
-            if self.operator_controller.getHeightPlacement4():
+            elif self.operator_controller.getHeightPlacement4():
                 self.manipulator.set_algae_barge()
             
         # Hack in the right and left bumpers moving the elevator up and down

@@ -102,6 +102,17 @@ class Positions:
         return None, None
 
     @classmethod
+    def is_reef_pose(cls, pose: Pose2d) -> bool:
+        return pose in [
+            cls.REEF_A, cls.REEF_A_LEFT, cls.REEF_A_RIGHT,
+            cls.REEF_B, cls.REEF_B_LEFT, cls.REEF_B_RIGHT,
+            cls.REEF_C, cls.REEF_C_LEFT, cls.REEF_C_RIGHT,
+            cls.REEF_D, cls.REEF_D_LEFT, cls.REEF_D_RIGHT,
+            cls.REEF_E, cls.REEF_E_LEFT, cls.REEF_E_RIGHT,
+            cls.REEF_F, cls.REEF_F_LEFT, cls.REEF_F_RIGHT,
+        ]
+
+    @classmethod
     def update_dynamic_positions(cls, robot_pose: Pose2d):
         reef_tag_id, _ = Waypoints.closest_reef_tag_id(robot_pose)
         reef_start = Waypoints.get_tag_robot_away(reef_tag_id, face_at=True)

@@ -47,11 +47,11 @@ class VisionComponent():
 
         self.camera_fc_offset = Transform3d(
             Translation3d(
-                units.inchesToMeters(5.5),  # Forward/backward offset
+                units.inchesToMeters(-6.0),  # Forward/backward offset
                 units.inchesToMeters(0.0),
-                units.inchesToMeters(12.5),
+                units.inchesToMeters(10.5),
             ),
-            Rotation3d.fromDegrees(0, 22.5, 0.0),
+            Rotation3d.fromDegrees(0.0, 0.0, 2.0),
         )
 
         self.camera_bl_offset = Transform3d(
@@ -129,24 +129,39 @@ class VisionComponent():
         from math import radians
         setDevs = self.drivetrain.estimator.setVisionMeasurementStdDevs
         tag_id, tag_dist = Waypoints.closest_reef_tag_id(self.drivetrain.get_pose())
-        if tag_dist < 1.0:
-            # Only use the center camera
-            z = zip([self.camera_fc], [self.pose_estimator_fc], [self.publisher_fc])
-            self.center_only = True
-            self.all_cams = False
-        else:
-            # Use all cameras
-            z = zip(
-                self.cameras, self.pose_estimators, self.publishers
-            )
-            self.center_only = False
-            self.all_cams = True
+        # Check the center camera first -- If we're trusting it entirely
+        # then we won't even process the others ones.
+        res = self.camera_fc.getLatestResult()
+        best_target = res.getBestTarget()
+        if (
+            best_target is not None
+            and best_target.poseAmbiguity <= 0.20
+            and best_target.fiducialId == tag_id
+            and tag_dist < 1.5
+        ):
+            # This is a good one to use. Let's trust whatever this pose is
+            pupdate = self.pose_estimator_fc.update(res)
+            if pupdate is not None:
+                twod_pose = pupdate.estimatedPose.toPose2d()
+                setDevs((0.05, 0.05, math.degrees(8)))
+                ts = self.timer.getTimestamp() - res.getLatencyMillis() / 1000.0
+                self.drivetrain.estimator.addVisionMeasurement(twod_pose, ts)
+                self.center_only = True
+                self.all_cams = False
+                return
+
+        # Use all cameras
+        z = zip(
+            self.cameras, self.pose_estimators, self.publishers
+        )
+        self.center_only = False
+        self.all_cams = True
 
         for cam, pose_est, pub in z:
             results = cam.getAllUnreadResults()
             for res in results:
                 best_target = res.getBestTarget()
-                if best_target and (best_target.poseAmbiguity > 0.3):
+                if best_target and (best_target.poseAmbiguity > 0.2):
                     # Skip using this pose in a vision update; it is too ambiguous
                     # continue
                     pass

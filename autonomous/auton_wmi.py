@@ -189,7 +189,7 @@ class BigOne(AutonBase):
             self.elevator.target_pos = 0
         ps_pose = Positions.PS_CLOSEST
         reef_pose = Positions.REEF_CLOSEST
-        backup_target = reef_pose.transformBy(Transform2d(-0.5, 0, Rotation2d(0)))
+        backup_target = reef_pose.transformBy(Transform2d(-0.3, 0, Rotation2d(0)))
         backup_pose = Pose2d(backup_target.translation(), ps_pose.rotation())
         self.backup_pose_pub.set(backup_pose)   
         self.intimidator.go_drive_pose(backup_target)
@@ -250,7 +250,7 @@ class BigOne(AutonBase):
         if (
             self.at_pose_counter >= 5 and self.manipulator.at_position()
             and (self.photoeye.coral_held)
-        ) or state_tm > 4.0:
+        ):  # or state_tm > 4.0:
             if self.curr_level in [1, 4]:
                 self.intake_control.go_coral_score()
             elif self.curr_level in [2, 3]:

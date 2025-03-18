@@ -1,5 +1,5 @@
 
-""""
+"""
 This is a state machine that will control the manipulator.
 """
 import enum

@@ -16,7 +16,7 @@ class GyroComponent:
 
     @feedback
     def get_heading(self) -> float:
-        return self.pigeon.get_yaw().value
+        return self.pigeon.get_yaw().value - 3.0
 
     def get_Rotation2d(self) -> Rotation2d:
         return Rotation2d.fromDegrees(self.get_heading())

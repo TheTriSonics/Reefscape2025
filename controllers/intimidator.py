@@ -30,6 +30,20 @@ from utilities.position import Positions
 from utilities import pn, ps, pb
 
 
+import time
+from collections.abc import Iterator
+from contextlib import contextmanager
+
+@contextmanager
+def time_it() -> Iterator[None]:
+    tic: float = time.perf_counter()
+    try:
+        yield
+    finally:
+        toc: float = time.perf_counter()
+        print(f"Computation time = {1000*(toc - tic):.3f}ms")
+
+
 def get_point_on_circle(center_x, center_y, radius, angle_degrees):
     # Convert angle from degrees to radians
     angle_radians = math.radians(angle_degrees)
@@ -82,7 +96,7 @@ class Intimidator(StateMachine):
     def __init__(self):
         self.choreo_trajectory: ChoreoSwerveTrajectory | None = None
         self.pp_trajectory: PathPlannerTrajectory | None = None 
-        self.pp_constraint = PathConstraints(4.9, 5.0, 2 * math.tau, 1.0)
+        self.pp_constraint = PathConstraints(1.0, 5.0, 2 * math.tau, 1.0)
         self.pp_config = RobotConfig.fromGUISettings()
         self.target_pose: Pose2d
         self.target_pose_pub = (
@@ -149,8 +163,6 @@ class Intimidator(StateMachine):
             waypoint_poses = []
             # Always get the blue side. We can flip to red later if needed
             rc = Waypoints.get_reef_center(False)
-            print('Reef center:')
-            print(rc.X(), rc.Y())
             with open(traj_file) as f:
                 obj = json.load(f)
                 waypoints = obj['snapshot']["waypoints"]
@@ -163,7 +175,6 @@ class Intimidator(StateMachine):
                     next_y = next_wp['y']
                     # The current waypoint should point at the next one
                     heading = math.atan2(next_y-y, next_x-x)
-                    print(f'waypoint heading: {x},{y} to {next_x}, {next_y}', math.degrees(heading))
                     # This might be wrong on the blue side!!!
                     rot = Rotation2d(heading + math.pi)
                     pose = Pose2d(x, y, rot)
@@ -362,24 +373,21 @@ class Intimidator(StateMachine):
         for wp in self.waypoints:
             if len(wp) < 2:
                 continue
-            end_pose = wp[-1]
-            start_pose = wp[0]
-            assert end_pose
-            assert start_pose
-            # Calcuate the difference between the end pose of the trajectory
-            # and our destination.
-            ediff = end_pose.relativeTo(self.target_pose).translation().norm()
-            # Likewise, check how far away we are from the start pose
-            sdiff = start_pose.relativeTo(curr_pose).translation().norm() 
             # If we're too far from the start or end then we're going to
             # reject this trajectory for consideration.
-            score = ediff + sdiff
-            if (
-                self.target_pose != Positions.PROCESSOR
-                and sdiff > self.max_start_dist_error
-                or ediff > self.max_end_dist_error
-            ):
+            start_pose = wp[0]
+            assert start_pose
+            sdiff = start_pose.relativeTo(curr_pose).translation().norm() 
+            if sdiff > self.max_start_dist_error and self.target_pose != Positions.PROCESSOR:
                 continue
+            
+            end_pose = wp[-1]
+            assert end_pose
+            ediff = end_pose.relativeTo(self.target_pose).translation().norm()
+            if ediff > self.max_end_dist_error and self.target_pose != Positions.PROCESSOR:
+                continue
+
+            score = ediff + sdiff
             if score < winner_score:
                 winner = wp
                 winner_score = score
@@ -397,9 +405,7 @@ class Intimidator(StateMachine):
             self.pp_traj_pub.set(traj_poses)
         sample = self.pp_trajectory.sample(state_tm)
         self.drivetrain.follow_trajectory_pp(sample)
-        print(f'state_tm: {state_tm}, total_time: {self.pp_trajectory.getTotalTimeSeconds()}')
-        if state_tm > self.pp_trajectory.getTotalTimeSeconds():
-            print('yes, state_tm > total_time', state_tm)
+        if state_tm > self.pp_trajectory.getTotalTimeSeconds() * 1.1:
             self.next_state(self.drive_swoop)
 
     @state(must_finish=True)
@@ -416,17 +422,20 @@ class Intimidator(StateMachine):
             return 
 
         if initial_call:
-            traj = self.find_choreo_trajectory(curr_pose, self.target_pose)
-            if traj:
+            # traj = self.find_choreo_trajectory(curr_pose, self.target_pose)
+            # if traj:
+            if False:
                 self.choreo_trajectory = traj
                 self.next_state(self.follow_choreo)
                 return
             else:
-                if dist_from_final > 999.10:
+                if dist_from_final > 0.50:
                     # Let's create a PathPlanner to go right to it
                     # First see if we can lift some waypoints into this from
                     # our choreo paths
-                    choreo_waypoints = self.find_choreo_waypoints(curr_pose, self.target_pose)
+                    print('Finding choreo waypoints')
+                    with time_it():
+                        choreo_waypoints = self.find_choreo_waypoints(curr_pose, self.target_pose)
                     # Find the heading needed to get from curr_pose to self.target_pose
                     heading = math.atan2(
                         self.target_pose.Y() - curr_pose.Y(),
@@ -437,6 +446,13 @@ class Intimidator(StateMachine):
                     if choreo_waypoints is not None:
                         all_waypoints = [initial_waypoint_pose, *choreo_waypoints]
                         print('using Choreo waypoints for PP path')
+                    if Positions.is_reef_pose(self.target_pose):
+                        # Now get the one meter out pose
+                        tag_id, _ = Waypoints.closest_reef_tag_id(self.target_pose)
+                        vision_pose = Waypoints.get_tag_meter_away(tag_id)
+                        all_waypoints.append(
+                            Pose2d(vision_pose.translation(), vision_pose.rotation() + Rotation2d(math.pi))
+                        )
                     second_to_last_pose = all_waypoints[-1]
                     heading = math.atan2(
                         self.target_pose.Y() - second_to_last_pose.Y(),
@@ -448,22 +464,22 @@ class Intimidator(StateMachine):
                     waypoints = PathPlannerPath.waypointsFromPoses(
                         all_waypoints
                     )
-                    path = PathPlannerPath(
-                        waypoints,
-                        self.pp_constraint,
-                        None,
-                        GoalEndState(0.0, self.target_pose.rotation()),
-                    )
-                    path.preventFlipping = True
-                    self.pp_trajectory = path.generateTrajectory(
-                        self.drivetrain.chassis_speeds,
-                        curr_pose.rotation(),
-                        self.pp_config,
-                    )
+                    with time_it():
+                        path = PathPlannerPath(
+                            waypoints,
+                            self.pp_constraint,
+                            None,
+                            GoalEndState(0.0, self.target_pose.rotation()),
+                        )
+                        path.preventFlipping = True
+                        self.pp_trajectory = path.generateTrajectory(
+                            self.drivetrain.chassis_speeds,
+                            curr_pose.rotation(),
+                            self.pp_config,
+                        )
                     self.next_state_now(self.follow_pp)
         else:
             self.drivetrain.drive_to_pose(self.target_pose, aggressive=True)
-
 
     @state(must_finish=True)
     def drive_strafe(self, initial_call):
