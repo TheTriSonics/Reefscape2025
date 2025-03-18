@@ -143,7 +143,7 @@ class VisionComponent():
             pupdate = self.pose_estimator_fc.update(res)
             if pupdate is not None:
                 twod_pose = pupdate.estimatedPose.toPose2d()
-                setDevs((0.05, 0.05, math.degrees(8)))
+                setDevs((0.05, 0.05, math.radians(8)))
                 ts = self.timer.getTimestamp() - res.getLatencyMillis() / 1000.0
                 self.drivetrain.estimator.addVisionMeasurement(twod_pose, ts)
                 self.center_only = True
