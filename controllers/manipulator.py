@@ -27,7 +27,7 @@ class Manipulator(StateMachine):
     intake_control: IntakeControl
     drivetrain: DrivetrainComponent
 
-    operator_advance = will_reset_to(False)
+    operator_advance = tunable(False)
     reef_protection_dist = tunable(1.5)
     
     # Create some default targets for the robot. The operator can change these
@@ -233,9 +233,11 @@ class Manipulator(StateMachine):
     # We'll start off idle; do nothing  until the operator requests something
     @state(must_finish=True, first=True)
     def idling(self, initial_call):
-        if self.photoeye.front_photoeye and self.game_piece_mode == GamePieces.CORAL:
+        if initial_call:
+            self.operator_advance = False
+        if self.photoeye.coral_held and self.game_piece_mode == GamePieces.CORAL:
             self.next_state(self.coral_in_system)
-        elif self.photoeye.front_photoeye and self.game_piece_mode == GamePieces.ALGAE:
+        elif self.photoeye.algae_held and self.game_piece_mode == GamePieces.ALGAE:
             self.next_state(self.algae_in_system)
         else:
             if self.operator_advance:
@@ -247,6 +249,7 @@ class Manipulator(StateMachine):
     @state(must_finish=True)
     def coral_intake(self, state_tm, initial_call):
         if initial_call:
+            self.operator_advance = False
             self.request_location(ManipLocations.INTAKE_CORAL)
             self.intake_control.go_coral_intake()
         if self.photoeye.front_photoeye:
@@ -254,6 +257,8 @@ class Manipulator(StateMachine):
 
     @state(must_finish=True)
     def coral_in_system(self, state_tm, initial_call):
+        if initial_call:
+            self.operator_advance = False
         if (
             self.coral_scoring_target in [ManipLocations.CORAL_REEF_4]
             and self.reef_dist() > self.reef_protection_dist
@@ -266,6 +271,8 @@ class Manipulator(StateMachine):
     @state(must_finish=True)
     def coral_prepare_score(self, initial_call, state_tm):
         curr_target = self.coral_scoring_target
+        if initial_call:
+            self.operator_advance = False
         if initial_call and curr_target != ManipLocations.CORAL_REEF_4:
             self.request_location(curr_target)
         if initial_call and curr_target == ManipLocations.CORAL_REEF_4:
@@ -308,6 +315,7 @@ class Manipulator(StateMachine):
     def coral_score(self, state_tm, initial_call):
         # Let's score a coral!
         if initial_call:
+            self.operator_advance = False
             reverse = False
             if self.coral_scoring_target in [
                 ManipLocations.CORAL_REEF_2,
@@ -326,6 +334,8 @@ class Manipulator(StateMachine):
     # to the home position when the scoring state knows the coral has ejected
     @state(must_finish=True)
     def coral_scored(self, initial_call, state_tm):
+        if initial_call:
+            self.operator_advance = False
         if self.reef_dist() > self.reef_protection_dist and (self.operator_advance or is_auton()):
             self.go_home()
 
@@ -333,6 +343,7 @@ class Manipulator(StateMachine):
     @state(must_finish=True)
     def algae_intake(self, state_tm, initial_call):
         if initial_call:
+            self.operator_advance = False
             self.intake_control.go_algae_hold()
             self.request_location(self.algae_intake_target)
         # The operator could change the target value while we're in this state
@@ -347,6 +358,7 @@ class Manipulator(StateMachine):
     def algae_in_system(self, state_tm, initial_call):
         if initial_call:
             self.intake_control.go_algae_hold()
+            self.operator_advance = False
         # Wait here until the operator wants to get into scoring position
         if self.operator_advance and self.reef_dist() > self.reef_protection_dist:
             self.next_state(self.algae_prepare_score)
@@ -354,6 +366,7 @@ class Manipulator(StateMachine):
     @state(must_finish=True)
     def algae_prepare_intake(self, initial_call, state_tm):
         if initial_call:
+            self.operator_advance = False
             self.request_location(self.algae_intake_target)
 
         # The operator could change the target value while we're in this state
@@ -370,6 +383,7 @@ class Manipulator(StateMachine):
     @state(must_finish=True)
     def algae_prepare_score(self, initial_call, state_tm):
         if initial_call:
+            self.operator_advance = False
             self.intake_control.go_algae_hold()
             self.request_location(self.algae_scoring_target)
 
@@ -390,6 +404,7 @@ class Manipulator(StateMachine):
     def algae_score(self, state_tm, initial_call):
         # Let's score a algae!
         if initial_call:
+            self.operator_advance = False
             self.intake_control.go_algae_score()
 
         if self.operator_advance and self.photoeye.front_photoeye is False:
@@ -400,6 +415,7 @@ class Manipulator(StateMachine):
     @state(must_finish=True)
     def algae_scored(self, initial_call, state_tm):
         if initial_call:
+            self.operator_advance = False
             # What do we do after we score a coral?
             # Send ourself back into 'home' mode
             # Do we need to turn off the intake here?
