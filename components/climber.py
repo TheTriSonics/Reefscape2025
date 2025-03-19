@@ -8,7 +8,7 @@ from phoenix6.controls import (
 from phoenix6.configs import (
     MotorOutputConfigs,
 )
-from ids import TalonId, DigitalOut
+from ids import TalonId, PWM
 from phoenix6.signals import NeutralModeValue
 
 
@@ -20,7 +20,7 @@ class ClimbDirection(Enum):
 
 class ClimberComponent:
     climber_motor = TalonFX(TalonId.CLIMB.id, TalonId.CLIMB.bus)
-    intake_breaker = wpilib.Servo(DigitalOut.INTAKE_BREAKER)
+    intake_breaker = wpilib.Servo(PWM.INTAKE_BREAKER)
 
     force_climber_up = tunable(False)
     force_climber_down = tunable(False)
