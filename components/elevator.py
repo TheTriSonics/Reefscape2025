@@ -1,5 +1,5 @@
 import wpilib
-from magicbot import feedback, tunable
+from magicbot import feedback, tunable, feedback
 from phoenix6.hardware import TalonFX
 from phoenix6.controls import (
     MotionMagicVoltage, Follower, MotionMagicDutyCycle, DutyCycleOut
@@ -9,7 +9,7 @@ from utilities.game import ManipLocation
 from utilities import is_sim
 from phoenix6.signals import InvertedValue, NeutralModeValue
 
-from ids import TalonId
+from ids import TalonId, DigitalIn
 
 pn = wpilib.SmartDashboard.putNumber
 
@@ -23,6 +23,7 @@ class ElevatorComponent:
     motor_request = MotionMagicDutyCycle(0, override_brake_dur_neutral=True)
     upper_limit = 80.0
     lower_limit = 0.5
+    limit_switch = wpilib.DigitalInput(DigitalIn.ELEVATOR_LIMIT)
     
     def __init__(self):
         config = TalonFXConfiguration()
@@ -75,9 +76,18 @@ class ElevatorComponent:
         current_loc = ManipLocation(current_pos, 0, 0)
         return current_loc == target_loc
 
+    @feedback
+    def get_limit_switch(self):
+        return not self.limit_switch.get()
+
     def execute(self):
         # if self.motor_left.get_forward_limit().value:
         #     self.motor_left.set_position(0.0)
+
+        status = self.get_limit_switch()
+        if self.get_limit_switch():
+            self.motor_left.set_position(0.5)
+            self.motor_right.set_position(0.5)
 
         if self.target_pos < 0.5:
             self.target_pos = 0.5

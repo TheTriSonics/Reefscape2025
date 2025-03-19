@@ -49,3 +49,7 @@ class CanId:
     """CAN IDs for miscellaneous devices."""
     PIGEON = CANDevice(41, drive)
     CANDI = CANDevice(42, manipulator)
+
+
+class DigitalIn:
+    ELEVATOR_LIMIT = 0
