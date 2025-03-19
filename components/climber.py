@@ -1,3 +1,4 @@
+import wpilib
 from enum import Enum
 from magicbot import tunable
 from phoenix6.hardware import TalonFX
@@ -7,21 +8,25 @@ from phoenix6.controls import (
 from phoenix6.configs import (
     MotorOutputConfigs,
 )
-from ids import TalonId
+from ids import TalonId, DigitalOut
 from phoenix6.signals import NeutralModeValue
+
 
 class ClimbDirection(Enum):
     NONE = 0
     CLIMB_UP = 1
     CLIMB_DOWN = 2
 
+
 class ClimberComponent:
     climber_motor = TalonFX(TalonId.CLIMB.id, TalonId.CLIMB.bus)
+    intake_breaker = wpilib.Servo(DigitalOut.INTAKE_BREAKER)
 
     force_climber_up = tunable(False)
     force_climber_down = tunable(False)
     position = tunable(0.0)
 
+    speed = tunable(0.0)
     go_fast = tunable(False)
 
     motor_request = DutyCycleOut(0, override_brake_dur_neutral=True)
@@ -29,7 +34,6 @@ class ClimberComponent:
     lower_limit = -90.0
     upper_limit = 60.0
 
-    
     def __init__(self):
         from phoenix6 import configs
         climb_motor_configurator = self.climber_motor.configurator
@@ -41,6 +45,21 @@ class ClimberComponent:
         limit_configs.stator_current_limit = 120
         limit_configs.stator_current_limit_enable = True
         self.climber_motor.configurator.apply(limit_configs)
+
+        self.intake_breaker.setBounds(
+            # Magic numbers are from documentation: https://cdn.andymark.com/media/W1siZiIsIjIwMTkvMDMvMjIvMTAvMjcvNTgvMDMxOTQ4ODUtYmM5Yi00M2UyLWE1NDAtZGNiMWVhNzEzMDEzL1VzaW5nIEwxNiBMaW5lYXIgU2Vydm8gMDMtMjAxOS5wZGYiXV0/Using%20L16%20Linear%20Servo%2003-2019.pdf?sha=ee4c9607408cc835
+            # and they are wrong! you have to multiply them all by 1,000
+            2.0 * 1000, 1.8 * 1000, 1.5 * 1000, 1.2 * 1000, 1.0 * 1000
+        )
+
+    def setup(self):
+        pass
+
+    def break_intake(self):
+        self.intake_breaker.setSpeed(-1.0)
+
+    def lock_intake(self):
+        self.intake_breaker.setSpeed(1.0)
 
     def climb_up(self):
         self.go_fast = False
