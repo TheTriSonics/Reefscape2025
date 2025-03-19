@@ -53,3 +53,7 @@ class CanId:
 
 class DigitalIn:
     ELEVATOR_LIMIT = 0
+
+
+class PWM:
+    INTAKE_BREAKER = 0
