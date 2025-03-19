@@ -207,17 +207,13 @@ class BigOne(AutonBase):
             # Set the drivetrain to send us to the player station
             self.intimidator.go_drive_swoop(target_pose)
         angle_check_ok = False
-        if self.manipulator.reef_dist() > 1.7 or angle_check_ok:
+        if self.manipulator.reef_dist() > 1.5 or angle_check_ok:
             self.manipulator.go_home()
         if self.at_pose(target_pose, 0.50):
             # Turn the intake on when we're close to the station
             self.manipulator.request_location(ManipLocations.INTAKE_CORAL)
             self.intake_control.go_coral_intake()
-        if self.at_pose(target_pose, 0.10):
-            self.at_pose_counter += 1
-        else:
-            self.at_pose_counter = 0
-        if self.at_pose_counter >= 5 or self.photoeye.coral_held:
+        if self.at_pose(target_pose, 0.30) or self.photoeye.coral_held:
             # Once we've got a coral, or we've been here for a bit we can move
             # on to the reef
             self.next_state(self.drive_back_to_reef)
@@ -229,7 +225,7 @@ class BigOne(AutonBase):
         assert target_pose
         # On our first run start putting things in motion
         if initial_call:
-            self.manipulator.coral_mode()
+            # self.manipulator.coral_mode()
             self.manipulator.set_coral_level(self.curr_level)
             # This immediately asks the arm to go in the 'up' position
             if self.curr_level == 4 and self.photoeye.coral_held:
