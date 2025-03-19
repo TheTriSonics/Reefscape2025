@@ -121,7 +121,9 @@ class Positions:
         cls.REEF_CLOSEST = reef_start
 
         ps_tag_id, _ = Waypoints.closest_ps_tag_id(robot_pose)
-        cls.PS_CLOSEST = Waypoints.get_tag_robot_away(ps_tag_id, face_at=False).transformBy(Transform2d(Translation2d(-0.1, 0.075), Rotation2d(0)))
+        cls.PS_CLOSEST = Waypoints.get_tag_robot_away(
+            ps_tag_id, face_at=False
+        ).transformBy(Transform2d(Translation2d(-0.1, 0.000), Rotation2d(0)))
 
 
     @classmethod
