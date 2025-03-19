@@ -96,7 +96,7 @@ class Intimidator(StateMachine):
     def __init__(self):
         self.choreo_trajectory: ChoreoSwerveTrajectory | None = None
         self.pp_trajectory: PathPlannerTrajectory | None = None 
-        self.pp_constraint = PathConstraints(1.0, 5.0, 2 * math.tau, 1.0)
+        self.pp_constraint = PathConstraints(3.0, 5.0, 4 * math.tau, math.tau)
         self.pp_config = RobotConfig.fromGUISettings()
         self.target_pose: Pose2d
         self.target_pose_pub = (
@@ -422,62 +422,55 @@ class Intimidator(StateMachine):
             return 
 
         if initial_call:
-            # traj = self.find_choreo_trajectory(curr_pose, self.target_pose)
-            # if traj:
-            if False:
-                self.choreo_trajectory = traj
-                self.next_state(self.follow_choreo)
-                return
-            else:
-                if dist_from_final > 0.50:
-                    # Let's create a PathPlanner to go right to it
-                    # First see if we can lift some waypoints into this from
-                    # our choreo paths
-                    print('Finding choreo waypoints')
-                    with time_it():
-                        choreo_waypoints = self.find_choreo_waypoints(curr_pose, self.target_pose)
-                    # Find the heading needed to get from curr_pose to self.target_pose
-                    heading = math.atan2(
-                        self.target_pose.Y() - curr_pose.Y(),
-                        self.target_pose.X() - curr_pose.X(),
+            if dist_from_final > 0.50:
+                # Let's create a PathPlanner to go right to it
+                # First see if we can lift some waypoints into this from
+                # our choreo paths
+                print('Finding choreo waypoints')
+                with time_it():
+                    choreo_waypoints = self.find_choreo_waypoints(curr_pose, self.target_pose)
+                # Find the heading needed to get from curr_pose to self.target_pose
+                heading = math.atan2(
+                    self.target_pose.Y() - curr_pose.Y(),
+                    self.target_pose.X() - curr_pose.X(),
+                )
+                initial_waypoint_pose = Pose2d(curr_pose.translation(), Rotation2d(heading))
+                all_waypoints = [initial_waypoint_pose]
+                if choreo_waypoints is not None:
+                    all_waypoints = [initial_waypoint_pose, *choreo_waypoints]
+                    print('using Choreo waypoints for PP path')
+                if Positions.is_reef_pose(self.target_pose):
+                    # Now get the one meter out pose
+                    tag_id, _ = Waypoints.closest_reef_tag_id(self.target_pose)
+                    vision_pose = Waypoints.get_tag_meter_away(tag_id)
+                    all_waypoints.append(
+                        Pose2d(vision_pose.translation(), vision_pose.rotation() + Rotation2d(math.pi))
                     )
-                    initial_waypoint_pose = Pose2d(curr_pose.translation(), Rotation2d(heading))
-                    all_waypoints = [initial_waypoint_pose]
-                    if choreo_waypoints is not None:
-                        all_waypoints = [initial_waypoint_pose, *choreo_waypoints]
-                        print('using Choreo waypoints for PP path')
-                    if Positions.is_reef_pose(self.target_pose):
-                        # Now get the one meter out pose
-                        tag_id, _ = Waypoints.closest_reef_tag_id(self.target_pose)
-                        vision_pose = Waypoints.get_tag_meter_away(tag_id)
-                        all_waypoints.append(
-                            Pose2d(vision_pose.translation(), vision_pose.rotation() + Rotation2d(math.pi))
-                        )
-                    second_to_last_pose = all_waypoints[-1]
-                    heading = math.atan2(
-                        self.target_pose.Y() - second_to_last_pose.Y(),
-                        self.target_pose.X() - second_to_last_pose.X(),
+                second_to_last_pose = all_waypoints[-1]
+                heading = math.atan2(
+                    self.target_pose.Y() - second_to_last_pose.Y(),
+                    self.target_pose.X() - second_to_last_pose.X(),
+                )
+                final_waypoint_pose = Pose2d(self.target_pose.translation(), Rotation2d(heading))
+                all_waypoints.append(final_waypoint_pose)
+                self.pp_waypoints_pub.set(all_waypoints)
+                waypoints = PathPlannerPath.waypointsFromPoses(
+                    all_waypoints
+                )
+                with time_it():
+                    path = PathPlannerPath(
+                        waypoints,
+                        self.pp_constraint,
+                        None,
+                        GoalEndState(0.0, self.target_pose.rotation()),
                     )
-                    final_waypoint_pose = Pose2d(self.target_pose.translation(), Rotation2d(heading))
-                    all_waypoints.append(final_waypoint_pose)
-                    self.pp_waypoints_pub.set(all_waypoints)
-                    waypoints = PathPlannerPath.waypointsFromPoses(
-                        all_waypoints
+                    path.preventFlipping = True
+                    self.pp_trajectory = path.generateTrajectory(
+                        self.drivetrain.chassis_speeds,
+                        curr_pose.rotation(),
+                        self.pp_config,
                     )
-                    with time_it():
-                        path = PathPlannerPath(
-                            waypoints,
-                            self.pp_constraint,
-                            None,
-                            GoalEndState(0.0, self.target_pose.rotation()),
-                        )
-                        path.preventFlipping = True
-                        self.pp_trajectory = path.generateTrajectory(
-                            self.drivetrain.chassis_speeds,
-                            curr_pose.rotation(),
-                            self.pp_config,
-                        )
-                    self.next_state_now(self.follow_pp)
+                self.next_state_now(self.follow_pp)
         else:
             self.drivetrain.drive_to_pose(self.target_pose, aggressive=True)
 
