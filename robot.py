@@ -10,28 +10,29 @@ from magicbot import tunable
 from components.gyro import GyroComponent
 from components.vision import VisionComponent
 from components.battery_monitor import BatteryMonitorComponent
-from components.leds import LEDComponent
+# from components.leds import LEDComponent
 from components.wrist import WristComponent
 from components.arm import ArmComponent
 from components.elevator import ElevatorComponent
 from components.intake import IntakeComponent, IntakeDirection
-# from components.climber import ClimberComponent
+from components.climber import ClimberComponent
 from components.photoeye import PhotoEyeComponent
 from components.drivetrain import DrivetrainComponent
 from components.debug_panel import DebugPanel
 
 from components.position_manager import PositionManagerComponent
-from components.leds_sim import LEDSim
+# from components.leds_sim import LEDSim
 from components.manipulator_sim import ManipulatorSim
 
 from controllers.manipulator import Manipulator
 from controllers.intimidator import Intimidator
 from controllers.intake import IntakeControl
+from controllers.spiderman import Spiderman
 
 from utilities.scalers import rescale_js
 from utilities.position import Positions
 from utilities.game import GamePieces
-from utilities import Waypoints, is_red, pn
+from utilities import Waypoints, is_red, pn, is_sim
 
 from hid.xbox_wired import ReefscapeDriver, ReefscapeOperator
 from hid.logi_flight import ReefscapeDriver as ReefscapeDriverFlight
@@ -46,7 +47,7 @@ class MyRobot(magicbot.MagicRobot):
     manipulator: Manipulator
     intimidator: Intimidator
     manipulator_sim: ManipulatorSim
-    leds_sim: LEDSim
+    # leds_sim: LEDSim
 
     # Components
     position_manager: PositionManagerComponent
@@ -56,7 +57,7 @@ class MyRobot(magicbot.MagicRobot):
     debug_panel: DebugPanel
     vision: VisionComponent
     battery_monitor: BatteryMonitorComponent
-    leds: LEDComponent
+    # leds: LEDComponent
 
     # These 3 should not be used directly except in testing!
     # Only use the controller/state machine when doing real things!
@@ -65,8 +66,10 @@ class MyRobot(magicbot.MagicRobot):
     elevator: ElevatorComponent
     intake: IntakeComponent
     intake_control: IntakeControl
-    # climber: ClimberComponent
+    climber: ClimberComponent
+    spiderman: Spiderman
 
+    match_time = tunable(0.0)
     max_speed = magicbot.tunable(25.0)  # m/s
     lower_max_speed = magicbot.tunable(6)  # m/s
     max_spin_rate = magicbot.tunable(3 * math.tau)
@@ -123,10 +126,11 @@ class MyRobot(magicbot.MagicRobot):
         pass
 
     def teleopInit(self) -> None:
+        self.climber.lock_intake()
         if self.isSimulation():
             wpilib.DriverStation.silenceJoystickConnectionWarning(True)
 
-        self.leds.rainbow()
+        # self.leds.rainbow()
         self.manipulator.go_hold()
         self.intimidator.engage()
         Positions.update_alliance_positions()
@@ -185,23 +189,24 @@ class MyRobot(magicbot.MagicRobot):
                 self.manipulator.set_algae_barge()
             
         # Hack in the right and left bumpers moving the elevator up and down
-        rtrig = self.operator_controller.getRightTriggerAxis()
-        if rtrig > 0.25:
-            self.elevator.target_pos += rtrig
-        ltrig = self.operator_controller.getLeftTriggerAxis()
-        if ltrig > 0.25:
-            self.elevator.target_pos -= ltrig
-        
-        # TODO: Implement deadbanding if not the whole resize_js() method that
-        # we use on the driver's stick inputs.
-        arm_movement = -rescale_js(
-            self.operator_controller.getLeftY(), 0.05, 2.5
-        ) * 5
-        wrist_movement = -rescale_js(
-            self.operator_controller.getRightY(), 0.05, 2.5
-        ) * 5
-        self.arm.target_pos += arm_movement
-        self.wrist.target_pos += wrist_movement
+        if not is_sim():
+            rtrig = self.operator_controller.getRightTriggerAxis()
+            if rtrig > 0.25:
+                self.elevator.target_pos += rtrig
+            ltrig = self.operator_controller.getLeftTriggerAxis()
+            if ltrig > 0.25:
+                self.elevator.target_pos -= ltrig
+            
+            # TODO: Implement deadbanding if not the whole resize_js() method that
+            # we use on the driver's stick inputs.
+            arm_movement = -rescale_js(
+                self.operator_controller.getLeftY(), 0.05, 2.5
+            ) * 5
+            wrist_movement = -rescale_js(
+                self.operator_controller.getRightY(), 0.05, 2.5
+            ) * 5
+            self.arm.target_pos += arm_movement
+            self.wrist.target_pos += wrist_movement
 
         # Intake overrides
         if self.operator_controller.getRawButton(7):
@@ -212,6 +217,20 @@ class MyRobot(magicbot.MagicRobot):
             self.intake.force_coral_score = True
         else:
             self.intake.force_coral_score = False
+
+        # Enable the climber controls only in the last 20 seconds
+        self.match_time = wpilib.DriverStation.getMatchTime()
+        if self.match_time <= 20.0:
+            if self.operator_controller.getBButton() and self.operator_controller.getXButton():
+                # Engage the climber controller
+                self.spiderman.go_break_intake()
+
+            self.spiderman.tweak_up = False
+            self.spiderman.tweak_down = False
+            if self.operator_controller.getBButton():
+                self.spiderman.tweak_up = True
+            elif self.operator_controller.getXButton():
+                self.spiderman.tweak_down = True
 
         # Climber overrides
         # if self.operator_controller.getRawButton(3):
@@ -330,7 +349,7 @@ class MyRobot(magicbot.MagicRobot):
         self.position_manager.execute()
         self.vision.execute()
         self.battery_monitor.execute()
-        self.leds.execute()
+        # self.leds.execute()
         self.photoeye.execute()
         self.drivetrain.update_odometry()
         # mode = self._automodes.active_mode
