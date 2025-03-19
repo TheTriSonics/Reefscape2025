@@ -52,7 +52,7 @@ class ClimberComponent:
 
     def execute(self):
         self.direction_int = self.direction.value
-        motor_power = 0
+        motor_power = 0.0
         if self.go_fast:
             speed_val = 0.9
             motor_power = -speed_val
