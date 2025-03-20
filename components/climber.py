@@ -28,8 +28,8 @@ class ClimberComponent:
 
     motor_request = DutyCycleOut(0, override_brake_dur_neutral=True)
     direction = ClimbDirection.NONE
-    lower_limit = -20.0
-    upper_limit = 130.0
+    lower_limit = -10.0
+    upper_limit = 140.0
 
     def __init__(self):
         from phoenix6 import configs
@@ -44,13 +44,13 @@ class ClimberComponent:
         limit_configs.stator_current_limit_enable = True
         self.climber_motor.configurator.apply(limit_configs)
 
-        self.intake_breaker.setBounds(
-            # Magic numbers are from documentation: https://cdn.andymark.com/media/W1siZiIsIjIwMTkvMDMvMjIvMTAvMjcvNTgvMDMxOTQ4ODUtYmM5Yi00M2UyLWE1NDAtZGNiMWVhNzEzMDEzL1VzaW5nIEwxNiBMaW5lYXIgU2Vydm8gMDMtMjAxOS5wZGYiXV0/Using%20L16%20Linear%20Servo%2003-2019.pdf?sha=ee4c9607408cc835
-            # and they are wrong! you have to multiply them all by 1,000
-            2.0 * 1000, 1.8 * 1000, 1.5 * 1000, 1.2 * 1000, 1.0 * 1000
-        )
 
     def setup(self):
+        # Magic numbers are from documentation: https://cdn.andymark.com/media/W1siZiIsIjIwMTkvMDMvMjIvMTAvMjcvNTgvMDMxOTQ4ODUtYmM5Yi00M2UyLWE1NDAtZGNiMWVhNzEzMDEzL1VzaW5nIEwxNiBMaW5lYXIgU2Vydm8gMDMtMjAxOS5wZGYiXV0/Using%20L16%20Linear%20Servo%2003-2019.pdf?sha=ee4c9607408cc835
+        # and they are wrong! you have to multiply them all by 1,000
+        self.intake_breaker.setBounds(
+            2.0 * 1000, 1.8 * 1000, 1.5 * 1000, 1.2 * 1000, 1.0 * 1000
+        )
         pass
 
     def break_intake(self):
@@ -73,12 +73,10 @@ class ClimberComponent:
         self.direction_int = self.direction.value
         motor_power = 0.0
 
-        speed = 0.50
-
         if self.direction == ClimbDirection.CLIMB_UP:
-            motor_power = speed
+            motor_power =  0.5
         elif self.direction == ClimbDirection.CLIMB_DOWN:
-            motor_power = -speed
+            motor_power = -0.25
 
         self.position = self.get_position()
         # ----------------------------------------
