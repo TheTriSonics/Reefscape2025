@@ -79,7 +79,7 @@ class VisionComponent():
         )
         self.pose_estimator_fc = PhotonPoseEstimator(
             field,
-            PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+            PoseStrategy.LOWEST_AMBIGUITY,
             self.camera_fc,
             self.camera_fc_offset,
         )
@@ -126,7 +126,8 @@ class VisionComponent():
         ]
 
     def execute(self) -> None:
-        from math import radians
+        linear_baseline_std = 0.02  # meters
+        angular_baseline_std = math.radians(10)  # degrees to radians
         setDevs = self.drivetrain.estimator.setVisionMeasurementStdDevs
         tag_id, tag_dist = Waypoints.closest_reef_tag_id(self.drivetrain.get_pose())
         # Check the center camera first -- If we're trusting it entirely
@@ -143,7 +144,11 @@ class VisionComponent():
             pupdate = self.pose_estimator_fc.update(res)
             if pupdate is not None:
                 twod_pose = pupdate.estimatedPose.toPose2d()
-                setDevs((0.05, 0.05, math.radians(10)))
+                avg_dist = best_target.getBestCameraToTarget().translation().norm()
+                std_factor = (avg_dist**2)
+                std_xy = linear_baseline_std * std_factor
+                std_rot = angular_baseline_std * std_factor
+                setDevs((std_xy, std_xy, std_rot))
                 ts = self.timer.getTimestamp() - res.getLatencyMillis() / 1000.0
                 self.drivetrain.estimator.addVisionMeasurement(twod_pose, ts)
                 self.center_only = True
@@ -165,8 +170,6 @@ class VisionComponent():
                     # Skip using this pose in a vision update; it is too ambiguous
                     # continue
                     pass
-                linear_baseline_std = 0.02  # meters
-                angular_baseline_std = math.radians(10)  # degrees to radians
 
                 pupdate = pose_est.update(res)
                 if pupdate:
