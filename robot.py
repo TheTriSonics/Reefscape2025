@@ -10,7 +10,7 @@ from magicbot import tunable
 from components.gyro import GyroComponent
 from components.vision import VisionComponent
 from components.battery_monitor import BatteryMonitorComponent
-# from components.leds import LEDComponent
+# from components.laeds import LEDComponent
 from components.wrist import WristComponent
 from components.arm import ArmComponent
 from components.elevator import ElevatorComponent
@@ -220,7 +220,7 @@ class MyRobot(magicbot.MagicRobot):
 
         # Enable the climber controls only in the last 20 seconds
         self.match_time = wpilib.DriverStation.getMatchTime()
-        if self.match_time <= 20.0:
+        if self.match_time <= 40.0:
             if self.operator_controller.getBButton() and self.operator_controller.getXButton():
                 # Engage the climber controller
                 self.spiderman.go_break_intake()
