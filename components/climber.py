@@ -74,9 +74,9 @@ class ClimberComponent:
         motor_power = 0.0
 
         if self.direction == ClimbDirection.CLIMB_UP:
-            motor_power =  0.5
+            motor_power =  1.0
         elif self.direction == ClimbDirection.CLIMB_DOWN:
-            motor_power = -0.25
+            motor_power = -0.8
 
         self.position = self.get_position()
         # ----------------------------------------
