@@ -57,7 +57,7 @@ class ClimberComponent:
         self.intake_breaker.setSpeed(-1.0)
 
     def lock_intake(self):
-        self.intake_breaker.setSpeed(-0.15)
+        self.intake_breaker.setSpeed(-0.05)
 
     def climb_up(self):
         self.direction = ClimbDirection.CLIMB_UP
