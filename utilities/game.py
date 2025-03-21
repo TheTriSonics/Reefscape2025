@@ -124,7 +124,7 @@ class ManipLocations:
     # Order of params is elevator, arm, wrist, just as in the Location's
     # __init__ method
     HOME = ManipLocation(0.5, -80, 30) 
-    INTAKE_CORAL = ManipLocation(0.5, -92, 7.85) 
+    INTAKE_CORAL = ManipLocation(0.5, -95, 7.85) 
     CORAL_REEF_1 = ManipLocation(0.5, -71, 171)
     CORAL_REEF_2 = ManipLocation(16.0, -63.1, 40)
     CORAL_REEF_3 = ManipLocation(42.0, -63.1, 40)
