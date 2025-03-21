@@ -64,7 +64,7 @@ class PlaceOneClose(AutonBase):
         if initial_call:
             self.manipulator.coral_mode()
             self.manipulator.set_coral_level(self.scoring_level)
-            self.intimidator.go_drive_pose(target_pose)
+            self.intimidator.go_drive_swoop(target_pose)
         # If we don't have a coral we must have scored
         if self.photoeye.coral_held is False:
             self.next_state(self.drive_to_safe)
