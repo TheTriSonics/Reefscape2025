@@ -23,6 +23,8 @@ class ElevatorComponent:
     motor_request = MotionMagicDutyCycle(0, override_brake_dur_neutral=True)
     upper_limit = 80.0
     lower_limit = 0.5
+    # All calls to this in the simulation mode are ignored else it breaks
+    # our unit tests.
     limit_switch = wpilib.DigitalInput(DigitalIn.ELEVATOR_LIMIT)
     
     def __init__(self):
@@ -78,13 +80,14 @@ class ElevatorComponent:
 
     @feedback
     def get_limit_switch(self):
+        if is_sim():
+            return False
         return not self.limit_switch.get()
 
     def execute(self):
         # if self.motor_left.get_forward_limit().value:
         #     self.motor_left.set_position(0.0)
 
-        status = self.get_limit_switch()
         if self.get_limit_switch():
             self.motor_left.set_position(0.5)
             self.motor_right.set_position(0.5)
