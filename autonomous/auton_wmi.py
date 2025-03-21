@@ -287,6 +287,11 @@ class BigOneRight(BigOne):
     first_face = tunable('B')
     fill_face = tunable('C')
 
+    def get_initial_pose(self):
+        self.photoeye.back_photoeye = True
+        self.photoeye.coral_held = True
+        return Positions.AUTON_LINE_THEIR_CAGE_CENTER
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -310,6 +315,11 @@ class BigOneRight3(BigOne):
     first_face = tunable('B')
     fill_face = tunable('C')
     curr_level = tunable(3)
+
+    def get_initial_pose(self):
+        self.photoeye.back_photoeye = True
+        self.photoeye.coral_held = True
+        return Positions.AUTON_LINE_THEIR_CAGE_CENTER
 
     def __init__(self) -> None:
         super().__init__()
