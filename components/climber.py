@@ -33,7 +33,7 @@ class ClimberComponent:
 
     direction = ClimbDirection.NONE
     lower_limit = -5.0
-    upper_limit = 108.8
+    upper_limit = 120.0
 
     def __init__(self):
         from phoenix6 import configs
