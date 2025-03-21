@@ -103,7 +103,7 @@ class IntakeComponent:
 
         if self.direction == IntakeDirection.CORAL_SCORE:
             curr_ang = self.my_angle()
-            motor_power = -speed_val if curr_ang < 90 and curr_ang > -90 else speed_val
+            motor_power = -speed_val if curr_ang < 0 else speed_val
 
         # Put the force calls after the normal operation. Operator should win
         # if there is any disagreement. Obey the humans!!!
