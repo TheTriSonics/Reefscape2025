@@ -211,9 +211,18 @@ class Manipulator(StateMachine):
         apos = self.arm.get_position()
         wpos = self.wrist.get_position()
         curr_location = ManipLocation(epos, apos, wpos)
-        manip_at_position = self._target_location == curr_location
-        # print(f'Compared {self._target_location} to {curr_location} and got {manip_at_position}')
-        return manip_at_position
+        if self._target_location != ManipLocations.BARGE_6:
+            manip_at_position = self._target_location == curr_location
+            # print(f'Compared {self._target_location} to {curr_location} and got {manip_at_position}')
+            return manip_at_position
+        else:
+            tmp_location = ManipLocation(
+                0, self._target_location.arm_pos, self._target_location.wrist_pos
+            )
+            curr_location = ManipLocation(0, apos, wpos)
+            emin = self._target_location.elevator_pos * 0.90
+            elevator_check =  epos > emin
+            return curr_location == tmp_location and elevator_check
     
     @feedback
     def reef_dist(self) -> float:
