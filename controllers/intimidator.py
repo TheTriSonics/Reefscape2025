@@ -96,7 +96,8 @@ class Intimidator(StateMachine):
     def __init__(self):
         self.choreo_trajectory: ChoreoSwerveTrajectory | None = None
         self.pp_trajectory: PathPlannerTrajectory | None = None 
-        self.pp_constraint = PathConstraints(3.0, 5.0, 4 * math.tau, math.tau)
+        self.pp_norm = PathConstraints(3.0, 5.0, 4 * math.tau, math.tau)
+        self.pp_slow = PathConstraints(2.0, 2.0, 2 * math.tau, math.pi)
         self.pp_config = RobotConfig.fromGUISettings()
         self.target_pose: Pose2d
         self.target_pose_pub = (
@@ -145,6 +146,25 @@ class Intimidator(StateMachine):
             .getStructTopic("/components/intimidator/strafe_next", Pose2d)
             .publish()
         )
+
+    def pp_warmup(self):
+        curr_pose = self.drivetrain.get_pose()
+        waypoints = PathPlannerPath.waypointsFromPoses(
+            [Pose2d(0, 0, Rotation2d(0)), Pose2d(1, 0, Rotation2d(0))]
+        )
+        with time_it():
+            path = PathPlannerPath(
+                waypoints,
+                self.pp_norm,
+                None,
+                GoalEndState(0.0, self.target_pose.rotation()),
+            )
+            path.preventFlipping = True
+            self.pp_trajectory = path.generateTrajectory(
+                self.drivetrain.chassis_speeds,
+                curr_pose.rotation(),
+                self.pp_config,
+            )
 
     @classmethod
     def load_trajectories(cls):
@@ -460,7 +480,7 @@ class Intimidator(StateMachine):
                 with time_it():
                     path = PathPlannerPath(
                         waypoints,
-                        self.pp_constraint,
+                        self.pp_norm,
                         None,
                         GoalEndState(0.0, self.target_pose.rotation()),
                     )
