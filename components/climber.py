@@ -32,8 +32,8 @@ class ClimberComponent:
     speed = tunable(0.0)
 
     direction = ClimbDirection.NONE
-    lower_limit = -10.0
-    upper_limit = 140.0
+    lower_limit = -5.0
+    upper_limit = 108.8
 
     def __init__(self):
         from phoenix6 import configs
