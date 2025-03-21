@@ -356,6 +356,8 @@ class MyRobot(magicbot.MagicRobot):
         if Positions.PROCESSOR.X() == 0:
             return  # Skip trying to set pose, we don't have position data yet.
         Intimidator.load_trajectories()
+        # Warm up PathPlanner now
+        self.intimidator.pp_warmup()
         # We do NOT want to do this between auton and teleop, only before
         # auton.
         if not self.autonomous_has_run:
