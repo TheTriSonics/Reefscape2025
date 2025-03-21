@@ -72,7 +72,7 @@ class MyRobot(magicbot.MagicRobot):
     match_time = tunable(0.0)
     max_speed = magicbot.tunable(25.0)  # m/s
     lower_max_speed = magicbot.tunable(6)  # m/s
-    max_spin_rate = magicbot.tunable(3 * math.tau)
+    max_spin_rate = magicbot.tunable(4 * math.tau)
     lower_max_spin_rate = magicbot.tunable(math.pi)  # m/s
     controller_choice = tunable('')
     controller_name = tunable('')
@@ -220,7 +220,7 @@ class MyRobot(magicbot.MagicRobot):
 
         # Enable the climber controls only in the last 20 seconds
         self.match_time = wpilib.DriverStation.getMatchTime()
-        if self.match_time <= 40.0:
+        if self.match_time <= 0.0:
             if self.operator_controller.getBButton() and self.operator_controller.getXButton():
                 # Engage the climber controller
                 self.spiderman.go_break_intake()
@@ -356,8 +356,6 @@ class MyRobot(magicbot.MagicRobot):
         if Positions.PROCESSOR.X() == 0:
             return  # Skip trying to set pose, we don't have position data yet.
         Intimidator.load_trajectories()
-        # Warm up PathPlanner now
-        self.intimidator.pp_warmup()
         # We do NOT want to do this between auton and teleop, only before
         # auton.
         if not self.autonomous_has_run:
