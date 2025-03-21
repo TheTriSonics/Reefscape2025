@@ -72,7 +72,7 @@ class MyRobot(magicbot.MagicRobot):
     match_time = tunable(0.0)
     max_speed = magicbot.tunable(25.0)  # m/s
     lower_max_speed = magicbot.tunable(6)  # m/s
-    max_spin_rate = magicbot.tunable(3 * math.tau)
+    max_spin_rate = magicbot.tunable(4 * math.tau)
     lower_max_spin_rate = magicbot.tunable(math.pi)  # m/s
     controller_choice = tunable('')
     controller_name = tunable('')
