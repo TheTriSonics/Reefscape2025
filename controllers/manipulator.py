@@ -332,7 +332,7 @@ class Manipulator(StateMachine):
             ]:
                 reverse = True
             pb('Reverse score', reverse)
-            self.intake_control.go_coral_score(reverse=reverse)
+            self.intake_control.go_coral_score(reverse)                                                     
 
         # Wait until the intake controller thinks it has scored the coral
         scored = self.intake_control.current_state == self.intake_control.idling.name
