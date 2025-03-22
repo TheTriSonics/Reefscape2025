@@ -213,7 +213,7 @@ class BigOne(AutonBase):
             # Turn the intake on when we're close to the station
             self.manipulator.request_location(ManipLocations.INTAKE_CORAL)
             self.intake_control.go_coral_intake()
-        if self.at_pose(target_pose, 0.30) or self.photoeye.coral_held:
+        if self.at_pose(target_pose, 0.10) or self.photoeye.coral_held:
             # Once we've got a coral, or we've been here for a bit we can move
             # on to the reef
             self.next_state(self.drive_back_to_reef)

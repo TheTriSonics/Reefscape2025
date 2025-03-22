@@ -431,7 +431,7 @@ class DrivetrainComponent:
         elevator_factor = 1.0
         if self.elevator.get_position() > 10:
             elevator_factor = 1.225 - (0.9 / 20) * self.elevator.get_position()
-            elevator_factor = max(0.25, elevator_factor)
+            elevator_factor = max(0.20, elevator_factor)
         # ----------------------------------------
         # ---------------------------------------- 
 
