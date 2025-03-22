@@ -404,7 +404,7 @@ class Manipulator(StateMachine):
         # Here we can check if we're at the position or if we've been
         # waiting too long and we should just move on, like maybe we just can't
         # quite get to the right position, but we've got to try something
-        if self.operator_advance and (self.at_position() or state_tm > 2.0):
+        if self.operator_advance:
             self.next_state(self.algae_score)
 
     # JJB: I'm not thrilled with the names of these states, coral_score and
