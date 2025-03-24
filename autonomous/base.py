@@ -4,7 +4,7 @@ from wpilib import SmartDashboard
 from wpimath.geometry import Pose2d
 from magicbot import AutonomousStateMachine, state, feedback, tunable
 
-from utilities.game import is_red
+from utilities.game import is_red, is_sim
 from utilities.position import Positions
 
 from controllers.manipulator import Manipulator
@@ -39,6 +39,7 @@ class AutonBase(AutonomousStateMachine):
     failure_pose = None
 
     pose_check = tunable(False)
+    pose_error = tunable(0.0)
 
     def __init__(self):
         pass
@@ -60,19 +61,26 @@ class AutonBase(AutonomousStateMachine):
         self.drivetrain.set_pose(initial_pose)
         self.selected_alliance = alliance
         self.pose_set = True
+    
+    # In the event that this isn't overrided the robot will just sit there
+    # if it is told to follow a trajectory they forgot to prepare
+    def prepare_first_trajectory(self):
+        curr_pose = self.drivetrain.get_pose()
+        self.intimidator.prep_pp_trajectory(curr_pose, curr_pose)
 
-    def at_pose(self, pose: Pose2d, tolerance=0.040) -> bool:
+    def at_pose(self, pose: Pose2d, tolerance=None) -> bool:
+        if tolerance is None:
+            tolerance = 0.15 if is_sim() else 0.040
         robot_pose = self.drivetrain.get_pose()
         diff = robot_pose.relativeTo(pose)
         dist = math.sqrt(diff.X()**2 + diff.Y()**2)
+        self.pose_error = dist
         self.pose_check = dist < tolerance
         return self.pose_check
 
     @state(must_finish=True)
-    def wee(self):
-        self.intimidator.go_drive_strafe_fixed(1.8)
-        self.manipulator.set_algae_barge()
-        self.manipulator.go_algae_prepare_score()
+    def wee(self, initial_call):
+        pass  # Do nothing
 
     @state(must_finish=True)
     def robot_failure(self):

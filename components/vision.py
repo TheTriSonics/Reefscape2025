@@ -128,6 +128,8 @@ class VisionComponent():
     def execute(self) -> None:
         linear_baseline_std = 0.02  # meters
         angular_baseline_std = math.radians(10)  # degrees to radians
+        if is_sim():
+            angular_baseline_std = math.radians(30)  # degrees to radians
         setDevs = self.drivetrain.estimator.setVisionMeasurementStdDevs
         tag_id, tag_dist = Waypoints.closest_reef_tag_id(self.drivetrain.get_pose())
         # Check the center camera first -- If we're trusting it entirely

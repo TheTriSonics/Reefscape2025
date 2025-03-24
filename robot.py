@@ -301,17 +301,6 @@ class MyRobot(magicbot.MagicRobot):
             max_speed = self.lower_max_speed
             max_spin_rate = self.lower_max_spin_rate
             self.intimidator.go_drive_local()
-        elif self.driver_controller.getStrafe():
-            self.intimidator.go_drive_strafe()
-        elif rtrig > 0.15:
-            # Scale this between 0-1 instead of -1 to 1
-            rscaled = rtrig
-            self.intimidator.set_stick_values(0, 0, rscaled*10)
-            self.intimidator.go_drive_strafe()
-        elif ltrig > 0.15:
-            lscaled = ltrig
-            self.intimidator.set_stick_values(0, 0, -lscaled*10)
-            self.intimidator.go_drive_strafe()
         else:
             self.intimidator.set_stick_values(drive_x, drive_y, drive_z)
             self.intimidator.go_drive_field()
@@ -362,3 +351,5 @@ class MyRobot(magicbot.MagicRobot):
             mode = self._automodes.chooser.getSelected()
             if mode and hasattr(mode, 'set_initial_pose'):
                 mode.set_initial_pose()
+            if mode and hasattr(mode, 'prepare_first_trajectory'):
+                mode.prepare_first_trajectory()

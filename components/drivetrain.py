@@ -232,13 +232,15 @@ class DrivetrainComponent:
         # Leaving the old values here, using some more docile ones for driver practice temporarily
         self.default_xy_pid = (10, 1, 0)
         self.aggressive_xy_pid = (20, 0, 0)
+        self.heading_pid = (15, 0, 0)
         if is_sim():
             self.default_xy_pid = (14, 2, 0)
-            self.aggressive_xy_pid = (30, 3, 0)
+            self.aggressive_xy_pid = (20, 0, 0)
+            self.heading_pid = (30, 0, 0)
 
         self.choreo_x_controller = PIDController(*self.default_xy_pid)
         self.choreo_y_controller = PIDController(*self.default_xy_pid)
-        self.choreo_heading_controller = PIDController(15, 0, 0)
+        self.choreo_heading_controller = PIDController(*self.heading_pid)
         self.choreo_heading_controller.enableContinuousInput(-math.pi, math.pi)
 
         self.modules = (
