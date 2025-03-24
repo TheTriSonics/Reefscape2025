@@ -128,7 +128,7 @@ class SwerveModule:
         )
 
         drive_gear_ratio_config = FeedbackConfigs().with_sensor_to_mechanism_ratio(
-            TunerConstants._drive_gear_ratio
+            TunerConstants._drive_gear_ratio 
         )
 
         # configuration for motor pid and feedforward
@@ -157,6 +157,9 @@ class SwerveModule:
 
     def get_speed(self) -> float:
         # velocity is in rot/s, return in m/s
+        # rotations_per_second = self.drive.get_velocity().value
+        # wheel_circumference = 2 * math.pi * TunerConstants._wheel_radius
+        # return rotations_per_second * wheel_circumference / TunerConstants._drive_gear_ratio
         return self.drive.get_velocity().value
 
     def get_distance_traveled(self) -> float:
@@ -183,6 +186,9 @@ class SwerveModule:
             self.steer.set_control(DutyCycleOut(0))
         else:
             self.steer.set_control(DutyCycleOut(steer_output))
+        
+        # convert the target speed from m/s to rot/s
+        target_speed = self.state.speed / (2 * math.pi * TunerConstants._wheel_radius) * TunerConstants._drive_gear_ratio
 
         # rescale the speed target based on how close we are to being correctly
         # aligned
@@ -447,14 +453,9 @@ class DrivetrainComponent:
         desired_speeds = self.chassis_speeds
 
         desired_states = self.kinematics.toSwerveModuleStates(desired_speeds)
-        # Limit printing to once every 0.5 seconds
         desired_states = self.kinematics.desaturateWheelSpeeds(
             desired_states, attainableMaxSpeed=self.max_wheel_speed
         )
-        if wpilib.Timer.getFPGATimestamp() % 3 < 0.1:
-            print(f"desired speeds: {desired_speeds=}")
-            print(f"desired states: {desired_states=}")
-
         for state, module in zip(desired_states, self.modules):
             module.set(state)
 

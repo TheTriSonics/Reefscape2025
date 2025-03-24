@@ -97,7 +97,7 @@ class PhysicsEngine:
         self.wheels = [
             SimpleTalonFXMotorSim(
                 module.drive,
-                units_per_rev = 1/0.01563076923,
+                units_per_rev = 1/0.04910550985,
                 kV=2.7,
             )
             for module in robot.drivetrain.modules
