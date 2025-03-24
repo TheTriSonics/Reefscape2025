@@ -4,7 +4,7 @@ import magicbot
 import wpilib
 import ntcore
 import wpilib.event
-from wpimath.geometry import Pose2d, Rotation2d, Transform2d, Translation2d
+from wpimath.geometry import Pose2d
 from magicbot import tunable
 
 from components.gyro import GyroComponent
@@ -14,7 +14,7 @@ from components.battery_monitor import BatteryMonitorComponent
 from components.wrist import WristComponent
 from components.arm import ArmComponent
 from components.elevator import ElevatorComponent
-from components.intake import IntakeComponent, IntakeDirection
+from components.intake import IntakeComponent
 from components.climber import ClimberComponent
 from components.photoeye import PhotoEyeComponent
 from components.drivetrain import DrivetrainComponent
@@ -32,7 +32,8 @@ from controllers.spiderman import Spiderman
 from utilities.scalers import rescale_js
 from utilities.position import Positions
 from utilities.game import GamePieces
-from utilities import Waypoints, is_red, pn, is_sim
+from utilities.waypoints import Waypoints
+from utilities import is_red, pn, is_sim
 
 from hid.xbox_wired import ReefscapeDriver, ReefscapeOperator
 from hid.logi_flight import ReefscapeDriver as ReefscapeDriverFlight
@@ -70,9 +71,9 @@ class MyRobot(magicbot.MagicRobot):
     spiderman: Spiderman
 
     match_time = tunable(0.0)
-    max_speed = magicbot.tunable(25.0)  # m/s
+    max_speed = magicbot.tunable(5.0)  # m/s
     lower_max_speed = magicbot.tunable(6)  # m/s
-    max_spin_rate = magicbot.tunable(4 * math.tau)
+    max_spin_rate = magicbot.tunable(2 * math.tau)
     lower_max_spin_rate = magicbot.tunable(math.pi)  # m/s
     controller_choice = tunable('')
     controller_name = tunable('')
@@ -80,6 +81,15 @@ class MyRobot(magicbot.MagicRobot):
     # This is a debugging/test thing, not production code
     driver_reef_snap_distance = tunable(-1.0)
     driver_reef_radians_snap = tunable(0.0)
+
+    left_offset = -0.165
+    right_offset = 0.165
+    center_offset = -0.02
+    ps_offset = 0.6
+    coral_depth_offset = 0.65
+    algae_depth_offset = 0.45
+    ps_depth_offset = 0.6
+    
 
     START_POS_TOLERANCE = 1
     
@@ -104,25 +114,15 @@ class MyRobot(magicbot.MagicRobot):
                                                 .getStructTopic("ReefCenterPose", Pose2d)
                                                 .publish()
         )
-        self.strafe_positions = (
-            ntcore.NetworkTableInstance.getDefault()
-            .getStructArrayTopic("/components/drivetrain/strafes", Pose2d)
-            .publish()
-        )
-
-        self.strafe_next = (
-            ntcore.NetworkTableInstance.getDefault()
-            .getStructTopic("/components/drivetrain/strafe_next", Pose2d)
-            .publish()
-        )
 
     def autonomousInit(self):
-        Positions.update_alliance_positions()
+        # Positions.update_alliance_positions()
         self.autonomous_has_run = True
         return
 
     # This does not run at all.
     def autonomousPeriodic(self):
+        print('autonomousPeriodic running')
         pass
 
     def teleopInit(self) -> None:
@@ -133,7 +133,7 @@ class MyRobot(magicbot.MagicRobot):
         # self.leds.rainbow()
         self.manipulator.go_hold()
         self.intimidator.engage()
-        Positions.update_alliance_positions()
+        # Positions.update_alliance_positions()
         
         # Determine which Joystick to use for the driver.
         js_name = wpilib.DriverStation.getJoystickName(0)
@@ -232,23 +232,21 @@ class MyRobot(magicbot.MagicRobot):
             elif self.operator_controller.getXButton():
                 self.spiderman.tweak_down = True
 
-        # Climber overrides
-        # if self.operator_controller.getRawButton(3):
-        #     self.climber.force_climber_up = True
-        # else:
-        #     self.climber.force_climber_up = False
-        # if self.operator_controller.getRawButton(2):
-        #     self.climber.force_climber_down = True
-        # else:
-        #     self.climber.force_climber_down = False
-
     def handle_drivetrain(self) -> None:
+        # ----------------------------------------
+        # These limits should not change!
+        # TODO Update based off real robot speeds.
+        elevator_factor = 1.0
+        if self.elevator.get_position() > 10:
+            elevator_factor = 1.0 - (0.9 / 50) * self.elevator.get_position()
+            self.drivetrain.elevator_factor = max(0.15, elevator_factor)
+        # ----------------------------------------
+
+        
         max_speed = self.max_speed
         max_spin_rate = self.max_spin_rate
 
         self.drivetrain.max_wheel_speed = max_speed
-        rtrig = self.driver_controller.getRightTriggerAxis()
-        ltrig = self.driver_controller.getLeftTriggerAxis()
 
         dpad = self.driver_controller.getPOV()
         drive_x = -rescale_js(self.driver_controller.getLeftY(), 0.05, 2.5) * max_speed
@@ -262,11 +260,14 @@ class MyRobot(magicbot.MagicRobot):
             self.gyro.reset_heading()
 
         if self.driver_controller.getReefAlgae():
-            self.intimidator.go_lock_reef()
+            self.intimidator.go_lock_tag(side_offset = self.center_offset, depth_offset=self.algae_depth_offset)
+            self.vision.tracking_tag = True
         elif self.driver_controller.getReefLeft():
-            self.intimidator.go_lock_reef(shift_left=True)
+            self.intimidator.go_lock_tag(side_offset = self.left_offset, depth_offset=self.coral_depth_offset)
+            self.vision.tracking_tag = True
         elif self.driver_controller.getReefRight():
-            self.intimidator.go_lock_reef(shift_right=True)
+            self.intimidator.go_lock_tag(side_offset = self.right_offset, depth_offset=self.coral_depth_offset)
+            self.vision.tracking_tag = True
 
             if self.driver_controller.getYButtonPressed():
                 # Find the current target
@@ -284,15 +285,22 @@ class MyRobot(magicbot.MagicRobot):
                 pass
 
         elif self.driver_controller.getToWallTarget():
-            if self.manipulator.game_piece_mode == GamePieces.ALGAE:
-                self.intimidator.go_drive_swoop(Positions.PROCESSOR)
-            else:
-                if dpad == 90:
-                    self.intimidator.go_drive_swoop(Positions.PS_RIGHT)
-                elif dpad == 270:
-                    self.intimidator.go_drive_swoop(Positions.PS_LEFT)
-                else:
-                    self.intimidator.go_drive_swoop(Positions.PS_CLOSEST)
+            tag_id, _ = Waypoints.closest_ps_tag_id(self.drivetrain.get_pose())
+            if tag_id in [2, 12]:
+                self.intimidator.go_lock_tag(side_offset=-self.ps_offset, depth_offset=self.ps_depth_offset, tag_id=tag_id, face_at=False)
+            elif tag_id in [1, 13]:
+                self.intimidator.go_lock_tag(side_offset=self.ps_offset, depth_offset=self.ps_depth_offset, tag_id=tag_id, face_at=False)
+
+            # if self.manipulator.game_piece_mode == GamePieces.ALGAE:
+            #     self.intimidator.go_drive_swoop(Positions.PROCESSOR)
+            # else:
+            #     if dpad == 90:
+            #         self.intimidator.go_drive_swoop(Positions.PS_RIGHT)
+            #     elif dpad == 270:
+            #         self.intimidator.go_drive_swoop(Positions.PS_LEFT)
+            #     else:
+            #         self.intimidator.go_drive_swoop(Positions.PS_CLOSEST)
+            pass
         elif self.driver_controller.returnToHomeLocation():
             self.drivetrain.drive_to_pose(
                 Positions.AUTON_LINE_OUR_CAGE_CENTER
@@ -301,17 +309,6 @@ class MyRobot(magicbot.MagicRobot):
             max_speed = self.lower_max_speed
             max_spin_rate = self.lower_max_spin_rate
             self.intimidator.go_drive_local()
-        elif self.driver_controller.getStrafe():
-            self.intimidator.go_drive_strafe()
-        elif rtrig > 0.15:
-            # Scale this between 0-1 instead of -1 to 1
-            rscaled = rtrig
-            self.intimidator.set_stick_values(0, 0, rscaled*10)
-            self.intimidator.go_drive_strafe()
-        elif ltrig > 0.15:
-            lscaled = ltrig
-            self.intimidator.set_stick_values(0, 0, -lscaled*10)
-            self.intimidator.go_drive_strafe()
         else:
             self.intimidator.set_stick_values(drive_x, drive_y, drive_z)
             self.intimidator.go_drive_field()
@@ -319,6 +316,7 @@ class MyRobot(magicbot.MagicRobot):
     def teleopPeriodic(self) -> None:
         self.handle_manipulator()
         self.handle_drivetrain()
+        self.intimidator.engage()
 
     def testInit(self) -> None:
         self.driver_controller = ReefscapeDriver(0)
@@ -355,7 +353,6 @@ class MyRobot(magicbot.MagicRobot):
         # mode = self._automodes.active_mode
         if Positions.PROCESSOR.X() == 0:
             return  # Skip trying to set pose, we don't have position data yet.
-        Intimidator.load_trajectories()
         # We do NOT want to do this between auton and teleop, only before
         # auton.
         if not self.autonomous_has_run:

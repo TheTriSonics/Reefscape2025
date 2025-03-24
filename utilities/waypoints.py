@@ -217,14 +217,12 @@ class Waypoints:
 
     @classmethod
     @cache
-    def get_tag_robot_away(cls, tag_id, face_at=False) -> Pose2d:
+    def get_pose_w_offsets(cls, tag_id, face_at=False, side_offset = 0, depth_offset = 0) -> Pose2d:
         pose = cls.get_tag_pose(tag_id)
         rot = 0 if face_at is False else math.pi
-        sign = 1 if face_at is True else 1.1
-        left_offset = 0.045 if face_at is True else 0.0
-        robot_offset = Transform2d(Translation2d(robot_y_offset * sign, -left_offset), Rotation2d(rot))
-        robot_pose = pose.transformBy(robot_offset)
-        return robot_pose
+        robot_offset = Transform2d(Translation2d(depth_offset, side_offset), Rotation2d(rot))
+        calc_pose = pose.transformBy(robot_offset)
+        return calc_pose
 
     @classmethod
     def shift_reef_left(cls, pose: Pose2d) -> Pose2d:

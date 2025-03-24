@@ -56,13 +56,13 @@ class Falcon500MotorSim:
         gearing: float,
         moi: kilogram_square_meters,
     ):
-        self.falcon = DCMotor.falcon500(len(motors))
-        self.plant = LinearSystemId.DCMotorSystem(self.falcon, moi, gearing)
+        self.kraken = DCMotor.krakenX60(len(motors))
+        self.plant = LinearSystemId.DCMotorSystem(self.kraken, moi, gearing)
         self.gearing = gearing
         self.sim_states = [motor.sim_state for motor in motors]
         for sim_state in self.sim_states:
             sim_state.set_supply_voltage(12.0)
-        self.motor_sim = DCMotorSim(self.plant, self.falcon)
+        self.motor_sim = DCMotorSim(self.plant, self.kraken)
 
     def update(self, dt: float) -> None:
         voltage = self.sim_states[0].motor_voltage
@@ -97,7 +97,7 @@ class PhysicsEngine:
         self.wheels = [
             SimpleTalonFXMotorSim(
                 module.drive,
-                units_per_rev=1 / 0.0503,
+                units_per_rev = 1/0.01563076923,
                 kV=2.7,
             )
             for module in robot.drivetrain.modules
@@ -184,7 +184,7 @@ class PhysicsEngine:
             self.robot.vision.camera_fr_offset,
         )
         self.camera_fc = PhotonCameraSim(robot.vision.camera_fc, properties_fc)
-        self.camera_fc.setMaxSightRange(3.0)
+        self.camera_fc.setMaxSightRange(4.0)
         self.vision_sim.addCamera(
             self.camera_fc,
             self.robot.vision.camera_fc_offset,
@@ -278,7 +278,7 @@ class PhysicsEngine:
         ))
 
         self.current_yaw += math.degrees(speeds.omega * tm_diff)
-        sigma = (math.radians(0.5) / math.tau) / 2
+        sigma = (math.radians(0.1) / math.tau) / 2
         yaw_jitter = np.random.normal(loc=0, scale=sigma)
         self.gyro.set_raw_yaw(self.current_yaw + yaw_jitter)
 

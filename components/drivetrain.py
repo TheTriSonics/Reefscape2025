@@ -16,6 +16,7 @@ from phoenix6.controls import DutyCycleOut, VelocityVoltage, VoltageOut
 from phoenix6.hardware import CANcoder, TalonFX
 from phoenix6.signals import InvertedValue, NeutralModeValue
 from wpimath.controller import (
+    ProfiledPIDController,
     PIDController,
     ProfiledPIDControllerRadians,
     SimpleMotorFeedforwardMeters,
@@ -28,7 +29,7 @@ from wpimath.kinematics import (
     SwerveModulePosition,
     SwerveModuleState,
 )
-from wpimath.trajectory import TrapezoidProfileRadians
+from wpimath.trajectory import TrapezoidProfileRadians, TrapezoidProfile
 
 from components.elevator import ElevatorComponent
 from components.gyro import GyroComponent
@@ -70,7 +71,8 @@ class SwerveModule:
         busname: str,
         mag_offset: float = 0.0,
         drive_reversed: bool = False,
-        steer_reversed: bool = False
+        steer_reversed: bool = False,
+        
     ):
         """
         x, y: where the module is relative to the center of the robot
@@ -215,6 +217,8 @@ class DrivetrainComponent:
 
     send_modules = magicbot.tunable(True)
     snapping_to_heading = magicbot.tunable(False)
+    last_position_print_time = 0
+    elevator_factor = 1.0
 
     def __init__(self) -> None:
 
@@ -235,6 +239,20 @@ class DrivetrainComponent:
         if is_sim():
             self.default_xy_pid = (14, 2, 0)
             self.aggressive_xy_pid = (30, 3, 0)
+
+        self.dtp_controller_xy_constraints = TrapezoidProfile.Constraints(
+            maxVelocity=3.0, maxAcceleration=6.0
+        )
+        self.dtp_x_controller = ProfiledPIDController(1, 0, 0.0, constraints=self.dtp_controller_xy_constraints)
+        self.dtp_y_controller = ProfiledPIDController(1, 0, 0.0, constraints=self.dtp_controller_xy_constraints)
+        self.dtp_controller_rot_constraints = TrapezoidProfileRadians.Constraints(
+            maxVelocity=3 * math.tau, maxAcceleration=49
+        )
+        self.dtp_rot_controller = ProfiledPIDControllerRadians(
+            1, 0, 0, constraints=self.dtp_controller_rot_constraints
+        )
+        self.dtp_rot_controller.enableContinuousInput(-math.pi, math.pi)
+
 
         self.choreo_x_controller = PIDController(*self.default_xy_pid)
         self.choreo_y_controller = PIDController(*self.default_xy_pid)
@@ -379,20 +397,22 @@ class DrivetrainComponent:
         )
 
     def drive_to_position(
-        self, x: float, y: float, heading: float, aggressive=False
+        self, x: float = 0.0, y: float = 0.0, heading: float = 0.0, aggressive=False
     ) -> None:
-        if aggressive:
-            self.choreo_x_controller.setPID(*self.aggressive_xy_pid)
-            self.choreo_y_controller.setPID(*self.aggressive_xy_pid)
-        else:
-            self.choreo_x_controller.setPID(*self.default_xy_pid)
-            self.choreo_y_controller.setPID(*self.default_xy_pid)
+        self.dtp_controller_xy_constraints = TrapezoidProfile.Constraints(
+            maxVelocity=5.0, maxAcceleration=2.0 * self.elevator_factor
+        )
+        self.dtp_x_controller.setConstraints(self.dtp_controller_xy_constraints)
+        self.dtp_y_controller.setConstraints(self.dtp_controller_xy_constraints)
+
         robot_pose = self.get_pose()
-        xvel = self.choreo_x_controller.calculate(robot_pose.X(), x)
-        yvel = self.choreo_y_controller.calculate(robot_pose.Y(), y)
-        hvel = self.choreo_heading_controller.calculate(robot_pose.rotation().radians(), heading)
-        if is_sim():
-            hvel = self.choreo_heading_controller.calculate(robot_pose.rotation().radians(), heading)
+        xerr = x - robot_pose.X()
+        yerr = y - robot_pose.Y()
+        herr = heading - robot_pose.rotation().radians()
+        xvel = self.dtp_x_controller.calculate(-xerr)
+        yvel = self.dtp_x_controller.calculate(-yerr)
+        hvel = self.dtp_rot_controller.calculate(-herr)
+        print(f"drive_to_position: {xerr=}, {yerr=}, {herr=}, {xvel=}, {yvel=}, {hvel=}")
         self.drive_field(xvel, yvel, hvel)
 
     def drive_local(self, vx: float, vy: float, omega: float) -> None:
@@ -425,20 +445,15 @@ class DrivetrainComponent:
             )
 
         desired_speeds = self.chassis_speeds
-        # ----------------------------------------
-        # These limits should not change!
-        # TODO Update based off real robot speeds.
-        elevator_factor = 1.0
-        if self.elevator.get_position() > 10:
-            elevator_factor = 1.225 - (0.9 / 20) * self.elevator.get_position()
-            elevator_factor = max(0.25, elevator_factor)
-        # ----------------------------------------
-        # ---------------------------------------- 
 
         desired_states = self.kinematics.toSwerveModuleStates(desired_speeds)
+        # Limit printing to once every 0.5 seconds
         desired_states = self.kinematics.desaturateWheelSpeeds(
-            desired_states, attainableMaxSpeed=self.max_wheel_speed * elevator_factor
+            desired_states, attainableMaxSpeed=self.max_wheel_speed
         )
+        if wpilib.Timer.getFPGATimestamp() % 3 < 0.1:
+            print(f"desired speeds: {desired_speeds=}")
+            print(f"desired states: {desired_states=}")
 
         for state, module in zip(desired_states, self.modules):
             module.set(state)
@@ -542,3 +557,13 @@ class DrivetrainComponent:
     @feedback
     def at_desired_heading(self) -> bool:
         return self.heading_controller.atGoal()
+    
+    def drive_chassis_speeds(self, speeds):
+        """Apply ChassisSpeeds directly to the drivetrain"""
+        # Convert from field-relative if needed
+        swerve_module_states = self.kinematics.toSwerveModuleStates(speeds)
+        self.kinematics.desaturateWheelSpeeds(swerve_module_states, self.max_wheel_speed)
+        
+        # Apply to the modules
+        for i, module in enumerate(self.modules):
+            module.set(swerve_module_states[i])

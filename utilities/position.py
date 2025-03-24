@@ -112,59 +112,59 @@ class Positions:
             cls.REEF_F, cls.REEF_F_LEFT, cls.REEF_F_RIGHT,
         ]
 
-    @classmethod
-    def update_dynamic_positions(cls, robot_pose: Pose2d):
-        reef_tag_id, _ = Waypoints.closest_reef_tag_id(robot_pose)
-        reef_start = Waypoints.get_tag_robot_away(reef_tag_id, face_at=True)
-        cls.REEF_CLOSEST_LEFT = Waypoints.shift_reef_left(reef_start)
-        cls.REEF_CLOSEST_RIGHT = Waypoints.shift_reef_right(reef_start)
-        cls.REEF_CLOSEST = reef_start
+    # @classmethod
+    # def update_dynamic_positions(cls, robot_pose: Pose2d):
+    #     reef_tag_id, _ = Waypoints.closest_reef_tag_id(robot_pose)
+    #     reef_start = Waypoints.get_tag_robot_away(reef_tag_id, face_at=True)
+    #     cls.REEF_CLOSEST_LEFT = Waypoints.shift_reef_left(reef_start)
+    #     cls.REEF_CLOSEST_RIGHT = Waypoints.shift_reef_right(reef_start)
+    #     cls.REEF_CLOSEST = reef_start
 
-        ps_tag_id, _ = Waypoints.closest_ps_tag_id(robot_pose)
-        cls.PS_CLOSEST = Waypoints.get_tag_robot_away(
-            ps_tag_id, face_at=False
-        ).transformBy(Transform2d(Translation2d(-0.1, 0.000), Rotation2d(0)))
+    #     ps_tag_id, _ = Waypoints.closest_ps_tag_id(robot_pose)
+    #     cls.PS_CLOSEST = Waypoints.get_tag_robot_away(
+    #         ps_tag_id, face_at=False
+    #     ).transformBy(Transform2d(Translation2d(-0.1, 0.000), Rotation2d(0)))
 
 
-    @classmethod
-    def update_alliance_positions(cls):
-        for face in ['A', 'B', 'C', 'D', 'E', 'F']:
-            tag_id = Waypoints.get_tag_id_from_letter(face, is_red())
-            tag_pose = Waypoints.get_tag_robot_away(tag_id, face_at=True)
-            setattr(cls, f'REEF_{face}_LEFT', Waypoints.shift_reef_left(tag_pose))
-            setattr(cls, f'REEF_{face}_RIGHT', Waypoints.shift_reef_right(tag_pose))
-            tag_pose = tag_pose.transformBy(Transform2d(Translation2d(0.10, 0),Rotation2d(0)))
-            setattr(cls, f'REEF_{face}', tag_pose)
+    # @classmethod
+    # def update_alliance_positions(cls):
+    #     for face in ['A', 'B', 'C', 'D', 'E', 'F']:
+    #         tag_id = Waypoints.get_tag_id_from_letter(face, is_red())
+    #         tag_pose = Waypoints.get_tag_robot_away(tag_id, face_at=True)
+    #         setattr(cls, f'REEF_{face}_LEFT', Waypoints.shift_reef_left(tag_pose))
+    #         setattr(cls, f'REEF_{face}_RIGHT', Waypoints.shift_reef_right(tag_pose))
+    #         tag_pose = tag_pose.transformBy(Transform2d(Translation2d(0.10, 0),Rotation2d(0)))
+    #         setattr(cls, f'REEF_{face}', tag_pose)
         
-        processor_tag_id = 3 if is_red() else 16
-        processor_pose = Waypoints.get_tag_robot_away(processor_tag_id, face_at=True)
-        cls.PROCESSOR = processor_pose.transformBy(
-            Transform2d(Translation2d(-1.0, 0.0), Rotation2d(0))
-        )
+    #     processor_tag_id = 3 if is_red() else 16
+    #     processor_pose = Waypoints.get_tag_robot_away(processor_tag_id, face_at=True)
+    #     cls.PROCESSOR = processor_pose.transformBy(
+    #         Transform2d(Translation2d(-1.0, 0.0), Rotation2d(0))
+    #     )
 
-        barge_tag_id = 5 if is_red() else 14
-        barge_pose = Waypoints.get_tag_robot_away(barge_tag_id, face_at=True)
-        cls.BARGE_CENTER = barge_pose
-        cls.BARGE_LEFT = Waypoints.shift_barge_left(barge_pose)
-        cls.BARGE_RIGHT = Waypoints.shift_barge_right(barge_pose)
+    #     barge_tag_id = 5 if is_red() else 14
+    #     barge_pose = Waypoints.get_tag_robot_away(barge_tag_id, face_at=True)
+    #     cls.BARGE_CENTER = barge_pose
+    #     cls.BARGE_LEFT = Waypoints.shift_barge_left(barge_pose)
+    #     cls.BARGE_RIGHT = Waypoints.shift_barge_right(barge_pose)
 
-        ps_left_tag_id = 1 if is_red() else 13
-        ps_right_tag_id = 2 if is_red() else 12
-        ps_left_pose = Waypoints.get_tag_robot_away(ps_left_tag_id, face_at=False)
-        ps_right_pose = Waypoints.get_tag_robot_away(ps_right_tag_id, face_at=False)
-        cls.PS_LEFT = ps_left_pose.transformBy(Transform2d(Translation2d(-0.1, 0.0), Rotation2d(0)))
-        cls.PS_RIGHT = ps_right_pose.transformBy(Transform2d(Translation2d(-0.1, 0.0), Rotation2d(0)))
+    #     ps_left_tag_id = 1 if is_red() else 13
+    #     ps_right_tag_id = 2 if is_red() else 12
+    #     ps_left_pose = Waypoints.get_tag_robot_away(ps_left_tag_id, face_at=False)
+    #     ps_right_pose = Waypoints.get_tag_robot_away(ps_right_tag_id, face_at=False)
+    #     cls.PS_LEFT = ps_left_pose.transformBy(Transform2d(Translation2d(-0.1, 0.0), Rotation2d(0)))
+    #     cls.PS_RIGHT = ps_right_pose.transformBy(Transform2d(Translation2d(-0.1, 0.0), Rotation2d(0)))
 
-        cls.AUTON_LINE_OUR_CAGE_CENTER = cls.auton_our_cage_center(is_red())
-        cls.AUTON_LINE_MID = cls.auton_line_center(is_red())
-        cls.AUTON_LINE_THEIR_CAGE_CENTER = cls.auton_their_cage_center(is_red())
+    #     cls.AUTON_LINE_OUR_CAGE_CENTER = cls.auton_our_cage_center(is_red())
+    #     cls.AUTON_LINE_MID = cls.auton_line_center(is_red())
+    #     cls.AUTON_LINE_THEIR_CAGE_CENTER = cls.auton_their_cage_center(is_red())
 
-        # Default the dynamic ones! Just to be safe!
-        cls.REEF_CLOSEST = cls.REEF_A
-        cls.REEF_CLOSEST_LEFT = cls.REEF_A_LEFT
-        cls.REEF_CLOSEST_RIGHT = cls.REEF_A_RIGHT
+    #     # Default the dynamic ones! Just to be safe!
+    #     cls.REEF_CLOSEST = cls.REEF_A
+    #     cls.REEF_CLOSEST_LEFT = cls.REEF_A_LEFT
+    #     cls.REEF_CLOSEST_RIGHT = cls.REEF_A_RIGHT
 
-        cls.PS_CLOSEST = cls.PS_LEFT
+    #     cls.PS_CLOSEST = cls.PS_LEFT
 
 
     @classmethod

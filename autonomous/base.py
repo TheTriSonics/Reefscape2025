@@ -69,12 +69,6 @@ class AutonBase(AutonomousStateMachine):
         return self.pose_check
 
     @state(must_finish=True)
-    def wee(self):
-        self.intimidator.go_drive_strafe_fixed(1.8)
-        self.manipulator.set_algae_barge()
-        self.manipulator.go_algae_prepare_score()
-
-    @state(must_finish=True)
     def robot_failure(self):
         from wpimath.geometry import Pose3d, Transform3d, Rotation3d, Translation3d
         if self.failure_pose is None:
@@ -92,5 +86,4 @@ class AutonBase(AutonomousStateMachine):
 
     def execute(self):
         pose = self.drivetrain.get_pose()
-        Positions.update_dynamic_positions(pose)
         super().execute()

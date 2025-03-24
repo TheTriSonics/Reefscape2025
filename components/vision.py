@@ -1,6 +1,6 @@
 import math
 import wpilib
-from magicbot import tunable
+from magicbot import tunable, will_reset_to
 from robotpy_apriltag import AprilTagFieldLayout, AprilTagField
 from wpilib import Timer
 import ntcore
@@ -17,11 +17,9 @@ class VisionComponent():
 
     drivetrain: DrivetrainComponent
 
-    all_cams = tunable(False)
-    center_only = tunable(False)
+    tracking_tag = will_reset_to(False)
 
     def __init__(self) -> None:
-        self.timer = Timer()
         # Front cameras are backwards in left/right orientation!
         self.camera_fr = PhotonCamera("fl")
         self.camera_fl = PhotonCamera("fr")
@@ -79,7 +77,7 @@ class VisionComponent():
         )
         self.pose_estimator_fc = PhotonPoseEstimator(
             field,
-            PoseStrategy.LOWEST_AMBIGUITY,
+            PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
             self.camera_fc,
             self.camera_fc_offset,
         )
@@ -126,58 +124,32 @@ class VisionComponent():
         ]
 
     def execute(self) -> None:
-        linear_baseline_std = 0.02  # meters
+        linear_baseline_std = 0.1  # meters
         angular_baseline_std = math.radians(10)  # degrees to radians
         setDevs = self.drivetrain.estimator.setVisionMeasurementStdDevs
         tag_id, tag_dist = Waypoints.closest_reef_tag_id(self.drivetrain.get_pose())
-        # Check the center camera first -- If we're trusting it entirely
-        # then we won't even process the others ones.
-        res = self.camera_fc.getLatestResult()
-        best_target = res.getBestTarget()
-        if (
-            best_target is not None
-            and best_target.poseAmbiguity <= 0.20
-            and best_target.fiducialId == tag_id
-            and tag_dist < 1.5
-        ):
-            # This is a good one to use. Let's trust whatever this pose is
-            pupdate = self.pose_estimator_fc.update(res)
-            if pupdate is not None:
-                twod_pose = pupdate.estimatedPose.toPose2d()
-                avg_dist = best_target.getBestCameraToTarget().translation().norm()
-                std_factor = (avg_dist**2)
-                std_xy = linear_baseline_std * std_factor
-                std_rot = angular_baseline_std * std_factor
-                setDevs((std_xy, std_xy, std_rot))
-                ts = self.timer.getTimestamp() - res.getLatencyMillis() / 1000.0
-                self.drivetrain.estimator.addVisionMeasurement(twod_pose, ts)
-                self.center_only = True
-                self.all_cams = False
-                return
 
         # Use all cameras
         z = zip(
             self.cameras, self.pose_estimators, self.publishers
         )
-        self.center_only = False
-        self.all_cams = True
 
         for cam, pose_est, pub in z:
             results = cam.getAllUnreadResults()
             for res in results:
                 best_target = res.getBestTarget()
-                if best_target and (best_target.poseAmbiguity > 0.2):
+                if best_target and (best_target.poseAmbiguity > 0.2) and not is_sim():
+                    print("Skipping pose due to high ambiguity")
                     # Skip using this pose in a vision update; it is too ambiguous
-                    # continue
-                    pass
+                    continue
 
+                res_time = res.getTimestampSeconds()
                 pupdate = pose_est.update(res)
                 if pupdate:
                     twod_pose = pupdate.estimatedPose.toPose2d()
-                    ts = self.timer.getTimestamp() - res.getLatencyMillis() / 1000.0
+                    pub.set(twod_pose)
                     # Check if we're too far off for this to be valid
                     robot_pose = self.drivetrain.get_pose()
-                    pub.set(twod_pose)
                     dist = robot_pose.relativeTo(twod_pose).translation().norm()
                     # Reject poses that are more than 1 meter from current
                     if dist < 1.0 or is_disabled():
@@ -188,7 +160,17 @@ class VisionComponent():
                             total_dist += t.getBestCameraToTarget().translation().norm()
                         avg_dist = total_dist / tag_count
                         std_factor = (avg_dist**2) / tag_count
+                        if self.tracking_tag:
+                            if best_target and best_target.fiducialId != tag_id:
+                                std_factor *= 5.0
+                                print(f"Increasing vision_std due to tag mismatch where {best_target.fiducialId} != {tag_id} and {cam.getName()}")
+                            elif best_target and best_target.fiducialId == tag_id:
+                                print(f"Decreasing vision_std due to tag match where {best_target.fiducialId} == {tag_id} and {cam.getName()}")
+                                std_factor *= 0.1
                         std_xy = linear_baseline_std * std_factor
+                        # only print results every 3 seconds
+                        # if Timer.getFPGATimestamp() % 3 < 0.1:
+                        #     print(f"camera is {cam.getName()} and target is {best_target.fiducialId} and tracking target is {self.tracking_tag} and {std_xy=}")
                         std_rot = angular_baseline_std * std_factor
                         setDevs((std_xy, std_xy, std_rot))
-                        self.drivetrain.estimator.addVisionMeasurement(twod_pose, ts)
+                        self.drivetrain.estimator.addVisionMeasurement(twod_pose, res_time)

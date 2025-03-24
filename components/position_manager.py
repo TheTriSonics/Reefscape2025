@@ -59,9 +59,9 @@ class PositionManagerComponent:
         )
 
     def execute(self):
-        Positions.update_alliance_positions()
+        # Positions.update_alliance_positions()
         pose = self.drivetrain.get_pose()
-        Positions.update_dynamic_positions(pose)
+        # Positions.update_dynamic_positions(pose)
 
         # Now apply our offets
         Positions.REEF_A_LEFT = Positions.REEF_A_LEFT.transformBy(
