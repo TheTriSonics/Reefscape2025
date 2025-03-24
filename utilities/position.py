@@ -118,7 +118,9 @@ class Positions:
         reef_start = Waypoints.get_tag_robot_away(reef_tag_id, face_at=True)
         cls.REEF_CLOSEST_LEFT = Waypoints.shift_reef_left(reef_start)
         cls.REEF_CLOSEST_RIGHT = Waypoints.shift_reef_right(reef_start)
-        reef_start = reef_start.transformBy(Transform2d(Translation2d(0.10, 0),Rotation2d(0)))
+        reef_start = reef_start.transformBy(
+            Transform2d(Translation2d(0.10, 0), Rotation2d(0))
+        )
         cls.REEF_CLOSEST = reef_start
 
         ps_tag_id, _ = Waypoints.closest_ps_tag_id(robot_pose)
@@ -134,7 +136,9 @@ class Positions:
             tag_pose = Waypoints.get_tag_robot_away(tag_id, face_at=True)
             setattr(cls, f'REEF_{face}_LEFT', Waypoints.shift_reef_left(tag_pose))
             setattr(cls, f'REEF_{face}_RIGHT', Waypoints.shift_reef_right(tag_pose))
-            tag_pose = tag_pose.transformBy(Transform2d(Translation2d(0.10, 0),Rotation2d(0)))
+            tag_pose = tag_pose.transformBy(
+                Transform2d(Translation2d(0.10, 0), Rotation2d(0))
+            )
             setattr(cls, f'REEF_{face}', tag_pose)
         
         processor_tag_id = 3 if is_red() else 16
@@ -188,5 +192,3 @@ class Positions:
         if is_red:
             pose = field_flip_pose2d(pose)
         return pose
-
-
