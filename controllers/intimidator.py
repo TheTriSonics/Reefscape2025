@@ -305,8 +305,11 @@ class Intimidator(StateMachine):
         assert sample
         self.traj_desired_pose.set(sample.get_pose())
         self.drivetrain.follow_trajectory_choreo(sample)
+        # We didn't make it there in time so kick the robot into motion again
+        if state_tm > traj.get_total_time() * 1.1:
+            self.go_drive_swoop(self.target_pose)
         tolerance = 0.15 if is_sim() else 0.040
-        if self.at_position(tolerance=tolerance) or state_tm > traj.get_total_time() * 1.1:
+        if self.at_position(tolerance=tolerance):
             self.next_state(self.completed)
 
     def find_choreo_trajectory(self, curr_pose: Pose2d, target_pose: Pose2d):

@@ -1,0 +1,16 @@
+{
+ "name":"JJB Test",
+ "version":1,
+ "snapshot":{
+  "waypoints":[
+    {"x":7.578632354736328, "y":6.158233642578125, "heading":3.141592653589793, "split":false, "fixTranslation":true, "fixHeading":true,}
+    {"x":6.23448371887207, "y":6.37546968460083, "heading":0.0, "split":false, "fixTranslation":true, "fixHeading":false,},
+    {"x":5.202611923217773, "y":5.23498010635376, "heading":-2.135365915420982, "split":false, "fixTranslation":true, "fixHeading":true,}],
+  "constraints":[
+    {"from":"first", "to":null, "data":{"type":"StopPoint", "props":{}}, "enabled":true},
+    {"from":"last", "to":null, "data":{"type":"StopPoint", "props":{}}, "enabled":true},
+    {"from":"first", "to":"last", "data":{"type":"KeepInRectangle", "props":{"x":0.0, "y":0.0, "w":17.548, "h":8.052}}, "enabled":false},
+    {"from":0, "to":2, "data":{"type":"MaxVelocity", "props":{"max":3.0}}, "enabled":true}],
+  "targetDt":0.05
+ },
+}

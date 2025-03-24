@@ -77,7 +77,7 @@ class JustDrive(AutonBase):
         if initial_call:
             # self.intimidator.engage(self.intimidator.follow_pp)
             self.intimidator.go_drive_swoop(target_pose)
-        if self.at_pose(target_pose) or state_tm > 3.0:
+        if self.at_pose(target_pose):
             self.coral_scored += 1
             self.next_state_now(self.to_backup)
 
@@ -107,7 +107,7 @@ class JustDrive(AutonBase):
         )
         if initial_call:
             self.intimidator.go_drive_swoop(target_pose)
-            if self.coral_scored >= 2:
+            if self.coral_scored >= 1:
                 self.curr_left = not self.curr_left
                 if self.curr_left is True:
                     self.curr_level -= 1
