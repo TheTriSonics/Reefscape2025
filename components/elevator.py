@@ -44,8 +44,8 @@ class ElevatorComponent:
             config.slot0.k_i = 0.0
             config.slot0.k_d = 0.0
             config.slot0.k_g = 0.0
-        config.motion_magic.motion_magic_cruise_velocity = 160
-        config.motion_magic.motion_magic_acceleration = 200
+        config.motion_magic.motion_magic_cruise_velocity = 250
+        config.motion_magic.motion_magic_acceleration = 230
         config.motion_magic.motion_magic_jerk = 1000
         output_config = MotorOutputConfigs()
         output_config.inverted = InvertedValue.CLOCKWISE_POSITIVE
