@@ -256,7 +256,6 @@ class MyRobot(magicbot.MagicRobot):
         drive_z = (
             -rescale_js(self.driver_controller.getRightX(), 0.1, exponential=2) * max_spin_rate
         )
-        self.intimidator.set_stick_values(drive_x, drive_y, drive_z)
 
         if self.driver_controller.getFieldReset():  # the window button
             self.gyro.reset_heading()
@@ -267,22 +266,6 @@ class MyRobot(magicbot.MagicRobot):
             self.intimidator.go_lock_reef(shift_left=True)
         elif self.driver_controller.getReefRight():
             self.intimidator.go_lock_reef(shift_right=True)
-
-            if self.driver_controller.getYButtonPressed():
-                # Find the current target
-
-                # Shift the current target forward by 1 unit
-                pass
-            elif self.driver_controller.getXButtonPressed():
-                # shift left
-                pass
-            elif self.driver_controller.getBButtonPressed():
-                # shift right
-                pass
-            elif self.driver_controller.getAButtonPressed():
-                # shift back
-                pass
-
         elif self.driver_controller.getToWallTarget():
             if self.manipulator.game_piece_mode == GamePieces.ALGAE:
                 self.intimidator.go_drive_swoop(Positions.PROCESSOR)
@@ -300,6 +283,7 @@ class MyRobot(magicbot.MagicRobot):
         elif self.driver_controller.getDriveLocal():
             max_speed = self.lower_max_speed
             max_spin_rate = self.lower_max_spin_rate
+            self.intimidator.set_stick_values(drive_x, drive_y, drive_z)
             self.intimidator.go_drive_local()
         else:
             self.intimidator.set_stick_values(drive_x, drive_y, drive_z)
