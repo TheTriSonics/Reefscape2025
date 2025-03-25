@@ -6,6 +6,8 @@ from utilities.waypoints import Waypoints
 from choreo.trajectory import SwerveTrajectory as ChoreoSwerveTrajectory
 from choreo.trajectory import SwerveSample as ChoreoSwerveSample
 
+PS_DIST_OFFSET = 1.00
+
 
 def reverse_choreo(traj: ChoreoSwerveTrajectory) -> ChoreoSwerveTrajectory:
     new_samples: list[ChoreoSwerveSample] = []
@@ -126,7 +128,7 @@ class Positions:
         ps_tag_id, _ = Waypoints.closest_ps_tag_id(robot_pose)
         cls.PS_CLOSEST = Waypoints.get_tag_robot_away(
             ps_tag_id, face_at=False
-        ).transformBy(Transform2d(Translation2d(-0.1, 0.000), Rotation2d(0)))
+        ).transformBy(Transform2d(Translation2d(PS_DIST_OFFSET, 0.000), Rotation2d(0)))
 
 
     @classmethod
@@ -157,8 +159,8 @@ class Positions:
         ps_right_tag_id = 2 if is_red() else 12
         ps_left_pose = Waypoints.get_tag_robot_away(ps_left_tag_id, face_at=False)
         ps_right_pose = Waypoints.get_tag_robot_away(ps_right_tag_id, face_at=False)
-        cls.PS_LEFT = ps_left_pose.transformBy(Transform2d(Translation2d(-0.1, 0.0), Rotation2d(0)))
-        cls.PS_RIGHT = ps_right_pose.transformBy(Transform2d(Translation2d(-0.1, 0.0), Rotation2d(0)))
+        cls.PS_LEFT = ps_left_pose.transformBy(Transform2d(Translation2d(PS_DIST_OFFSET, 0.0), Rotation2d(0)))
+        cls.PS_RIGHT = ps_right_pose.transformBy(Transform2d(Translation2d(PS_DIST_OFFSET, 0.0), Rotation2d(0)))
 
         cls.AUTON_LINE_OUR_CAGE_CENTER = cls.auton_our_cage_center(is_red())
         cls.AUTON_LINE_MID = cls.auton_line_center(is_red())
