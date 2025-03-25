@@ -223,7 +223,7 @@ class Intimidator(StateMachine):
 
     def go_drive_field(self):
         if self.current_state != self.drive_field.name:
-            self.engage(self.drive_field)
+            self.next_state_now(self.drive_field)
 
     @state(first=True, must_finish=True)
     def drive_field(self, initial_call):
@@ -235,7 +235,8 @@ class Intimidator(StateMachine):
         self.drivetrain.drive_field(x, y, self.stick_rotation)
     
     def go_drive_local(self):
-        self.next_state_now(self.drive_local)
+        if self.current_state != self.drive_local.name:
+            self.next_state_now(self.drive_local)
 
     def go_drive_nearest_ps(self):
         pose = self.drivetrain.get_pose()
