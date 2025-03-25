@@ -351,5 +351,3 @@ class MyRobot(magicbot.MagicRobot):
             mode = self._automodes.chooser.getSelected()
             if mode and hasattr(mode, 'set_initial_pose'):
                 mode.set_initial_pose()
-            if mode and hasattr(mode, 'prepare_first_trajectory'):
-                mode.prepare_first_trajectory()
