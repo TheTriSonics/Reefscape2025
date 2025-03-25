@@ -45,7 +45,7 @@ class JustDrive(AutonBase):
     at_pose_counter = tunable(0)
 
     MODE_NAME = 'MICMP - Just Drive'
-    DEFAULT = False
+    DEFAULT = True
     
     def __init__(self):
         self.coral_scored = 0

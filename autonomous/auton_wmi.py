@@ -281,7 +281,7 @@ class BigOne(AutonBase):
 
 class BigOneLeft(BigOne):
     MODE_NAME = 'WMI - Big One Left'
-    DEFAULT = True
+    DEFAULT = False
 
     first_face = tunable('F')
     fill_face = tunable('E')
