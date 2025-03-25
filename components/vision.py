@@ -189,6 +189,8 @@ class VisionComponent():
                         for t in res.getTargets():
                             total_dist += t.getBestCameraToTarget().translation().norm()
                         avg_dist = total_dist / tag_count
+                        if avg_dist > 2.0 and not is_disabled():
+                            continue  # Skip anything where the average tag is too far away
                         std_factor = (avg_dist**2) / tag_count
                         std_xy = linear_baseline_std * std_factor
                         std_rot = angular_baseline_std * std_factor
