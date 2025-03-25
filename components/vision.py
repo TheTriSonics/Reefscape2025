@@ -126,7 +126,7 @@ class VisionComponent():
         ]
 
     def execute(self) -> None:
-        linear_baseline_std = 0.02  # meters
+        linear_baseline_std = 0.10  # meters
         angular_baseline_std = math.radians(10)  # degrees to radians
         if is_sim():
             angular_baseline_std = math.radians(30)  # degrees to radians
@@ -140,7 +140,7 @@ class VisionComponent():
             best_target is not None
             and best_target.poseAmbiguity <= 0.20
             and best_target.fiducialId == tag_id
-            and tag_dist < 1.5
+            and tag_dist < 0.75
         ):
             # This is a good one to use. Let's trust whatever this pose is
             pupdate = self.pose_estimator_fc.update(res)
