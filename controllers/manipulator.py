@@ -34,6 +34,8 @@ class Manipulator(StateMachine):
     # over in robot.py with their controller.
     game_piece_mode: GamePieces = GamePieces.CORAL
     coral_scoring_target = ManipLocations.CORAL_REEF_4
+    coral_scoring_target = ManipLocations.CORAL_REEF_3
+
     algae_scoring_target = ManipLocations.BARGE_6
     algae_intake_target = ManipLocations.ALGAE_REEF_1
     
@@ -287,9 +289,9 @@ class Manipulator(StateMachine):
         curr_target = self.coral_scoring_target
         if initial_call:
             self.operator_advance = False
-        if initial_call and curr_target != ManipLocations.CORAL_REEF_4:
+        if initial_call and curr_target != (ManipLocations.CORAL_REEF_4 or ManipLocations.CORAL_REEF_3):
             self.request_location(curr_target)
-        if initial_call and curr_target == ManipLocations.CORAL_REEF_4:
+        if initial_call and curr_target == (ManipLocations.CORAL_REEF_4 or ManipLocations.CORAL_REEF_3):
             self.arm.target_pos = 90
         
         if curr_target == ManipLocations.CORAL_REEF_4:
@@ -333,7 +335,6 @@ class Manipulator(StateMachine):
             reverse = False
             if self.coral_scoring_target in [
                 ManipLocations.CORAL_REEF_2,
-                ManipLocations.CORAL_REEF_3,
             ]:
                 reverse = True
             pb('Reverse score', reverse)

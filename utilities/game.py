@@ -127,12 +127,14 @@ class ManipLocations:
     INTAKE_CORAL = ManipLocation(0.5, -95, 15.1)  # CHANGED THE INTAKE ANGLE FROM 7.85 TO 15.1
     CORAL_REEF_1 = ManipLocation(0.5, -71, 171)
     CORAL_REEF_2 = ManipLocation(16.0, -63.1, 40)
-    CORAL_REEF_3 = ManipLocation(42.0, -63.1, 40)
+    CORAL_REEF_3 = ManipLocation(0.5, 83.8, 20.2)
     CORAL_REEF_3_ARM = ManipLocation(32.0, 63.1, 40)
-    CORAL_REEF_4 = ManipLocation(55, 39, 20) 
+    CORAL_REEF_4 = ManipLocation(43.1, 64.5, 21.2) 
     ALGAE_REEF_1 = ManipLocation(16, -55, 9)
-    ALGAE_REEF_2 = ManipLocation(40, -55, 9)
+    ALGAE_REEF_2 = ManipLocation(0.5, 50.6, 125.1)
+    PREP_CORAL_3 = ManipLocation(0.5, 90, CORAL_REEF_3.wrist_pos) 
     PREP_CORAL_4 = ManipLocation(0.5, 90, CORAL_REEF_4.wrist_pos) 
+    
 
     #changed from processor to processor_5 and barge to barge_6
     PROCESSOR_5 = ManipLocation(2, -80, 35)
