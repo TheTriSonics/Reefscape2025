@@ -23,8 +23,8 @@ class VisionComponent():
     def __init__(self) -> None:
         self.timer = Timer()
         # Front cameras are backwards in left/right orientation!
-        self.camera_fr = PhotonCamera("fl")
-        self.camera_fl = PhotonCamera("fr")
+        self.camera_fr = PhotonCamera("fr")
+        self.camera_fl = PhotonCamera("fl")
         self.camera_fc = PhotonCamera("fc")
         self.camera_bl = PhotonCamera("bl")
 
