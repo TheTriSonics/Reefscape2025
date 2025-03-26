@@ -102,39 +102,32 @@ class Manipulator(StateMachine):
         )
         self.request_location(self._target_location)
         self.next_state_now(self.hold_position)
-        self.engage()
 
     def go_home(self):
         # Set the necessary targets for each component
         self.request_location(ManipLocations.HOME)
         self.intake_control.go_idle()
-        self.next_state(self.idling)
-        self.engage()
+        self.next_state_now(self.idling)
 
     def go_algae_score(self):
         self.next_state_now(self.algae_score)
-        self.engage()
 
     def go_algae_prepare_intake(self):
         # Protect against re-triggering it
         if self.current_state != self.algae_prepare_intake.name:
-            self.next_state(self.algae_prepare_intake)
-        self.engage()
+            self.next_state_now(self.algae_prepare_intake)
     
     def go_algae_prepare_score(self):
         if self.current_state != self.algae_prepare_score.name:
-            self.next_state(self.algae_prepare_score)
-        self.engage()
+            self.next_state_now(self.algae_prepare_score)
 
     def go_coral_prepare_score(self):
         if self.current_state != self.coral_prepare_score.name:
-            self.next_state(self.coral_prepare_score)
-        self.engage()
+            self.next_state_now(self.coral_prepare_score)
 
     def go_coral_score(self):
         if self.current_state != self.coral_score.name:
-            self.next_state(self.coral_score)
-        self.engage()
+            self.next_state_now(self.coral_score)
 
     def set_coral_level(self, lvl):
         if lvl == 1:
@@ -148,6 +141,18 @@ class Manipulator(StateMachine):
         else:
             print(f'Invalid coral level {lvl}')
     
+    def get_coral_scoring_level(self):
+        if self._target_location == ManipLocations.CORAL_REEF_1:
+            return 1
+        elif self._target_location == ManipLocations.CORAL_REEF_2:
+            return 2
+        elif self._target_location == ManipLocations.CORAL_REEF_3:
+            return 3
+        elif self._target_location == ManipLocations.CORAL_REEF_4:
+            return 4
+        else:
+            return 0
+
     def set_coral_level1(self):
         self.coral_scoring_level.set(1)
         self.coral_scoring_target = ManipLocations.CORAL_REEF_1
@@ -251,9 +256,9 @@ class Manipulator(StateMachine):
         else:
             if self.operator_advance:
                 if self.game_piece_mode == GamePieces.CORAL:
-                    self.next_state(self.coral_intake)
+                    self.next_state_now(self.coral_intake)
                 elif self.game_piece_mode == GamePieces.ALGAE:
-                    self.next_state(self.algae_intake)
+                    self.next_state_now(self.algae_intake)
     
     @state(must_finish=True)
     def coral_intake(self, state_tm, initial_call):
