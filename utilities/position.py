@@ -6,7 +6,7 @@ from utilities.waypoints import Waypoints
 from choreo.trajectory import SwerveTrajectory as ChoreoSwerveTrajectory
 from choreo.trajectory import SwerveSample as ChoreoSwerveSample
 
-PS_DIST_OFFSET = 1.00
+PS_DIST_OFFSET = 0.1
 
 
 def reverse_choreo(traj: ChoreoSwerveTrajectory) -> ChoreoSwerveTrajectory:
@@ -36,30 +36,44 @@ class Positions:
     REEF_CLOSEST = Pose2d()
     REEF_CLOSEST_LEFT = Pose2d()
     REEF_CLOSEST_RIGHT = Pose2d()
+    REEF_CLOSEST_LEFT_CLOSE = Pose2d()
+    REEF_CLOSEST_RIGHT_CLOSE = Pose2d()
 
     REEF_A = Pose2d()
     REEF_A_LEFT = Pose2d()
     REEF_A_RIGHT = Pose2d()
+    REEF_A_LEFT_CLOSE = Pose2d()
+    REEF_A_RIGHT_CLOSE = Pose2d()
 
     REEF_B = Pose2d()
     REEF_B_LEFT = Pose2d()
     REEF_B_RIGHT = Pose2d()
+    REEF_B_LEFT_CLOSE = Pose2d()
+    REEF_B_RIGHT_CLOSE = Pose2d()
 
     REEF_C = Pose2d()
     REEF_C_LEFT = Pose2d()
     REEF_C_RIGHT = Pose2d()
+    REEF_C_LEFT_CLOSE = Pose2d()
+    REEF_C_RIGHT_CLOSE = Pose2d()
 
     REEF_D = Pose2d()
     REEF_D_LEFT = Pose2d()
     REEF_D_RIGHT = Pose2d()
+    REEF_D_LEFT_CLOSE = Pose2d()
+    REEF_D_RIGHT_CLOSE = Pose2d()
 
     REEF_E = Pose2d()
     REEF_E_LEFT = Pose2d()
     REEF_E_RIGHT = Pose2d()
+    REEF_E_LEFT_CLOSE = Pose2d()
+    REEF_E_RIGHT_CLOSE = Pose2d()
 
     REEF_F = Pose2d()
     REEF_F_LEFT = Pose2d()
     REEF_F_RIGHT = Pose2d()
+    REEF_F_LEFT_CLOSE = Pose2d()
+    REEF_F_RIGHT_CLOSE = Pose2d()
 
     AUTON_LINE_OUR_CAGE_CENTER = Pose2d()
     AUTON_LINE_MID = Pose2d()
@@ -87,10 +101,14 @@ class Positions:
         return random.choice(positions)
 
     @classmethod
-    def get_facepos(cls, face: str, left=False, right=False) -> Pose2d:
-        if left:
+    def get_facepos(cls, face: str, left=False, right=False, close=False) -> Pose2d:
+        if left and close:
+            return getattr(cls, f"REEF_{face}_LEFT_CLOSE")
+        elif left and not close:
             return getattr(cls, f"REEF_{face}_LEFT")
-        elif right:
+        elif right and close:
+            return getattr(cls, f"REEF_{face}_RIGHT_CLOSE")
+        elif right and not close:
             return getattr(cls, f"REEF_{face}_RIGHT")
         return getattr(cls, f"REEF_{face}")
 
@@ -106,12 +124,12 @@ class Positions:
     @classmethod
     def is_reef_pose(cls, pose: Pose2d) -> bool:
         return pose in [
-            cls.REEF_A, cls.REEF_A_LEFT, cls.REEF_A_RIGHT,
-            cls.REEF_B, cls.REEF_B_LEFT, cls.REEF_B_RIGHT,
-            cls.REEF_C, cls.REEF_C_LEFT, cls.REEF_C_RIGHT,
-            cls.REEF_D, cls.REEF_D_LEFT, cls.REEF_D_RIGHT,
-            cls.REEF_E, cls.REEF_E_LEFT, cls.REEF_E_RIGHT,
-            cls.REEF_F, cls.REEF_F_LEFT, cls.REEF_F_RIGHT,
+            cls.REEF_A, cls.REEF_A_LEFT, cls.REEF_A_RIGHT, cls.REEF_A_LEFT_CLOSE, cls.REEF_A_RIGHT_CLOSE,
+            cls.REEF_B, cls.REEF_B_LEFT, cls.REEF_B_RIGHT, cls.REEF_B_LEFT_CLOSE, cls.REEF_B_RIGHT_CLOSE,
+            cls.REEF_C, cls.REEF_C_LEFT, cls.REEF_C_RIGHT, cls.REEF_C_LEFT_CLOSE, cls.REEF_C_RIGHT_CLOSE,
+            cls.REEF_D, cls.REEF_D_LEFT, cls.REEF_D_RIGHT, cls.REEF_D_LEFT_CLOSE, cls.REEF_D_RIGHT_CLOSE,
+            cls.REEF_E, cls.REEF_E_LEFT, cls.REEF_E_RIGHT, cls.REEF_E_LEFT_CLOSE, cls.REEF_E_RIGHT_CLOSE,
+            cls.REEF_F, cls.REEF_F_LEFT, cls.REEF_F_RIGHT, cls.REEF_F_LEFT_CLOSE, cls.REEF_F_RIGHT_CLOSE,
         ]
 
     @classmethod
@@ -124,6 +142,8 @@ class Positions:
             Transform2d(Translation2d(0.10, 0), Rotation2d(0))
         )
         cls.REEF_CLOSEST = reef_start
+        cls.REEF_CLOSEST_LEFT_CLOSE = Waypoints.shift_reef_against(cls.REEF_CLOSEST_LEFT)
+        cls.REEF_CLOSEST_RIGHT_CLOSE = Waypoints.shift_reef_right(cls.REEF_CLOSEST_RIGHT)
 
         ps_tag_id, _ = Waypoints.closest_ps_tag_id(robot_pose)
         cls.PS_CLOSEST = Waypoints.get_tag_robot_away(
@@ -142,6 +162,8 @@ class Positions:
                 Transform2d(Translation2d(0.10, 0), Rotation2d(0))
             )
             setattr(cls, f'REEF_{face}', tag_pose)
+            setattr(cls, f'REEF_{face}_LEFT_CLOSE', Waypoints.shift_reef_against(getattr(cls, f'REEF_{face}_LEFT')))
+            setattr(cls, f'REEF_{face}_RIGHT_CLOSE', Waypoints.shift_reef_against(getattr(cls, f'REEF_{face}_RIGHT')))
         
         processor_tag_id = 3 if is_red() else 16
         processor_pose = Waypoints.get_tag_robot_away(processor_tag_id, face_at=True)

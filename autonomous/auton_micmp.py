@@ -73,7 +73,7 @@ class JustDrive(AutonBase):
     # Leave the initial starting position and head to the Reef to score
     @state(must_finish=True, first=True)
     def to_reef(self, state_tm, initial_call):
-        target_pose = Positions.get_facepos(self.first_face, left=True)
+        target_pose = Positions.get_facepos(self.first_face, left=True, close=True)
         if initial_call:
             # self.intimidator.engage(self.intimidator.follow_pp)
             self.intimidator.go_drive_swoop(target_pose)
@@ -102,8 +102,10 @@ class JustDrive(AutonBase):
 
     @state(must_finish=True)
     def to_face(self, state_tm, initial_call):
+        close = self.curr_level in [3, 4]
         target_pose = Positions.get_facepos(
-            self.fill_face, left=self.curr_left, right=not self.curr_left
+            self.fill_face, left=self.curr_left, right=not self.curr_left,
+            close=close
         )
         if initial_call:
             self.intimidator.go_drive_swoop(target_pose)

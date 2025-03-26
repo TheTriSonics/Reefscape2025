@@ -144,13 +144,13 @@ class Manipulator(StateMachine):
             print(f'Invalid coral level {lvl}')
     
     def get_coral_scoring_level(self):
-        if self._target_location == ManipLocations.CORAL_REEF_1:
+        if self.coral_scoring_target == ManipLocations.CORAL_REEF_1:
             return 1
-        elif self._target_location == ManipLocations.CORAL_REEF_2:
+        elif self.coral_scoring_target == ManipLocations.CORAL_REEF_2:
             return 2
-        elif self._target_location == ManipLocations.CORAL_REEF_3:
+        elif self.coral_scoring_target == ManipLocations.CORAL_REEF_3:
             return 3
-        elif self._target_location == ManipLocations.CORAL_REEF_4:
+        elif self.coral_scoring_target == ManipLocations.CORAL_REEF_4:
             return 4
         else:
             return 0
@@ -276,7 +276,7 @@ class Manipulator(StateMachine):
         if initial_call:
             self.operator_advance = False
         if (
-            self.coral_scoring_target in [ManipLocations.CORAL_REEF_4]
+            self.coral_scoring_target in [ManipLocations.CORAL_REEF_4, ManipLocations.CORAL_REEF_3]
             and self.reef_dist() > self.reef_protection_dist
         ):
             self.arm.target_pos = 90
@@ -289,10 +289,6 @@ class Manipulator(StateMachine):
         curr_target = self.coral_scoring_target
         if initial_call:
             self.operator_advance = False
-        if initial_call and curr_target != (ManipLocations.CORAL_REEF_4 or ManipLocations.CORAL_REEF_3):
-            self.request_location(curr_target)
-        if initial_call and curr_target == (ManipLocations.CORAL_REEF_4 or ManipLocations.CORAL_REEF_3):
-            self.arm.target_pos = 90
         
         if curr_target == ManipLocations.CORAL_REEF_4:
             # We have special rules for getting to level 4 because it can

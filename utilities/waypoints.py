@@ -228,13 +228,21 @@ class Waypoints:
 
     @classmethod
     def shift_reef_left(cls, pose: Pose2d) -> Pose2d:
-        offset = Transform2d(Translation2d(0.7, 0.165), Rotation2d(0))
+        offset = Transform2d(Translation2d(0.0, 0.165), Rotation2d(0))
         return pose.transformBy(offset)
 
     @classmethod
     def shift_reef_right(cls, pose: Pose2d) -> Pose2d:
-        offset = Transform2d(Translation2d(0.7, -0.165), Rotation2d(0))
+        offset = Transform2d(Translation2d(0.0, -0.165), Rotation2d(0))
         return pose.transformBy(offset)
+
+    # Method to move from our original distance away from the reef when we're
+    # in scoring position to move right up against it.
+    @classmethod
+    def shift_reef_against(cls, pose: Pose2d) -> Pose2d:
+        offset = Transform2d(Translation2d(0.08, 0), Rotation2d(0))
+        return pose.transformBy(offset)
+
 
     @classmethod
     def shift_barge_left(cls, pose: Pose2d) -> Pose2d:

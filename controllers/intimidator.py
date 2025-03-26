@@ -20,6 +20,7 @@ from pathplannerlib.path import (
 )
 from pathplannerlib.config import RobotConfig
 from components.drivetrain import DrivetrainComponent
+from controllers.manipulator import Manipulator
 from choreo import load_swerve_trajectory
 from choreo.trajectory import SwerveTrajectory as ChoreoSwerveTrajectory
 
@@ -79,6 +80,7 @@ def calculate_target(robot_x, robot_y, future_x, future_y):
 
 class Intimidator(StateMachine):
     drivetrain: DrivetrainComponent
+    manipulator: Manipulator
 
     stick_x, stick_y, stick_rotation = 0, 0, 0
 
@@ -150,6 +152,12 @@ class Intimidator(StateMachine):
         self.strafe_next_pub = (
             ntcore.NetworkTableInstance.getDefault()
             .getStructTopic("/components/intimidator/strafe_next", Pose2d)
+            .publish()
+        )
+
+        self.coral_level_pub = (
+            ntcore.NetworkTableInstance.getDefault()
+            .getIntegerTopic("/components/intimidator/coral_level")
             .publish()
         )
 
@@ -255,10 +263,12 @@ class Intimidator(StateMachine):
 
     def go_lock_reef(self, shift_left=False, shift_right=False):
         final_pose = Positions.REEF_CLOSEST
+        lvl = self.manipulator.get_coral_scoring_level()
+        self.coral_level_pub.set(lvl)
         if shift_left:
-            final_pose = Positions.REEF_CLOSEST_LEFT
+            final_pose = Positions.REEF_CLOSEST_LEFT_CLOSE if lvl in [3, 4] else Positions.REEF_CLOSEST_LEFT
         elif shift_right:
-            final_pose = Positions.REEF_CLOSEST_RIGHT
+            final_pose = Positions.REEF_CLOSEST_RIGHT_CLOSE if lvl in [3, 4] else Positions.REEF_CLOSEST_RIGHT
         self.go_drive_swoop(final_pose)
 
     @state(must_finish=True)
