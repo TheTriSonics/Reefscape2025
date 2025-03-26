@@ -41,7 +41,7 @@ class ArmComponent:
             config.slot0.k_i = 0.5
         config.slot0.k_d = 0.007
         config.slot0.k_g = 0.026
-        config.motion_magic.motion_magic_cruise_velocity = 8
+        config.motion_magic.motion_magic_cruise_velocity = 16
         config.motion_magic.motion_magic_acceleration = 50
         config.motion_magic.motion_magic_jerk = 250
         config.feedback.feedback_remote_sensor_id = self.encoder.device_id
