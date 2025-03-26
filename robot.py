@@ -50,7 +50,7 @@ class MyRobot(magicbot.MagicRobot):
     # leds_sim: LEDSim
 
     # Components
-    position_manager: PositionManagerComponent
+    # position_manager: PositionManagerComponent
     gyro: GyroComponent
     photoeye: PhotoEyeComponent
     drivetrain: DrivetrainComponent
@@ -118,6 +118,8 @@ class MyRobot(magicbot.MagicRobot):
 
     def autonomousInit(self):
         Positions.update_alliance_positions()
+        self.manipulator.engage()
+        self.intimidator.engage()
         self.autonomous_has_run = True
         return
 
@@ -265,9 +267,11 @@ class MyRobot(magicbot.MagicRobot):
         if self.driver_controller.getReefAlgae():
             self.intimidator.go_lock_reef()
         elif self.driver_controller.getReefLeft():
-            self.intimidator.go_lock_reef(shift_left=True)
+            if self.manipulator.game_piece_mode == GamePieces.CORAL:
+                self.intimidator.go_lock_reef(shift_left=True)
         elif self.driver_controller.getReefRight():
-            self.intimidator.go_lock_reef(shift_right=True)
+            if self.manipulator.game_piece_mode == GamePieces.CORAL:
+                self.intimidator.go_lock_reef(shift_right=True)
         elif self.driver_controller.getToWallTarget():
             if self.manipulator.game_piece_mode == GamePieces.ALGAE:
                 self.intimidator.go_drive_swoop(Positions.PROCESSOR)
@@ -321,7 +325,6 @@ class MyRobot(magicbot.MagicRobot):
         return super().disabledInit()
 
     def disabledPeriodic(self) -> None:
-        self.position_manager.execute()
         self.vision.execute()
         self.battery_monitor.execute()
         # self.leds.execute()
