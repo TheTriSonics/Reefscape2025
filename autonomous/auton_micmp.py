@@ -73,12 +73,16 @@ class JustDrive(AutonBase):
     # Leave the initial starting position and head to the Reef to score
     @state(must_finish=True, first=True)
     def to_reef(self, state_tm, initial_call):
+        if initial_call:
+            self.manipulator.coral_mode()
+            self.manipulator.set_coral_level4()
         target_pose = Positions.get_facepos(self.first_face, left=True, close=True)
         if initial_call:
-            # self.intimidator.engage(self.intimidator.follow_pp)
             self.intimidator.go_drive_swoop(target_pose)
         if self.at_pose(target_pose):
+            self.intake_control.go_coral_score()
             self.coral_scored += 1
+        if self.photoeye.coral_held is False:
             self.next_state_now(self.to_backup)
 
     @state(must_finish=True)
@@ -96,9 +100,11 @@ class JustDrive(AutonBase):
     def to_ps(self, state_tm, initial_call):
         if initial_call:
             # self.intimidator.engage(self.intimidator.follow_pp)
+            self.intake_control.go_coral_intake()
             self.intimidator.go_drive_swoop(Positions.PS_CLOSEST)
-        if self.at_pose(Positions.PS_CLOSEST) and state_tm > 1.0:
+        if self.photoeye.coral_held:
             self.next_state_now(self.to_face)
+
 
     @state(must_finish=True)
     def to_face(self, state_tm, initial_call):
@@ -115,7 +121,9 @@ class JustDrive(AutonBase):
                     self.curr_level -= 1
                 if self.curr_level == 0:
                     self.next_state_now(self.wee)
-        elif self.intimidator.current_state == self.intimidator.completed.name:
+        if self.manipulator.reef_dist() < 2.0:
+            self.manipulator.go_coral_prepare_score()
+        elif self.intimidator.current_state == self.intimidator.completed.name and self.manipulator.at_position():
             self.next_state_now(self.score_coral)
 
     @state(must_finish=True)
