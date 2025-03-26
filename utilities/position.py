@@ -143,7 +143,7 @@ class Positions:
         )
         cls.REEF_CLOSEST = reef_start
         cls.REEF_CLOSEST_LEFT_CLOSE = Waypoints.shift_reef_against(cls.REEF_CLOSEST_LEFT)
-        cls.REEF_CLOSEST_RIGHT_CLOSE = Waypoints.shift_reef_right(cls.REEF_CLOSEST_RIGHT)
+        cls.REEF_CLOSEST_RIGHT_CLOSE = Waypoints.shift_reef_against(cls.REEF_CLOSEST_RIGHT)
 
         ps_tag_id, _ = Waypoints.closest_ps_tag_id(robot_pose)
         cls.PS_CLOSEST = Waypoints.get_tag_robot_away(
