@@ -28,7 +28,7 @@ class Manipulator(StateMachine):
     drivetrain: DrivetrainComponent
 
     operator_advance = tunable(False)
-    reef_protection_dist = tunable(1.5)
+    reef_protection_dist = tunable(1.30)
     
     # Create some default targets for the robot. The operator can change these
     # over in robot.py with their controller.
@@ -275,10 +275,7 @@ class Manipulator(StateMachine):
     def coral_in_system(self, state_tm, initial_call):
         if initial_call:
             self.operator_advance = False
-        if (
-            self.coral_scoring_target in [ManipLocations.CORAL_REEF_4, ManipLocations.CORAL_REEF_3]
-            and self.reef_dist() > self.reef_protection_dist
-        ):
+        if self.get_coral_scoring_level() in [3, 4]:
             self.arm.target_pos = 90
         # Wait here until the operator wants to get into scoring position
         if self.operator_advance and self.reef_dist() > self.reef_protection_dist:
