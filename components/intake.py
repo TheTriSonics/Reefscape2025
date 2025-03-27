@@ -94,7 +94,9 @@ class IntakeComponent:
             speed_val = 0.9
 
         motor_power = 0.0
-        if self.direction in [IntakeDirection.CORAL_IN, IntakeDirection.ALGAE_SCORE]:
+        if self.direction in [IntakeDirection.CORAL_IN]:
+            motor_power = 0.55
+        elif self.direction in [IntakeDirection.ALGAE_SCORE]:
             motor_power = speed_val
         elif (
             self.direction in [IntakeDirection.ALGAE_IN]
@@ -102,8 +104,7 @@ class IntakeComponent:
             motor_power = -speed_val
 
         if self.direction == IntakeDirection.CORAL_SCORE:
-            curr_ang = self.my_angle()
-            motor_power = -speed_val #if curr_ang < 90 and curr_ang > -90 else speed_val
+            motor_power = -speed_val
 
         # Put the force calls after the normal operation. Operator should win
         # if there is any disagreement. Obey the humans!!!
