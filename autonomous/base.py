@@ -66,7 +66,7 @@ class AutonBase(AutonomousStateMachine):
     # if it is told to follow a trajectory they forgot to prepare
     def prepare_first_trajectory(self):
         curr_pose = self.drivetrain.get_pose()
-        self.intimidator.prep_pp_trajectory(curr_pose, curr_pose)
+        self.intimidator.prep_pp_trajectory_auto(curr_pose, curr_pose)
 
     def at_pose(self, pose: Pose2d, tolerance=None) -> bool:
         if tolerance is None:

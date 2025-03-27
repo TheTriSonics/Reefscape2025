@@ -145,7 +145,7 @@ class BigOne(AutonBase):
     def prepare_first_trajectory(self):
         target_pose = Positions.get_facepos(self.first_face, left=True)
         curr_pose = self.drivetrain.get_pose()
-        self.intimidator.prep_pp_trajectory(curr_pose, target_pose)
+        self.intimidator.prep_pp_trajectory_auto(curr_pose, target_pose)
 
     # Leave the initial starting position and head to the Reef to score
     @state(must_finish=True, first=True)
@@ -202,7 +202,7 @@ class BigOne(AutonBase):
         self.backup_pose_pub.set(backup_pose)   
         self.intimidator.go_drive_pose(backup_target)
         if initial_call:
-            self.intimidator.prep_pp_trajectory(backup_pose, Positions.PS_CLOSEST, max_vel=2.5)
+            self.intimidator.prep_pp_trajectory_auto(backup_pose, Positions.PS_CLOSEST, max_vel=2.5)
         # self.drivetrain.drive_to_pose(backup_target, aggressive=True)
         if self.elevator.get_position() < 20 and self.elevator.target_pos < 10:
             self.next_state(self.drive_to_ps)

@@ -94,7 +94,7 @@ class ElevatorComponent:
         # if self.motor_left.get_forward_limit().value:
         #     self.motor_left.set_position(0.0)
 
-        if self.get_limit_switch():
+        if self.get_limit_switch() and self.get_position() > 1:
             self.motor_left.set_position(0.5)
             self.motor_right.set_position(0.5)
 

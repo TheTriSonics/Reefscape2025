@@ -319,6 +319,7 @@ class MyRobot(magicbot.MagicRobot):
         self.drivetrain.update_odometry()
 
     def disabledInit(self):
+        Positions.update_alliance_positions()
         mode = self._automodes.chooser.getSelected()
         if mode and hasattr(mode, 'pose_set'):
             mode.pose_set = False

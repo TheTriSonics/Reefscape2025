@@ -91,6 +91,8 @@ class Intimidator(StateMachine):
     max_end_dist_error = tunable(1.0)
     dist_to_direct_drive = tunable(0.5)
 
+    choreo_traj_name = tunable('')
+
     trajectories: list[ChoreoSwerveTrajectory] = []
     waypoints: list[list[Pose2d]] = [[]]
     alliance_loaded = None
@@ -317,13 +319,15 @@ class Intimidator(StateMachine):
         self.traj_desired_pose.set(sample.get_pose())
         self.drivetrain.follow_trajectory_choreo(sample)
         # We didn't make it there in time so kick the robot into motion again
-        if state_tm > traj.get_total_time() * 1.1:
+        if state_tm > traj.get_total_time() * 1.25:
+            print('repathing due to timeout')
             self.go_drive_swoop(self.target_pose)
-        tolerance = 0.15 if is_sim() else 0.040
+        tolerance = 0.04 if is_sim() else 0.040
         if self.at_position(tolerance=tolerance):
+            print('choreo path nailed it')
             self.next_state(self.completed)
 
-    def find_choreo_trajectory(self, curr_pose: Pose2d, target_pose: Pose2d):
+    def find_choreo_trajectory(self, curr_pose: Pose2d, target_pose: Pose2d) -> tuple[ChoreoSwerveTrajectory, str]:
         scores: dict[str, float] = {}
         self.target_pose_pub.set(self.target_pose)
         for traj in self.trajectories:
@@ -338,7 +342,7 @@ class Intimidator(StateMachine):
             sdiff = start_pose.relativeTo(curr_pose).translation().norm() 
             # If we're too far from the start or end then we're going to
             # reject this trajectory for consideration.
-            if (sdiff > 0.30 or ediff > 0.1):
+            if (sdiff > 0.50 or ediff > 0.1):
                 continue  # Skip this; not worth considering
             # Now create a score entry for this valid trajectory; we just
             # add in the end distance different, start distance difference,
@@ -356,9 +360,9 @@ class Intimidator(StateMachine):
                 traj for traj in self.trajectories if traj.name == best_traj
             )
             assert traj
-            return traj
+            return traj, best_traj
         else:
-            return None
+            return None, None
     
     def find_choreo_waypoints(self, curr_pose: Pose2d, target_pose: Pose2d):
         self.target_pose_pub.set(self.target_pose)
@@ -410,8 +414,49 @@ class Intimidator(StateMachine):
             self.next_state(self.drive_swoop)
 
     def prep_pp_trajectory(self, curr_pose: Pose2d, target_pose: Pose2d,
+                           waypoints: list[Pose2d] | None = None,
                            max_vel=3.0, max_accel=5.0,
                            max_omega=4 * math.tau, max_alpha=math.tau):
+        tic: float = time.perf_counter()
+        if waypoints is None:
+            waypoints = [curr_pose, target_pose]
+        else:
+            waypoints = [curr_pose, *waypoints, target_pose]
+        constraints = PathConstraints(max_vel, max_accel, max_omega, max_alpha)
+        self.target_pose = target_pose
+        # iterate through the waypoints, grabbing the next one with it, and
+        # fix the heading to point at the next one.
+        fixed_waypoints = []
+        for wp1, xp2 in zip(waypoints, waypoints[1:]):
+            heading = math.atan2(xp2.Y() - wp1.Y(), xp2.X() - wp1.X())
+            fixed_waypoints.append(
+                Pose2d(wp1.translation(), Rotation2d(heading))
+            )
+        # Now do the last one, find the second to last heading to the target_pose
+        second_to_last_pose = fixed_waypoints[-1]
+        heading = math.atan2(target_pose.Y() - second_to_last_pose.Y(), target_pose.X() - second_to_last_pose.X())
+        final_pose = Pose2d(target_pose.translation(), Rotation2d(heading))
+        fixed_waypoints.append(final_pose)
+        self.pp_waypoints_pub.set(fixed_waypoints)
+        pp_waypoints = PathPlannerPath.waypointsFromPoses(fixed_waypoints)
+        path = PathPlannerPath(
+            pp_waypoints,
+            constraints,
+            None,
+            GoalEndState(0.0, self.target_pose.rotation()),
+        )
+        path.preventFlipping = True
+        self.pp_trajectory = path.generateTrajectory(
+            self.drivetrain.chassis_speeds,
+            curr_pose.rotation(),
+            self.pp_config,
+        )
+        toc: float = time.perf_counter()
+        self.pp_traj_calc_ms_pub.set(1000 * (toc - tic))
+
+    def prep_pp_trajectory_auto(self, curr_pose: Pose2d, target_pose: Pose2d,
+                                max_vel=3.0, max_accel=5.0,
+                                max_omega=4 * math.tau, max_alpha=math.tau):
         constraints = PathConstraints(max_vel, max_accel, max_omega, max_alpha)
         self.target_pose = target_pose
         # First see if we can lift some waypoints into this from
@@ -475,13 +520,16 @@ class Intimidator(StateMachine):
 
         if initial_call:
             if dist_from_final > 0.50:
-                traj = self.find_choreo_trajectory(curr_pose, self.target_pose)
+                traj, name = self.find_choreo_trajectory(curr_pose, self.target_pose)
                 if traj:
                     self.choreo_trajectory = traj
+                    self.choreo_traj_name = name
                     self.next_state_now(self.follow_choreo)
                 else:
+                    self.choreo_trajectory = None
+                    self.choreo_traj_name = 'none' 
                     # Let's create a PathPlanner to go right to it
-                    self.prep_pp_trajectory(curr_pose, self.target_pose)
+                    self.prep_pp_trajectory_auto(curr_pose, self.target_pose)
                     self.next_state_now(self.follow_pp)
         else:
             self.drivetrain.drive_to_pose(self.target_pose, aggressive=True)
