@@ -105,6 +105,9 @@ class Manipulator(StateMachine):
         self.request_location(self._target_location)
         self.next_state_now(self.hold_position)
 
+    def go_coral_intake(self):
+        self.next_state_now(self.coral_intake)
+
     def go_home(self):
         # Set the necessary targets for each component
         self.request_location(ManipLocations.HOME)
