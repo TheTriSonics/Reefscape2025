@@ -28,7 +28,7 @@ class Manipulator(StateMachine):
     drivetrain: DrivetrainComponent
 
     operator_advance = tunable(False)
-    reef_protection_dist = tunable(1.30)
+    reef_protection_dist = tunable(1.50)
     
     # Create some default targets for the robot. The operator can change these
     # over in robot.py with their controller.
