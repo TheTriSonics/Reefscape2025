@@ -66,6 +66,12 @@ class ElevatorComponent:
         switch_configs = HardwareLimitSwitchConfigs()
         switch_configs.forward_limit_enable = True
 
+    def setup(self):
+        self.motor_right.set_control(
+            Follower(TalonId.MANIP_ELEVATOR_LEFT.id,
+                        oppose_master_direction=True),
+        )
+
     
     @feedback
     def get_position(self) -> float:
@@ -99,9 +105,3 @@ class ElevatorComponent:
 
         req = self.motor_request.with_position(self.target_pos)
         self.motor_left.set_control(req)
-        # Should this only be done once in setup()? 
-        self.motor_right.set_control(
-            Follower(TalonId.MANIP_ELEVATOR_LEFT.id,
-                        oppose_master_direction=True),
-        )
-
