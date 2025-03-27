@@ -1,5 +1,4 @@
 import math
-
 import magicbot
 import wpilib
 import ntcore
@@ -296,6 +295,8 @@ class MyRobot(magicbot.MagicRobot):
             self.intimidator.go_drive_field()
 
     def teleopPeriodic(self) -> None:
+        pose = self.drivetrain.get_pose()
+        Positions.update_dynamic_positions(pose)
         self.handle_manipulator()
         self.handle_drivetrain()
 
