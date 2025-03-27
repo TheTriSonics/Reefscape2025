@@ -99,7 +99,7 @@ class ManipLocation:
         return max_diff < tol and wdiff < angtol
 
     def __eq__(self, other):
-        return self.within_tolerance(other, tol=1.5, angtol=2.0)
+        return self.within_tolerance(other, tol=3.0, angtol=2.0)
 
     def __sub__(self, other):
         return ManipLocation(
