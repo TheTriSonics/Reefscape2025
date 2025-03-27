@@ -1,3 +1,4 @@
+import time
 import math
 import wpilib
 from magicbot import tunable
@@ -16,9 +17,6 @@ from utilities import Waypoints
 class VisionComponent():
 
     drivetrain: DrivetrainComponent
-
-    all_cams = tunable(False)
-    center_only = tunable(False)
 
     def __init__(self) -> None:
         self.timer = Timer()
@@ -128,10 +126,12 @@ class VisionComponent():
     def execute(self) -> None:
         linear_baseline_std = 0.10  # meters
         angular_baseline_std = math.radians(10)  # degrees to radians
+        robot_pose = self.drivetrain.get_pose()
+        tic: float = time.perf_counter()
         if is_sim():
             angular_baseline_std = math.radians(30)  # degrees to radians
         setDevs = self.drivetrain.estimator.setVisionMeasurementStdDevs
-        tag_id, tag_dist = Waypoints.closest_reef_tag_id(self.drivetrain.get_pose())
+        tag_id, tag_dist = Waypoints.closest_reef_tag_id(robot_pose)
         # Check the center camera first -- If we're trusting it entirely
         # then we won't even process the others ones.
         res = self.camera_fc.getLatestResult()
@@ -146,6 +146,7 @@ class VisionComponent():
             pupdate = self.pose_estimator_fc.update(res)
             if pupdate is not None:
                 twod_pose = pupdate.estimatedPose.toPose2d()
+                # TODO: Publish pose to dashboard/NT
                 avg_dist = best_target.getBestCameraToTarget().translation().norm()
                 std_factor = (avg_dist**2)
                 std_xy = linear_baseline_std * std_factor
@@ -153,16 +154,15 @@ class VisionComponent():
                 setDevs((std_xy, std_xy, std_rot))
                 ts = self.timer.getTimestamp() - res.getLatencyMillis() / 1000.0
                 self.drivetrain.estimator.addVisionMeasurement(twod_pose, ts)
-                self.center_only = True
-                self.all_cams = False
                 return
+        toc: float = time.perf_counter()
+        # print(f"Center camera took {toc-tic} seconds")
 
         # Use all cameras
+        tic: float = time.perf_counter()
         z = zip(
             self.cameras, self.pose_estimators, self.publishers
         )
-        self.center_only = False
-        self.all_cams = True
 
         for cam, pose_est, pub in z:
             results = cam.getAllUnreadResults()
@@ -170,15 +170,13 @@ class VisionComponent():
                 best_target = res.getBestTarget()
                 if best_target and (best_target.poseAmbiguity > 0.2):
                     # Skip using this pose in a vision update; it is too ambiguous
-                    # continue
-                    pass
+                    continue
 
                 pupdate = pose_est.update(res)
                 if pupdate:
                     twod_pose = pupdate.estimatedPose.toPose2d()
                     ts = self.timer.getTimestamp() - res.getLatencyMillis() / 1000.0
                     # Check if we're too far off for this to be valid
-                    robot_pose = self.drivetrain.get_pose()
                     pub.set(twod_pose)
                     dist = robot_pose.relativeTo(twod_pose).translation().norm()
                     # Reject poses that are more than 1 meter from current
@@ -186,8 +184,7 @@ class VisionComponent():
                         # Ok let's figure out a stddev for this
                         total_dist = 0.0
                         tag_count = len(res.getTargets())
-                        for t in res.getTargets():
-                            total_dist += t.getBestCameraToTarget().translation().norm()
+                        total_dist = sum(t.getBestCameraToTarget().translation().norm() for t in res.getTargets())
                         avg_dist = total_dist / tag_count
                         if avg_dist > 2.0 and not is_disabled():
                             continue  # Skip anything where the average tag is too far away
@@ -196,3 +193,5 @@ class VisionComponent():
                         std_rot = angular_baseline_std * std_factor
                         setDevs((std_xy, std_xy, std_rot))
                         self.drivetrain.estimator.addVisionMeasurement(twod_pose, ts)
+        toc: float = time.perf_counter()
+        # print(f"All cameras took {toc-tic} seconds")

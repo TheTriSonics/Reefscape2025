@@ -210,10 +210,9 @@ class DrivetrainComponent:
 
     chassis_speeds = magicbot.will_reset_to(ChassisSpeeds(0, 0, 0))
 
-    field: wpilib.Field2d
     logger: Logger
 
-    send_modules = magicbot.tunable(True)
+    send_modules = magicbot.tunable(False)
     snapping_to_heading = magicbot.tunable(False)
 
     def __init__(self) -> None:
@@ -350,7 +349,6 @@ class DrivetrainComponent:
             stateStdDevs=(0.01, 0.01, 0.01),  # How much to trust wheel odometry
             visionMeasurementStdDevs=(0.4, 0.4, 0.2),
         )
-        self.field_obj = self.field.getObject("fused_pose")
         self.set_pose(initial_pose)
         heading = 180 if is_red() else 0
         self.gyro.reset_heading(heading)
@@ -431,8 +429,9 @@ class DrivetrainComponent:
         # These limits should not change!
         # TODO Update based off real robot speeds.
         elevator_factor = 1.0
-        if self.elevator.get_position() > 10:
-            elevator_factor = 1.225 - (0.9 / 20) * self.elevator.get_position()
+        epos = self.elevator.get_position()
+        if epos > 10:
+            elevator_factor = 1.225 - (0.9 / 20) * epos 
             elevator_factor = max(0.20, elevator_factor)
         # ----------------------------------------
         # ---------------------------------------- 
@@ -493,7 +492,6 @@ class DrivetrainComponent:
     def update_odometry(self) -> None:
         self.estimator.update(self.gyro.get_Rotation2d(), self.get_module_positions())
 
-        self.field_obj.setPose(self.get_pose())
         self.publisher.set(self.get_pose())
         if self.send_modules:
             self.setpoints_publisher.set([module.state for module in self.modules])
@@ -504,8 +502,6 @@ class DrivetrainComponent:
             self.gyro.get_Rotation2d(), self.get_module_positions(), pose
         )
         self.publisher.set(pose)
-        self.field.setRobotPose(pose)
-        self.field_obj.setPose(pose)
 
     def reset_yaw(self) -> None:
         """Sets pose to current pose but with a heading of forwards"""
