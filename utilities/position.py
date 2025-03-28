@@ -6,7 +6,7 @@ from utilities.waypoints import Waypoints
 from choreo.trajectory import SwerveTrajectory as ChoreoSwerveTrajectory
 from choreo.trajectory import SwerveSample as ChoreoSwerveSample
 
-PS_DIST_OFFSET = 0.1
+PS_DIST_OFFSET = 0.5
 
 
 def reverse_choreo(traj: ChoreoSwerveTrajectory) -> ChoreoSwerveTrajectory:
@@ -172,7 +172,13 @@ class Positions:
         )
 
         barge_tag_id = 5 if is_red() else 14
-        barge_pose = Waypoints.get_tag_robot_away(barge_tag_id, face_at=True)
+        barge_pose = (
+            Waypoints.get_tag_robot_away(barge_tag_id, face_at=False).transformBy(
+                # We can change these translation values to tweak the barge
+                # scoring position
+                Transform2d(Translation2d(0.0, 0.0), Rotation2d(0))
+            )
+        )
         cls.BARGE_CENTER = barge_pose
         cls.BARGE_LEFT = Waypoints.shift_barge_left(barge_pose)
         cls.BARGE_RIGHT = Waypoints.shift_barge_right(barge_pose)
