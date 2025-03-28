@@ -33,7 +33,7 @@ class PhotoEyeComponent:
 
         if self.back_photoeye is False and self.front_photoeye is False:
             if self.coral_false_at < 0:
-                self.coral_false_at = now + 0.250
+                self.coral_false_at = now + 0.001
             elif self.coral_false_at < now:
                 self.coral_false_at = -1
                 self.coral_true_at = -1
