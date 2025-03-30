@@ -209,17 +209,11 @@ class RightCoral(AutonBase):
             self.manipulator.coral_mode()
             self.arm.target_pos = 90
             self.intimidator.go_drive_swoop(target_pose)
-        if self.arm.get_position() > 80:
+        if self.arm.get_position() > 70:
             self.manipulator.go_coral_prepare_score()
         if (self.at_pose(target_pose) and self.manipulator.at_position()
              or state_tm > 3.0):
             self.intake_control.go_coral_score()
-            ps_pose = Positions.PS_CLOSEST
-            curr_pose = self.drivetrain.get_pose()
-            backup_target = curr_pose.transformBy(Transform2d(-0.5, 0, Rotation2d(0)))
-            backup_pose = Pose2d(backup_target.translation(), ps_pose.rotation())
-            self.backup_pose_pub.set(backup_pose)   
-            self.intimidator.prep_pp_trajectory(curr_pose, ps_pose, [backup_pose], max_vel=2.0, max_accel=1.5)  
         if self.photoeye.coral_held is False:
             self.coral_scored += 1
             self.next_state_now(self.to_backup)
@@ -227,6 +221,12 @@ class RightCoral(AutonBase):
     @state(must_finish=True)
     def to_backup(self, state_tm, initial_call):
         if initial_call:
+            ps_pose = Positions.PS_CLOSEST
+            curr_pose = self.drivetrain.get_pose()
+            backup_target = curr_pose.transformBy(Transform2d(-0.5, 0, Rotation2d(0)))
+            backup_pose = Pose2d(backup_target.translation(), ps_pose.rotation())
+            self.backup_pose_pub.set(backup_pose)   
+            self.intimidator.prep_pp_trajectory(curr_pose, ps_pose, [backup_pose], max_vel=2.0, max_accel=1.5)  
             self.intimidator.next_state_now(self.intimidator.follow_pp)
 
         if self.manipulator.reef_dist() > self.manipulator.reef_protection_dist:
