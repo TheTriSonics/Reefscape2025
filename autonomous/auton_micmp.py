@@ -84,7 +84,8 @@ class LeftCoral(AutonBase):
             self.intimidator.go_drive_swoop(target_pose)
         if self.arm.get_position() > 70:
             self.manipulator.go_coral_prepare_score()
-        if self.at_pose(target_pose) and self.manipulator.at_position():
+        if (self.at_pose(target_pose) and self.manipulator.at_position()
+            or state_tm > 3.0):
             self.intake_control.go_coral_score()
         if self.photoeye.coral_held is False:
             self.coral_scored += 1
@@ -94,10 +95,9 @@ class LeftCoral(AutonBase):
     def to_backup(self, state_tm, initial_call):
         if initial_call:
             ps_pose = Positions.PS_CLOSEST
-            reef_pose = Positions.REEF_CLOSEST
-            backup_target = reef_pose.transformBy(Transform2d(-0.5, 0, Rotation2d(0)))
-            backup_pose = Pose2d(backup_target.translation(), ps_pose.rotation())
             curr_pose = self.drivetrain.get_pose()
+            backup_target = curr_pose.transformBy(Transform2d(-0.5, 0, Rotation2d(0)))
+            backup_pose = Pose2d(backup_target.translation(), ps_pose.rotation())
             self.backup_pose_pub.set(backup_pose)   
             self.intimidator.prep_pp_trajectory(curr_pose, ps_pose, [backup_pose])
             self.intimidator.next_state_now(self.intimidator.follow_pp)
@@ -116,9 +116,6 @@ class LeftCoral(AutonBase):
             # it in intake already.
             if self.elevator.get_position() > 20:
                 self.manipulator.go_home()
-
-            self.intimidator.prep_pp_trajectory(curr_pose, Positions.PS_CLOSEST, max_vel=2.0, max_accel=1.5)
-            self.intimidator.next_state_now(self.intimidator.follow_pp.name)
         if self.photoeye.coral_held:
             self.next_state_now(self.to_face)
 
@@ -131,7 +128,9 @@ class LeftCoral(AutonBase):
             close=close
         )
         if initial_call:
-            self.intimidator.go_drive_swoop(target_pose)
+            self.intimidator.prep_pp_trajectory(self.drivetrain.get_pose(), target_pose, max_vel=3.0, max_accel=1.5)
+            self.intimidator.next_state_now(self.intimidator.follow_pp.name)
+            self.arm.target_pos = 90
         if self.manipulator.reef_dist() < 2.0:
             self.manipulator.go_coral_prepare_score()
         if self.at_pose(target_pose, 0.08) and self.manipulator.at_position():
@@ -149,7 +148,8 @@ class LeftCoral(AutonBase):
     @state(must_finish=True)
     def to_face_backup(self, state_tm, initial_call):
         if initial_call:
-            self.intimidator.go_drive_pose(Positions.PS_CLOSEST, aggressive=False)
+            self.intimidator.prep_pp_trajectory(self.drivetrain.get_pose(), Positions.PS_CLOSEST, max_vel=2.0, max_accel=1.5)
+            self.intimidator.next_state_now(self.intimidator.follow_pp.name)
         if self.manipulator.reef_dist() > self.manipulator.reef_protection_dist:
             self.manipulator.go_coral_intake()
             if self.elevator.get_position() <= 20:
@@ -203,6 +203,7 @@ class RightCoral(AutonBase):
     # Leave the initial starting position and head to the Reef to score
     @state(must_finish=True, first=True)
     def to_reef(self, state_tm, initial_call):
+        self.curr_left = False
         target_pose = Positions.get_facepos(self.first_face, left=True, close=True)
         if initial_call:
             self.manipulator.set_coral_level(4)
@@ -212,7 +213,7 @@ class RightCoral(AutonBase):
         if self.arm.get_position() > 70:
             self.manipulator.go_coral_prepare_score()
         if (self.at_pose(target_pose) and self.manipulator.at_position()
-             or state_tm > 3.0):
+            or state_tm > 3.0):
             self.intake_control.go_coral_score()
         if self.photoeye.coral_held is False:
             self.coral_scored += 1
@@ -255,7 +256,9 @@ class RightCoral(AutonBase):
         if initial_call:
             self.intimidator.prep_pp_trajectory(self.drivetrain.get_pose(), target_pose, max_vel=3.0, max_accel=1.5)
             self.intimidator.next_state_now(self.intimidator.follow_pp.name)
+            self.arm.target_pos = 90
         if self.manipulator.reef_dist() < 2.0:
+            pass  # Do nothing for now; we move elevator earlier to clear Batman's vision
             self.manipulator.go_coral_prepare_score()
         if self.at_pose(target_pose, 0.08) and self.manipulator.at_position():
             self.intake_control.go_coral_score()
@@ -272,7 +275,8 @@ class RightCoral(AutonBase):
     @state(must_finish=True)
     def to_face_backup(self, state_tm, initial_call):
         if initial_call:
-            self.intimidator.go_drive_pose(Positions.PS_CLOSEST, aggressive=False)
+            self.intimidator.prep_pp_trajectory(self.drivetrain.get_pose(), Positions.PS_CLOSEST, max_vel=2.0, max_accel=1.5)
+            self.intimidator.next_state_now(self.intimidator.follow_pp.name)
         if self.manipulator.reef_dist() > self.manipulator.reef_protection_dist:
             self.manipulator.go_coral_intake()
             if self.elevator.get_position() <= 20:

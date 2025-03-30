@@ -6,7 +6,7 @@ from utilities.waypoints import Waypoints
 from choreo.trajectory import SwerveTrajectory as ChoreoSwerveTrajectory
 from choreo.trajectory import SwerveSample as ChoreoSwerveSample
 
-PS_DIST_OFFSET = 0.5
+PS_DIST_OFFSET = 0.25
 
 
 def reverse_choreo(traj: ChoreoSwerveTrajectory) -> ChoreoSwerveTrajectory:
