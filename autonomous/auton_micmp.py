@@ -327,7 +327,7 @@ class MiddleDunk(AutonBase):
             self.manipulator.coral_mode()
             self.arm.target_pos = 90
             self.intimidator.go_drive_swoop(target_pose)
-        if self.arm.get_position() > 80:
+        if self.arm.get_position() > 70:
             self.manipulator.go_coral_prepare_score()
         if self.at_pose(target_pose) and self.manipulator.at_position():
             self.intake_control.go_coral_score()
@@ -339,10 +339,10 @@ class MiddleDunk(AutonBase):
     def to_backup(self, state_tm, initial_call):
         if initial_call:
             reef_pose = Positions.REEF_A_LEFT_CLOSE
-            backup_pose = reef_pose.transformBy(Transform2d(-1.0, 0, Rotation2d(0)))
+            backup_pose = reef_pose.transformBy(Transform2d(-1.5, 0, Rotation2d(0)))
             curr_pose = self.drivetrain.get_pose()
             self.backup_pose_pub.set(backup_pose)   
-            self.intimidator.prep_pp_trajectory(curr_pose, backup_pose)
+            self.intimidator.prep_pp_trajectory(curr_pose, backup_pose ,max_vel=2.0, max_accel=1.5)
             self.intimidator.next_state_now(self.intimidator.follow_pp)
 
         if self.manipulator.reef_dist() > self.manipulator.reef_protection_dist:
@@ -353,6 +353,7 @@ class MiddleDunk(AutonBase):
     @state(must_finish=True)
     def get_algae(self, initial_call, state_tm):
         if initial_call:
+            self.intake_control.go_algae_intake()
             self.intimidator.go_drive_swoop(Positions.REEF_A)
         if self.photoeye.algae_held is True:
             self.manipulator.set_algae_barge()
