@@ -327,7 +327,7 @@ class Intimidator(StateMachine):
             print('choreo path nailed it')
             self.next_state(self.completed)
 
-    def find_choreo_trajectory(self, curr_pose: Pose2d, target_pose: Pose2d) -> tuple[ChoreoSwerveTrajectory, str]:
+    def find_choreo_trajectory(self, curr_pose: Pose2d, target_pose: Pose2d) -> tuple[ChoreoSwerveTrajectory | None, str | None]:
         scores: dict[str, float] = {}
         self.target_pose_pub.set(self.target_pose)
         for traj in self.trajectories:
