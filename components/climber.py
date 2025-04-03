@@ -32,7 +32,7 @@ class ClimberComponent:
     speed = tunable(0.0)
 
     direction = ClimbDirection.NONE
-    lower_limit = tunable(-8.0)
+    lower_limit = tunable(-20.0)
     upper_limit = tunable(135.0)
 
     def __init__(self):
