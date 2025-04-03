@@ -134,6 +134,7 @@ class MyRobot(magicbot.MagicRobot):
         # self.leds.rainbow()
         self.spiderman.engage()
         self.intimidator.engage()
+        self.manipulator.coral_mode()
         self.manipulator.engage()
         self.manipulator.go_hold()
         Positions.update_alliance_positions()
