@@ -46,7 +46,7 @@ class ReefscapeOperator(ReefscapeOperatorBase):
         return self.getRightBumperButtonPressed()
     
     def getAlgaeMode(self) -> bool:
-        return self.getLeftBumperButtonPressed()
+        return self.getLeftBumperButton()
     
     def getHeightPlacement1(self) -> bool:
         return self.getPOV() == 180
