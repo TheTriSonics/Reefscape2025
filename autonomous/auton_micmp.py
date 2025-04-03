@@ -175,7 +175,7 @@ class RightCoral(AutonBase):
     at_pose_counter = tunable(0)
 
     MODE_NAME = 'MICMP - Right Coral'
-    DEFAULT = False
+    DEFAULT = True
     
     def __init__(self):
         self.coral_scored = 0
@@ -303,7 +303,7 @@ class MiddleSafe(AutonBase):
     at_pose_counter = tunable(0)
 
     MODE_NAME = 'MICMP - Middle Safe'
-    DEFAULT = True
+    DEFAULT = False
     
     def __init__(self):
         self.coral_scored = 0
