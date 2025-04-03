@@ -223,17 +223,17 @@ class MyRobot(magicbot.MagicRobot):
 
         # Enable the climber controls only in the last 20 seconds
         self.match_time = wpilib.DriverStation.getMatchTime()
-        if self.match_time <= 0.0:
-            if self.operator_controller.getBButton() and self.operator_controller.getXButton():
-                # Engage the climber controller
-                self.spiderman.go_break_intake()
+        #if self.match_time <= 0.0:
+        if self.operator_controller.getBButton() and self.operator_controller.getXButton():
+            # Engage the climber controller
+            self.spiderman.go_break_intake()
 
-            self.spiderman.tweak_up = False
-            self.spiderman.tweak_down = False
-            if self.operator_controller.getBButton():
-                self.spiderman.tweak_up = True
-            elif self.operator_controller.getXButton():
-                self.spiderman.tweak_down = True
+        self.spiderman.tweak_up = False
+        self.spiderman.tweak_down = False
+        if self.operator_controller.getBButton():
+            self.spiderman.tweak_up = True
+        elif self.operator_controller.getXButton():
+            self.spiderman.tweak_down = True
 
         # Climber overrides
         # if self.operator_controller.getRawButton(3):

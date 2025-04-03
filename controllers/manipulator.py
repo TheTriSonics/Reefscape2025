@@ -94,7 +94,8 @@ class Manipulator(StateMachine):
     def algae_mode(self):
         self.game_piece_mode = GamePieces.ALGAE
         self.game_mode.set('algae')
-        self.go_home()
+        self.set_algae_level2()
+        self.next_state_now(self.algae_intake)
 
     def go_hold(self):
         self._target_location = ManipLocation(
