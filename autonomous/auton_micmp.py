@@ -85,7 +85,7 @@ class LeftCoral(AutonBase):
         if self.arm.get_position() > 70:
             self.manipulator.go_coral_prepare_score()
         if (self.at_pose(target_pose) and self.manipulator.at_position()
-            or state_tm > 3.0):
+            or state_tm > 5.0):
             self.intake_control.go_coral_score()
         if self.photoeye.coral_held is False:
             self.coral_scored += 1
@@ -213,7 +213,7 @@ class RightCoral(AutonBase):
         if self.arm.get_position() > 70:
             self.manipulator.go_coral_prepare_score()
         if (self.at_pose(target_pose) and self.manipulator.at_position()
-            or state_tm > 3.0):
+            or state_tm > 5.0):
             self.intake_control.go_coral_score()
         if self.photoeye.coral_held is False:
             self.coral_scored += 1
