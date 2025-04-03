@@ -132,10 +132,10 @@ class MyRobot(magicbot.MagicRobot):
             wpilib.DriverStation.silenceJoystickConnectionWarning(True)
 
         # self.leds.rainbow()
-        self.manipulator.go_hold()
         self.spiderman.engage()
         self.intimidator.engage()
         self.manipulator.engage()
+        self.manipulator.go_hold()
         Positions.update_alliance_positions()
         
         # Determine which Joystick to use for the driver.
