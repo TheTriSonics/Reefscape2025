@@ -473,9 +473,7 @@ class MiddleDunk(AutonBase):
                 max_accel=1.00,
             )
             self.intimidator.next_state_now(self.intimidator.follow_pp)
-        if self.photoeye.algae_held is True or (
-            self.at_pose(Positions.REEF_A) and state_tm > 1.0
-        ):
+        if self.photoeye.algae_held is True or state_tm > 3.0:
             self.intake_control.go_algae_hold()
             self.next_state_now(self.score_in_barge)
     
